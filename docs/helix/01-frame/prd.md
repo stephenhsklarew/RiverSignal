@@ -6,13 +6,15 @@ dun:
 
 ## Summary
 
-RiverSignal is an AI-powered watershed intelligence copilot that transforms fragmented ecological monitoring data into management recommendations, restoration forecasts, and funder-ready reports. It serves watershed program managers, restoration ecologists, and agency staff in the Pacific Northwest who currently spend 15-25 hours/week manually interpreting field observations, GIS layers, and sensor feeds. The MVP targets watershed restoration intelligence for the Upper Klamath basin, ingesting iNaturalist observations, USGS hydrology, water quality stations, and intervention logs to answer questions like "Which tributaries show the strongest biological recovery since dam removal?" Success is measured by 40% reduction in monitoring interpretation time, quarterly reports generated in under 1 hour (down from 2-3 days), and 70%+ restoration forecast accuracy within one field season.
+RiverSignal is an AI-powered watershed intelligence copilot that transforms fragmented ecological monitoring data into management recommendations, restoration forecasts, and funder-ready reports. It serves watershed program managers, restoration ecologists, agency staff, and fishing guides in the Pacific Northwest who currently spend 15-25 hours/week manually interpreting field observations, GIS layers, and sensor feeds. The data platform is now operational with 15 ingestion pipelines feeding 2.2M records across 4 Oregon watersheds (Klamath, McKenzie, Deschutes, Metolius) from 15 public data sources into 8 normalized database tables. A fishing/angler use case has emerged as a high-value expansion beyond restoration professionals. The next phase targets the AI reasoning layer: answering questions like "Which tributaries show the strongest biological recovery since dam removal?" and "What's biting where on the Deschutes this week?" Success is measured by 40% reduction in monitoring interpretation time, quarterly reports generated in under 1 hour (down from 2-3 days), 70%+ restoration forecast accuracy within one field season, and angler engagement metrics.
 
 ## Problem and Goals
 
 ### Problem
 
 Organizations managing Pacific Northwest watersheds collect more ecological data than they can interpret. A typical watershed program manager with 3-5 active restoration sites spends 15-25 hours per week manually synthesizing iNaturalist exports, stream gauge readings, water quality CSVs, field notes, and acoustic recordings into management decisions. Quarterly funder reports take 2-3 analyst-days each because outcome evidence must be assembled from disconnected sources. Junior field staff cannot interpret monitoring data without senior review, creating a bottleneck: Oregon has ~40% fewer working restoration ecologists than a decade ago while citizen-science observation volume grows 20-30% annually. The result is delayed interventions (invasive species outbreaks discovered weeks late), weak outcome evidence (grant renewals at risk), and institutional knowledge loss when senior staff retire.
+
+**Validated by data platform build**: The fragmented-data problem is now proven, not hypothetical. Building the RiverSignal data platform required integrating 15 distinct public data sources (iNaturalist, USGS NWIS, WQP, EPA ATTAINS, NHDPlus HR, NWI, NIFC, MTBS, WBD, ODF, ODFW, OWRI, PRISM, Oregon DEQ, USFS) across 8 database tables to produce a unified watershed picture. No existing tool combines these sources, confirming the core fragmentation problem with concrete evidence: 2.2M records across 4 Oregon watersheds, each requiring different APIs, schemas, coordinate systems, and update cadences.
 
 ### Goals
 
@@ -30,6 +32,7 @@ Organizations managing Pacific Northwest watersheds collect more ecological data
 | Restoration forecast accuracy | 70%+ predictions confirmed next monitoring cycle | Automated prediction-vs-observation match scoring |
 | Invasive alert latency | Detection-to-alert within 48 hours of pattern emergence | Alert timestamp vs. triggering observation timestamps |
 | Pilot NPS | > 50 among active pilot users | Quarterly in-app survey of pilot watershed staff |
+| Angler engagement | 100+ weekly active fishing guide users within 6 months of fishing feature launch | In-app analytics |
 
 ### Non-Goals
 
@@ -61,6 +64,12 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 **Goals**: Evaluate which funded projects are delivering measurable ecological improvement, justify budget requests to legislature
 **Pain Points**: Receives inconsistent reporting formats across grantees; cannot compare restoration ROI across watersheds; outcome evidence is often anecdotal rather than quantified
 
+### Quaternary Persona: Alex -- Fly Fishing Guide
+
+**Role**: Licensed fishing guide running 150+ trips/year on the Deschutes and McKenzie
+**Goals**: Know which reaches have active fish, when stocking happens, water conditions, species distribution by stream segment
+**Pain Points**: Checks 5+ websites daily for stocking schedules, water flows, fishing reports; clients ask "what's biting where?" and he relies on word-of-mouth; no single source combines water conditions + species data + harvest trends
+
 ## Requirements
 
 ### Must Have (P0)
@@ -78,6 +87,7 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 2. **Intervention outcome memory**: Store and index past interventions and their ecological outcomes per site, enabling the reasoning engine to learn from historical success/failure patterns
 3. **Multi-site comparison dashboard**: Compare ecological indicators across managed sites to identify which restoration approaches are most effective
 4. **Acoustic biodiversity integration**: Ingest bird/frog audio classification results (from BirdNET or similar) as additional observation inputs
+5. **Fishing intelligence layer**: Species-by-reach distribution, sport catch harvest trends, stocking schedule alerts, and water condition correlation for angler decision support
 
 ### Nice to Have (P2)
 
@@ -141,9 +151,11 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 - **Frontend**: React 18 with MapLibre GL JS for map rendering, Vite 6 build
 - **Backend**: FastAPI on Python for reasoning and data pipelines, Node.js for real-time workspace API
 - **LLM Integration**: Claude API (Anthropic) for ecological reasoning and report generation; tool-using agent architecture with geospatial and data-query tools
-- **Data/Storage**: PostgreSQL 16 with PostGIS for geospatial data, TimescaleDB extension for time-series hydrology/water quality; S3-compatible object store for media (photos, audio, PDFs)
-- **Data Sources**: iNaturalist API v1, USGS Water Services REST API, Oregon Water Data Portal API
-- **GIS**: HUC12 watershed boundaries from USGS WBD, wetland layers from NWI, burn severity from MTBS
+- **Data/Storage**: PostgreSQL 17 with PostGIS 3.6.2 on port 5433; S3-compatible object store for media (photos, audio, PDFs)
+- **Data Sources (15 operational pipelines)**: iNaturalist API v1, USGS NWIS (stream gauges), Water Quality Portal (WQP), EPA ATTAINS (impaired waters), NHDPlus HR (stream flowlines), National Wetlands Inventory (NWI), NIFC/MTBS (fire perimeters and burn severity), USGS WBD (watershed boundaries), Oregon Dept of Forestry (ODF), Oregon Dept of Fish & Wildlife (ODFW sport catch/stocking), Oregon Watershed Restoration Inventory (OWRI), PRISM (climate), Oregon DEQ (water quality), USFS (land management)
+- **Database Tables (8)**: observations, time_series, interventions, fire_perimeters, stream_flowlines, impaired_waters, wetlands, watershed_boundaries
+- **Data Volume**: 2.2M records loaded across 4 watersheds (Klamath, McKenzie, Deschutes, Metolius)
+- **GIS**: HUC12 watershed boundaries from USGS WBD, wetland layers from NWI, burn severity from MTBS, stream flowlines from NHDPlus HR
 - **Platform Targets**: Web application; Chrome, Firefox, Safari latest; responsive but desktop-primary (field tablet secondary)
 
 ## Constraints, Assumptions, Dependencies
@@ -156,8 +168,9 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 
 ### Assumptions
 
-- iNaturalist observation density in Upper Klamath HUC12 boundaries is sufficient (>100 observations/quarter) to support meaningful ecological reasoning
-- USGS stream gauge and water quality stations in the Upper Klamath basin have >95% uptime and data availability
+- iNaturalist observation density in target watersheds is sufficient (>100 observations/quarter) to support meaningful ecological reasoning -- VALIDATED: all 4 watersheds exceed threshold by 10x
+- USGS stream gauge and water quality stations in target watersheds have >95% uptime and data availability -- VALIDATED: 98K+ time-series records loaded
+- Fishing/angler use case expands addressable market beyond restoration professionals
 - Watershed managers will adopt a map-first web interface rather than requiring integration into existing GIS desktop tools (ArcGIS, QGIS) for MVP
 - Claude API multimodal capabilities are sufficient for photo and document interpretation without fine-tuned models
 - One domain-expert advisor (restoration ecologist) is available for weekly feedback during MVP development
@@ -174,7 +187,8 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| iNaturalist observation density in Upper Klamath is too sparse for meaningful seasonal reasoning | Medium | High | Pre-validate by querying iNaturalist API for observation counts per HUC12 per quarter before committing to watershed; define minimum threshold of 50 observations/quarter; supplement with USGS biological data if needed |
+| iNaturalist observation density in target watersheds is too sparse for meaningful seasonal reasoning | MITIGATED | High | All 4 watersheds far exceed the 100/quarter threshold: Klamath avg 1,281/quarter, McKenzie 2,789, Deschutes 4,021, Metolius 900. Risk retired. |
+| Data volume (2.2M records) exceeds single LLM context capacity | High | High | Pre-aggregation and semantic search layer required; reasoning engine must work with summarized/filtered subsets rather than raw records; vector embeddings for observation search |
 | LLM ecological reasoning produces plausible but ecologically incorrect recommendations | High | High | Implement mandatory HITL review queue for all management recommendations; flag low-confidence outputs; weekly review sessions with domain advisor during pilot; track correction rate as quality metric |
 | Pilot customer (watershed council/agency) procurement cycle exceeds 90-day demo timeline | Medium | Medium | Identify 2-3 potential pilot partners in parallel; offer initial 60-day free evaluation period; target watershed councils (faster procurement than state agencies) for first engagement |
 | Senior ecologist domain advisor is unavailable during critical development sprints | Low | High | Front-load domain knowledge capture in first 2 weeks; build ecological reasoning test suite from advisor-validated examples; maintain written heuristic library |
@@ -183,10 +197,10 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 ## Open Questions
 
 - [ ] Which specific OWEB report template format should the MVP target? -- blocks FR-11 report generation design, ask OWEB program staff or pilot customer
-- [ ] What is the minimum observation density per HUC12 per quarter that produces useful ecological reasoning? -- blocks watershed selection validation, ask domain advisor after initial LLM experiments
+- [x] What is the minimum observation density per HUC12 per quarter that produces useful ecological reasoning? -- ANSWERED: All 4 watersheds exceed 100/quarter by 10x. Klamath avg 1,281/quarter, McKenzie 2,789, Deschutes 4,021, Metolius 900.
 - [ ] Should the MVP support tribal data sovereignty requirements (data residency, access controls for culturally sensitive species observations)? -- blocks FR-20 multi-tenancy design, ask Klamath Tribes natural resource team
 - [ ] Is BirdNET audio classification output available as a structured API or only as app-level results? -- blocks P1-4 acoustic integration scoping, ask BirdNET/Cornell team
-- [ ] What intervention history format do watershed councils currently use (if any standardized format exists)? -- blocks FR-6 intervention log schema, ask pilot customer
+- [x] What intervention history format do watershed councils currently use (if any standardized format exists)? -- ANSWERED: OWRI uses project_nbr with 5 related tables (activities, goals, metrics, results, species). 1,391 intervention records loaded, 805 with outcome results.
 
 ## Success Criteria
 
