@@ -15,10 +15,10 @@ from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
 from pipeline.models import Site
 
-# NHD ArcGIS REST service
-NHD_SERVICE = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer"
-# Layer 4 = Flowline - Small Scale (works with bbox queries)
-FLOWLINE_URL = f"{NHD_SERVICE}/4/query"
+# NHDPlus HR ArcGIS REST service (richer attributes than standard NHD)
+NHD_SERVICE = "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer"
+# Layer 3 = NetworkNHDFlowline (stream network with routing attributes)
+FLOWLINE_URL = f"{NHD_SERVICE}/3/query"
 
 # NLDI API (alternative for navigating upstream/downstream)
 NLDI_BASE = "https://labs.waterdata.usgs.gov/api/nldi/linked-data"
@@ -64,8 +64,9 @@ class NHDPlusAdapter(IngestionAdapter):
                             "outSR": "4326",
                             "spatialRel": "esriSpatialRelIntersects",
                             "where": "1=1",
-                            "outFields": "*",
-                            "f": "json",
+                            "outFields": "nhdplusid,gnis_name,streamorde,lengthkm,ftype,reachcode,totdasqkm,slope,hydroseq,fromnode,tonode",
+                            "outSR": "4326",
+                            "f": "geojson",
                             "resultRecordCount": "2000",
                             "resultOffset": str(offset),
                         })
@@ -87,13 +88,13 @@ class NHDPlusAdapter(IngestionAdapter):
 
                 with engine.connect() as conn:
                     for feat in features:
-                        attrs = feat.get("attributes", feat.get("properties", {}))
+                        attrs = feat.get("properties", feat.get("attributes", {}))
                         geom = feat.get("geometry")
 
                         if not geom:
                             continue
 
-                        # Convert ESRI JSON paths to GeoJSON MultiLineString
+                        # Handle both GeoJSON and ESRI JSON geometry formats
                         if "paths" in geom:
                             geojson_geom = {
                                 "type": "MultiLineString",
@@ -109,13 +110,12 @@ class NHDPlusAdapter(IngestionAdapter):
                         else:
                             continue
 
-                        # NHD server returns uppercase field names
-                        reach_code = attrs.get("REACHCODE") or attrs.get("reachcode", "")
-                        gnis_name = attrs.get("GNIS_NAME") or attrs.get("gnis_name", "")
-                        stream_order = attrs.get("StreamOrde") or attrs.get("streamorde")
-                        length_km = attrs.get("LENGTHKM") or attrs.get("lengthkm")
-                        ftype = str(attrs.get("FTYPE") or attrs.get("ftype", ""))
-                        perm_id = attrs.get("Permanent_Identifier") or attrs.get("permanent_identifier", "")
+                        reach_code = attrs.get("reachcode") or attrs.get("REACHCODE", "")
+                        gnis_name = attrs.get("gnis_name") or attrs.get("GNIS_NAME", "")
+                        stream_order = attrs.get("streamorde") or attrs.get("StreamOrde")
+                        length_km = attrs.get("lengthkm") or attrs.get("LENGTHKM")
+                        ftype = str(attrs.get("ftype") or attrs.get("FTYPE", ""))
+                        perm_id = attrs.get("nhdplusid") or attrs.get("Permanent_Identifier", "")
 
                         try:
                             conn.execute(UPSERT_SQL, {
@@ -127,8 +127,13 @@ class NHDPlusAdapter(IngestionAdapter):
                                 "ftype": ftype,
                                 "geojson": json.dumps(geojson_geom),
                                 "data_payload": json.dumps({
-                                    "permanent_id": perm_id,
+                                    "nhdplusid": perm_id,
                                     "ftype_desc": "StreamRiver" if ftype == "460" else "ArtificialPath" if ftype == "558" else ftype,
+                                    "drainage_area_sqkm": attrs.get("totdasqkm") or attrs.get("TotDASqKM"),
+                                    "slope": attrs.get("slope") or attrs.get("SLOPE"),
+                                    "hydroseq": attrs.get("hydroseq") or attrs.get("Hydroseq"),
+                                    "fromnode": attrs.get("fromnode") or attrs.get("FromNode"),
+                                    "tonode": attrs.get("tonode") or attrs.get("ToNode"),
                                 }),
                             })
                             created += 1
