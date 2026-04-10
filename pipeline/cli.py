@@ -36,7 +36,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -48,6 +48,7 @@ def ingest(source: str, watershed: str):
     """Run ingestion pipeline for a data source."""
     from pipeline.ingest.biodata import BioDataAdapter
     from pipeline.ingest.fish_passage import FishPassageAdapter
+    from pipeline.ingest.fishing import FishingDataAdapter
     from pipeline.ingest.inaturalist import INaturalistAdapter
     from pipeline.ingest.spatial import ImpairedWatersAdapter, WatershedBoundaryAdapter, WetlandsAdapter
     from pipeline.ingest.mtbs import MTBSAdapter
@@ -71,6 +72,7 @@ def ingest(source: str, watershed: str):
         "restoration": RestorationAdapter,
         "fish_passage": FishPassageAdapter,
         "prism": PRISMAdapter,
+        "fishing": FishingDataAdapter,
         "impaired": ImpairedWatersAdapter,
         "wetlands": WetlandsAdapter,
         "wbd": WatershedBoundaryAdapter,
