@@ -1,0 +1,25 @@
+[project]
+name = "riversignal-platform"
+version = "0.1.0"
+description = "RiverSignal data ingestion and watershed intelligence platform"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27",
+    "sqlalchemy[asyncio]>=2.0",
+    "geoalchemy2>=0.15",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.14",
+    "click>=8.1",
+    "python-dotenv>=1.0",
+    "rich>=13.0",
+]
+
+[project.scripts]
+riversignal = "pipeline.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pipeline*"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
