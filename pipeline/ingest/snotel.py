@@ -19,6 +19,8 @@ ELEMENTS = {
     "PREC": ("precipitation_cumulative", "in"),
     "TOBS": ("air_temperature", "degF"),
     "TAVG": ("air_temperature_avg", "degF"),
+    "SMS": ("soil_moisture", "pct"),
+    "STO": ("soil_temperature", "degF"),
 }
 
 
