@@ -62,72 +62,70 @@ class BioDataAdapter(IngestionAdapter):
         params = {
             "bBox": f"{bbox['west']},{bbox['south']},{bbox['east']},{bbox['north']}",
             "startDateLo": start_date,
+            "sampleMedia": "Biological",
+            "dataProfile": "biological",
             "mimeType": "csv",
             "zip": "no",
+            "sorted": "no",
         }
 
-        with httpx.Client(timeout=300, follow_redirects=True) as client:
-            console.print("    fetching WQP biological data...")
+        with httpx.Client(timeout=600, follow_redirects=True) as client:
+            console.print("    fetching WQP biological data (may be large)...")
 
-            # Biological data uses a separate endpoint and/or dataProfile
-            urls = [
-                (f"{WQP_BASE}/data/biologicaldata/Result/search", {}),
-                (f"{WQP_BASE}/wqx3/Result/search", {"dataProfile": "biological"}),
-                (f"{WQP_BASE}/data/Result/search", {"dataProfile": "biological"}),
-                (f"{WQP_BASE}/data/Result/search", {"sampleMedia": "Biological"}),
-                (f"{WQP_BASE}/wqx3/Result/search", {"sampleMedia": "Biological"}),
-            ]
-
+            url = f"{WQP_BASE}/data/Result/search"
             resp = None
-            for url, extra_params in urls:
-                try:
-                    merged = {**params, **extra_params}
-                    resp = client.get(url, params=merged)
-                    if resp.status_code == 200 and len(resp.text) > 100 and not resp.text.strip().startswith("<!"):
-                        console.print(f"    using endpoint: {url.split('.us')[1]}")
-                        break
-                    if resp.status_code == 204:
-                        console.print("    no biological data found")
-                        return 0, 0
-                    resp = None
-                except httpx.HTTPError:
-                    resp = None
-                    continue
-
-            if resp is None or resp.status_code != 200:
-                console.print("    [yellow]WQP biological endpoint unavailable[/yellow]")
+            try:
+                resp = client.get(url, params=params)
+            except httpx.HTTPError as e:
+                console.print(f"    [yellow]WQP error: {e}[/yellow]")
                 return 0, 0
 
-            lines = resp.text.strip().split("\n")
-            if len(lines) < 2:
+            if resp is None or resp.status_code not in (200, 204):
+                console.print(f"    [yellow]WQP returned {resp.status_code if resp else 'no response'}[/yellow]")
+                return 0, 0
+            if resp.status_code == 204:
+                console.print("    no biological data found")
+                return 0, 0
+
+            # Handle zip response
+            content_type = resp.headers.get("content-type", "")
+            if "zip" in content_type or resp.content[:2] == b"PK":
+                import io, zipfile
+                zf = zipfile.ZipFile(io.BytesIO(resp.content))
+                csv_name = [n for n in zf.namelist() if n.endswith(".csv")][0]
+                csv_text = zf.read(csv_name).decode("utf-8", errors="replace")
+            else:
+                csv_text = resp.text
+
+            import csv as csvmod
+            import io
+
+            reader = csvmod.DictReader(io.StringIO(csv_text))
+            rows_list = list(reader)
+            if not rows_list:
                 console.print("    no biological records")
                 return 0, 0
 
-            header = [h.strip('"') for h in lines[0].split(",")]
-            col = {h: i for i, h in enumerate(header)}
-
-            console.print(f"    parsing {len(lines) - 1} biological records...")
+            console.print(f"    parsing {len(rows_list)} biological records...")
 
             with engine.connect() as conn:
                 batch = 0
-                for line in lines[1:]:
-                    fields = _parse_csv_line(line)
-
-                    station = _get(fields, col, "MonitoringLocationIdentifier")
-                    activity_id = _get(fields, col, "ActivityIdentifier")
-                    date_str = _get(fields, col, "ActivityStartDate")
-                    taxon = _get(fields, col, "SubjectTaxonomicName")
-                    char_name = _get(fields, col, "CharacteristicName")
-                    result_val = _get(fields, col, "ResultMeasureValue")
-                    result_unit = _get(fields, col, "ResultMeasure/MeasureUnitCode")
-                    sample_method = _get(fields, col, "SampleCollectionMethod/MethodIdentifier")
-                    lat = _get(fields, col, "ActivityLocation/LatitudeMeasure") or _get(fields, col, "LatitudeMeasure")
-                    lon = _get(fields, col, "ActivityLocation/LongitudeMeasure") or _get(fields, col, "LongitudeMeasure")
+                for row in rows_list:
+                    station = row.get("MonitoringLocationIdentifier", "")
+                    activity_id = row.get("ActivityIdentifier", "")
+                    date_str = row.get("ActivityStartDate", "")
+                    taxon = row.get("SubjectTaxonomicName", "")
+                    char_name = row.get("CharacteristicName", "")
+                    result_val = row.get("ResultMeasureValue", "")
+                    result_unit = row.get("ResultMeasure/MeasureUnitCode", "")
+                    sample_method = row.get("SampleCollectionMethod/MethodIdentifier", "")
+                    assemblage = row.get("AssemblageSampledName", "")
+                    lat = row.get("ActivityLocation/LatitudeMeasure", "")
+                    lon = row.get("ActivityLocation/LongitudeMeasure", "")
 
                     if not date_str:
                         continue
 
-                    # Build unique source ID from activity + taxon/characteristic
                     source_id = f"bio_{station}_{activity_id}_{taxon or char_name}".replace(" ", "_")[:255]
 
                     try:
@@ -136,17 +134,21 @@ class BioDataAdapter(IngestionAdapter):
                     except (ValueError, TypeError):
                         lat_f, lon_f = None, None
 
-                    # Determine iconic taxon from characteristic name or subject
-                    iconic = _classify_taxon(taxon, char_name)
+                    iconic = _classify_taxon(taxon, char_name, assemblage)
 
                     payload = {
                         "station": station,
                         "activity_id": activity_id,
+                        "assemblage": assemblage,
                         "characteristic": char_name,
                         "value": result_val,
                         "unit": result_unit,
                         "method": sample_method,
                         "subject_taxon": taxon,
+                        "group_count": row.get("GroupSummaryCountWeight/MeasureValue", ""),
+                        "tolerance": row.get("TaxonomicPollutionTolerance", ""),
+                        "feeding_group": row.get("FunctionalFeedingGroupName", ""),
+                        "trophic_level": row.get("TrophicLevelName", ""),
                     }
 
                     try:
@@ -181,10 +183,10 @@ def _get(fields: list, col: dict, name: str) -> str | None:
     return val if val else None
 
 
-def _classify_taxon(taxon: str | None, char_name: str | None) -> str | None:
-    if not taxon and not char_name:
+def _classify_taxon(taxon: str | None, char_name: str | None, assemblage: str | None = None) -> str | None:
+    if not taxon and not char_name and not assemblage:
         return None
-    text = (taxon or "") + " " + (char_name or "")
+    text = (taxon or "") + " " + (char_name or "") + " " + (assemblage or "")
     text_lower = text.lower()
     if any(w in text_lower for w in ["ephemeroptera", "plecoptera", "trichoptera", "chironomidae", "macroinvertebrate", "benthic"]):
         return "Insecta"
