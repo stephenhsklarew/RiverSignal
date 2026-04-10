@@ -6,7 +6,6 @@ from datetime import datetime
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     DateTime,
-    Enum,
     Float,
     Index,
     Integer,
@@ -51,12 +50,7 @@ class Observation(Base):
     site_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), index=True
     )
-    source_type: Mapped[str] = mapped_column(
-        Enum(
-            "inaturalist", "usgs_bio", "manual_csv", "manual_pdf",
-            name="observation_source_type",
-        )
-    )
+    source_type: Mapped[str] = mapped_column(String(50))
     source_id: Mapped[str] = mapped_column(String(255))
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     taxon_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -94,9 +88,7 @@ class TimeSeries(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     value: Mapped[float] = mapped_column(Float)
     unit: Mapped[str] = mapped_column(String(50))
-    source_type: Mapped[str] = mapped_column(
-        Enum("usgs", "owdp", "manual_csv", name="timeseries_source_type")
-    )
+    source_type: Mapped[str] = mapped_column(String(50))
     quality_flag: Mapped[str | None] = mapped_column(String(50), nullable=True)
     ingested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -162,10 +154,7 @@ class IngestionJob(Base):
         UUID(as_uuid=True), index=True
     )
     source_type: Mapped[str] = mapped_column(String(50))
-    status: Mapped[str] = mapped_column(
-        Enum("pending", "running", "completed", "failed", name="job_status"),
-        default="pending",
-    )
+    status: Mapped[str] = mapped_column(String(20), default="pending")
     started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

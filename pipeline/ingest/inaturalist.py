@@ -5,15 +5,36 @@ import uuid
 from datetime import datetime, timezone
 
 import httpx
-from geoalchemy2 import WKTElement
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import text
 
+from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
-from pipeline.models import Observation, Site
+from pipeline.models import Site
 
 API_BASE = "https://api.inaturalist.org/v1"
 PAGE_SIZE = 200
 RATE_LIMIT_DELAY = 0.6  # seconds between requests (100 req/min limit)
+
+UPSERT_SQL = text("""
+    INSERT INTO observations (
+        id, site_id, source_type, source_id, observed_at,
+        taxon_name, taxon_id, taxon_rank, iconic_taxon,
+        location, latitude, longitude, quality_grade, data_payload
+    ) VALUES (
+        gen_random_uuid(), :site_id, 'inaturalist', :source_id, :observed_at,
+        :taxon_name, :taxon_id, :taxon_rank, :iconic_taxon,
+        CASE WHEN :latitude IS NOT NULL AND :longitude IS NOT NULL
+             THEN ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)
+             ELSE NULL END,
+        :latitude, :longitude, :quality_grade, CAST(:data_payload AS jsonb)
+    )
+    ON CONFLICT (source_type, source_id) DO UPDATE SET
+        taxon_name = EXCLUDED.taxon_name,
+        taxon_id = EXCLUDED.taxon_id,
+        taxon_rank = EXCLUDED.taxon_rank,
+        quality_grade = EXCLUDED.quality_grade,
+        data_payload = EXCLUDED.data_payload
+""")
 
 
 class INaturalistAdapter(IngestionAdapter):
@@ -42,17 +63,25 @@ class INaturalistAdapter(IngestionAdapter):
             params["d1"] = last_sync.strftime("%Y-%m-%d")
 
         created = 0
-        updated = 0
         total_fetched = 0
         last_id = 0
 
-        with httpx.Client(timeout=30) as client:
+        with httpx.Client(timeout=30) as client, engine.connect() as conn:
             while True:
                 if last_id > 0:
                     params["id_above"] = last_id
 
-                resp = client.get(f"{API_BASE}/observations", params=params)
-                resp.raise_for_status()
+                for attempt in range(5):
+                    resp = client.get(f"{API_BASE}/observations", params=params)
+                    if resp.status_code == 429:
+                        wait = 2 ** (attempt + 1)
+                        console.print(f"    [yellow]rate limited, waiting {wait}s...[/yellow]")
+                        time.sleep(wait)
+                        continue
+                    resp.raise_for_status()
+                    break
+                else:
+                    resp.raise_for_status()
                 data = resp.json()
 
                 results = data.get("results", [])
@@ -60,11 +89,12 @@ class INaturalistAdapter(IngestionAdapter):
                     break
 
                 for obs in results:
-                    c, u = self._upsert_observation(obs)
-                    created += c
-                    updated += u
+                    row = self._parse_observation(obs)
+                    conn.execute(UPSERT_SQL, row)
                     last_id = obs["id"]
 
+                conn.commit()
+                created += len(results)
                 total_fetched += len(results)
                 console.print(
                     f"    fetched {total_fetched}/{data.get('total_results', '?')} "
@@ -75,17 +105,14 @@ class INaturalistAdapter(IngestionAdapter):
                 if len(results) < PAGE_SIZE:
                     break
 
-                # Commit in batches
-                if total_fetched % 1000 == 0:
-                    self.session.flush()
-
                 time.sleep(RATE_LIMIT_DELAY)
 
-        console.print()  # newline after progress
-        self.session.flush()
-        return created, updated
+        console.print()
+        return created, 0
 
-    def _upsert_observation(self, obs: dict) -> tuple[int, int]:
+    def _parse_observation(self, obs: dict) -> dict:
+        import json
+
         source_id = str(obs["id"])
         lat = obs.get("geojson", {}).get("coordinates", [None, None])[1] if obs.get("geojson") else None
         lon = obs.get("geojson", {}).get("coordinates", [None, None])[0] if obs.get("geojson") else None
@@ -100,24 +127,18 @@ class INaturalistAdapter(IngestionAdapter):
         except (ValueError, AttributeError):
             observed_dt = datetime.now(timezone.utc)
 
-        location = None
-        if lat is not None and lon is not None:
-            location = WKTElement(f"POINT({lon} {lat})", srid=4326)
-
-        values = {
-            "site_id": self.site_id,
-            "source_type": "inaturalist",
+        return {
+            "site_id": str(self.site_id),
             "source_id": source_id,
             "observed_at": observed_dt,
             "taxon_name": taxon.get("name"),
             "taxon_id": taxon.get("id"),
             "taxon_rank": taxon.get("rank"),
             "iconic_taxon": taxon.get("iconic_taxon_name"),
-            "location": location,
             "latitude": lat,
             "longitude": lon,
             "quality_grade": obs.get("quality_grade"),
-            "data_payload": {
+            "data_payload": json.dumps({
                 "species_guess": obs.get("species_guess"),
                 "place_guess": obs.get("place_guess"),
                 "uri": obs.get("uri"),
@@ -125,20 +146,5 @@ class INaturalistAdapter(IngestionAdapter):
                 "num_identification_agreements": obs.get(
                     "num_identification_agreements", 0
                 ),
-            },
+            }),
         }
-
-        stmt = insert(Observation).values(**values)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["source_type", "source_id"],
-            set_={
-                "taxon_name": stmt.excluded.taxon_name,
-                "taxon_id": stmt.excluded.taxon_id,
-                "taxon_rank": stmt.excluded.taxon_rank,
-                "quality_grade": stmt.excluded.quality_grade,
-                "data_payload": stmt.excluded.data_payload,
-            },
-        )
-
-        self.session.execute(stmt)
-        return 1, 0
