@@ -49,11 +49,12 @@ class PRISMAdapter(IngestionAdapter):
         bbox = site.bbox
         last_sync = self.get_last_sync()
 
-        # Date range: last 2 years for initial, or since last sync
+        # Date range: last 6 months for initial, or since last sync
+        # (PRISM rasters are ~8MB each; 4 vars x 180 days = ~5.6GB per watershed)
         if last_sync:
             start = last_sync.date()
         else:
-            start = (datetime.now() - timedelta(days=365 * 2)).date()
+            start = (datetime.now() - timedelta(days=180)).date()
 
         end = (datetime.now() - timedelta(days=2)).date()  # PRISM has ~1 day lag
 
