@@ -90,11 +90,15 @@ class RestorationAdapter(IngestionAdapter):
         c1 = self._ingest_owri(site)
         created += c1
 
-        # 2. NOAA Restoration Atlas
+        # 2. Enrich OWRI records with related tables
+        if c1 > 0:
+            self._enrich_owri(site)
+
+        # 3. NOAA Restoration Atlas
         c2 = self._ingest_noaa(site)
         created += c2
 
-        # 3. PCSRF (salmon recovery projects)
+        # 4. PCSRF (salmon recovery projects)
         c3 = self._ingest_pcsrf(site)
         created += c3
 
@@ -286,6 +290,99 @@ class RestorationAdapter(IngestionAdapter):
             console.print(f"    NOAA: {created} projects")
 
         return created
+
+    def _enrich_owri(self, site: Site) -> None:
+        """Enrich OWRI project records with related tables (activities, goals, metrics, results, species)."""
+        console.print("    enriching OWRI projects with related data...")
+
+        # Get project_nbr values we just loaded
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT DISTINCT data_payload->>'project_id' as nbr
+                FROM observations WHERE source_type = 'owri' AND site_id = :sid
+            """), {"sid": str(self.site_id)}).fetchall()
+        our_nbrs = {r[0] for r in rows if r[0]}
+        if not our_nbrs:
+            return
+
+        # Build project_nbr -> internal project_id mapping via PROJECT_INFO
+        OWRI_PROJECT_INFO = OWRI_URL.replace("/5/query", "/28/query")
+        nbr_to_pid = {}
+        with httpx.Client(timeout=120) as client:
+            offset = 0
+            while True:
+                resp = client.get(OWRI_PROJECT_INFO, params={
+                    "where": "1=1", "outFields": "OBJECTID,project_nbr",
+                    "f": "json", "resultRecordCount": "2000", "resultOffset": str(offset),
+                })
+                for f in resp.json().get("features", []):
+                    a = f["attributes"]
+                    nbr_to_pid[str(a.get("project_nbr", ""))] = str(a.get("OBJECTID", ""))
+                if len(resp.json().get("features", [])) < 2000:
+                    break
+                offset += 2000
+
+        pid_to_nbr = {v: k for k, v in nbr_to_pid.items() if k in our_nbrs}
+
+        # Fetch related tables
+        OWRI_BASE = OWRI_URL.rsplit("/", 2)[0]
+        related = {
+            "18": ("activities", ["project_nbr", "activity_type", "activity", "description"], "project_nbr"),
+            "21": ("goals", ["project_id", "goal"], "project_id"),
+            "23": ("metrics", ["project_id", "metric", "unit", "quantity", "treatment"], "project_id"),
+            "29": ("results", ["project_id", "quantity", "activity_type", "result", "description", "unit"], "project_id"),
+            "30": ("species", ["project_id", "species", "scientific_name", "species_type"], "project_id"),
+        }
+
+        enrichment = {}
+        with httpx.Client(timeout=120) as client:
+            for tid, (tname, fields, key_field) in related.items():
+                offset = 0
+                while True:
+                    resp = client.get(f"{OWRI_BASE}/{tid}/query", params={
+                        "where": "1=1", "outFields": ",".join(fields),
+                        "f": "json", "resultRecordCount": "2000", "resultOffset": str(offset),
+                    })
+                    features = resp.json().get("features", [])
+                    if not features:
+                        break
+                    for feat in features:
+                        attrs = feat["attributes"]
+                        raw_key = str(attrs.get(key_field, ""))
+                        nbr = raw_key if key_field == "project_nbr" else pid_to_nbr.get(raw_key)
+                        if not nbr or nbr not in our_nbrs:
+                            continue
+                        if nbr not in enrichment:
+                            enrichment[nbr] = {t[0]: [] for t in related.values()}
+                        row = {f: attrs[f] for f in fields if f not in ("project_id", "project_nbr") and f in attrs}
+                        enrichment[nbr][tname].append(row)
+                    if len(features) < 2000:
+                        break
+                    offset += 2000
+
+        # Update records
+        with engine.connect() as conn:
+            updated = 0
+            for nbr, extra in enrichment.items():
+                row = conn.execute(text("""
+                    SELECT id, data_payload FROM observations
+                    WHERE source_type = 'owri' AND data_payload->>'project_id' = :nbr AND site_id = :sid
+                    LIMIT 1
+                """), {"nbr": nbr, "sid": str(self.site_id)}).fetchone()
+                if not row:
+                    continue
+                current = row[1] if isinstance(row[1], dict) else json.loads(row[1])
+                current["activities"] = extra.get("activities", [])
+                current["goals"] = [g["goal"] for g in extra.get("goals", []) if g.get("goal")]
+                current["metrics"] = extra.get("metrics", [])
+                current["results"] = extra.get("results", [])
+                current["species"] = extra.get("species", [])
+                conn.execute(text("""
+                    UPDATE observations SET data_payload = CAST(:payload AS jsonb) WHERE id = :id
+                """), {"id": str(row[0]), "payload": json.dumps(current)})
+                updated += 1
+            conn.commit()
+            console.print(f"    enriched {updated} projects with activities/goals/metrics/results/species")
 
     def _ingest_pcsrf(self, site: Site) -> int:
         """Ingest from PCSRF (Pacific Coastal Salmon Recovery Fund)."""
