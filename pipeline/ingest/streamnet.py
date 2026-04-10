@@ -1,17 +1,13 @@
 """StreamNet salmon data ingestion adapter.
 
-StreamNet (streamnet.org) provides coordinated salmon and steelhead
-population data for the Pacific Northwest. Their API requires a free
-API key from https://api.streamnet.org.
-
-Set STREAMNET_API_KEY environment variable to enable this adapter.
-Without a key, it falls back to GBIF salmon occurrence records.
+Uses the public ArcGIS REST services at gis.psmfc.org (no authentication
+required) for fish monitoring time series data (spawner counts, redd counts,
+abundance estimates) and GBIF for occurrence records from museum collections.
 """
 
 import json
-import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import text
@@ -20,23 +16,23 @@ from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
 from pipeline.models import Site
 
-STREAMNET_API = "https://api.streamnet.org/api/v1/ca.json"
+# Public ArcGIS REST services -- no auth required
+ARCGIS_BASE = "https://gis.psmfc.org/server/rest/services/StreamNet"
+# Table 5 = Trends4GIS_Escdata (escapement detail with counts)
+ESCDATA_URL = f"{ARCGIS_BASE}/Fish_Monitoring_Time_Series_Data/MapServer/5/query"
+# Table 4 = Trends4GIS (monitoring locations and metadata)
+TRENDS_URL = f"{ARCGIS_BASE}/Fish_Monitoring_Time_Series_Data/MapServer/4/query"
+# Layer 0 = point locations
+POINTS_URL = f"{ARCGIS_BASE}/Fish_Monitoring_Time_Series_Data/MapServer/0/query"
+
 GBIF_API = "https://api.gbif.org/v1/occurrence/search"
 
 SALMON_SPECIES = [
-    ("Oncorhynchus tshawytscha", "Chinook salmon"),
-    ("Oncorhynchus kisutch", "Coho salmon"),
-    ("Oncorhynchus mykiss", "Steelhead/Rainbow trout"),
-    ("Oncorhynchus nerka", "Sockeye/Kokanee"),
-    ("Oncorhynchus clarkii", "Cutthroat trout"),
-    ("Salvelinus confluentus", "Bull trout"),
-    ("Salvelinus fontinalis", "Brook trout"),
-    ("Salmo trutta", "Brown trout"),
-    ("Prosopium williamsoni", "Mountain whitefish"),
-    ("Lampetra tridentata", "Pacific lamprey"),
+    "Chinook salmon", "Coho salmon", "Steelhead",
+    "Sockeye salmon", "Bull trout", "Pacific lamprey",
 ]
 
-UPSERT_SQL = text("""
+UPSERT_OBS_SQL = text("""
     INSERT INTO observations (
         id, site_id, source_type, source_id, observed_at,
         taxon_name, iconic_taxon,
@@ -57,96 +53,166 @@ UPSERT_SQL = text("""
         data_payload = EXCLUDED.data_payload
 """)
 
+UPSERT_TS_SQL = text("""
+    INSERT INTO time_series (
+        id, site_id, station_id, parameter, timestamp, value, unit, source_type
+    ) VALUES (
+        gen_random_uuid(), :site_id, :station_id, :parameter, :timestamp,
+        :value, :unit, 'streamnet'
+    )
+    ON CONFLICT (site_id, station_id, parameter, timestamp) DO UPDATE SET
+        value = EXCLUDED.value
+""")
+
 
 class StreamNetAdapter(IngestionAdapter):
     source_type = "streamnet"
 
     def ingest(self) -> tuple[int, int]:
-        api_key = os.environ.get("STREAMNET_API_KEY")
-        if api_key:
-            return self._ingest_streamnet(api_key)
-        else:
-            console.print("    [yellow]STREAMNET_API_KEY not set, using GBIF fallback[/yellow]")
-            return self._ingest_gbif()
-
-    def _ingest_streamnet(self, api_key: str) -> tuple[int, int]:
-        """Ingest from StreamNet Coordinated Assessments API."""
-        site = self.session.get(Site, self.site_id)
-        if not site:
-            raise ValueError(f"Site {self.site_id} not found")
-
-        created = 0
-        with httpx.Client(timeout=60) as client:
-            # Fetch NOSA (Natural Origin Spawner Abundance) data
-            for table_id in ["NOSA", "SAR", "RperS"]:
-                page = 1
-                while True:
-                    resp = client.get(STREAMNET_API, params={
-                        "table_id": table_id,
-                        "XLoc_State": "OR",
-                        "api_key": api_key,
-                        "per_page": 500,
-                        "page": page,
-                    })
-                    if resp.status_code != 200:
-                        break
-
-                    records = resp.json()
-                    if not records:
-                        break
-
-                    with engine.connect() as conn:
-                        for rec in records:
-                            lat = rec.get("Latitude")
-                            lon = rec.get("Longitude")
-                            bbox = site.bbox
-                            if lat and lon:
-                                if not (bbox["south"] <= float(lat) <= bbox["north"] and
-                                        bbox["west"] <= float(lon) <= bbox["east"]):
-                                    continue
-
-                            source_id = f"sn_{table_id}_{rec.get('id', page)}"
-                            year = rec.get("SpawningYear") or rec.get("OutmigrationYear") or "2020"
-
-                            conn.execute(UPSERT_SQL, {
-                                "site_id": str(self.site_id),
-                                "source_type": "streamnet",
-                                "source_id": source_id,
-                                "observed_at": f"{year}-01-01",
-                                "taxon_name": rec.get("CommonName") or rec.get("Species"),
-                                "latitude": float(lat) if lat else None,
-                                "longitude": float(lon) if lon else None,
-                                "quality_grade": "professional",
-                                "data_payload": json.dumps({
-                                    "table": table_id,
-                                    "population": rec.get("CommonPopName"),
-                                    "run": rec.get("Run"),
-                                    "abundance": rec.get("NOSAij"),
-                                    "method": rec.get("MethodNumber"),
-                                }),
-                            })
-                            created += 1
-
-                        conn.commit()
-
-                    console.print(f"    {table_id}: page {page}, {created} total")
-                    if len(records) < 500:
-                        break
-                    page += 1
-
-        return created, 0
-
-    def _ingest_gbif(self) -> tuple[int, int]:
-        """Fallback: ingest salmon occurrence records from GBIF."""
         site = self.session.get(Site, self.site_id)
         if not site or not site.bbox:
             raise ValueError(f"Site {self.site_id} has no bounding box configured")
 
+        created = 0
+
+        # 1. Fetch fish monitoring time series from ArcGIS (public, no auth)
+        c1 = self._ingest_arcgis_monitoring(site)
+        created += c1
+
+        # 2. Fetch GBIF fish occurrence records (non-iNaturalist)
+        c2 = self._ingest_gbif(site)
+        created += c2
+
+        return created, 0
+
+    def _ingest_arcgis_monitoring(self, site: Site) -> int:
+        """Fetch spawner counts, redd counts, abundance from StreamNet ArcGIS."""
         bbox = site.bbox
         created = 0
 
+        # Build stream name queries based on watershed
+        stream_queries = {
+            "klamath": "StreamName LIKE '%Klamath%' OR StreamName LIKE '%Williamson%' OR StreamName LIKE '%Sprague%'",
+            "mckenzie": "StreamName LIKE '%McKenzie%'",
+            "deschutes": "StreamName LIKE '%Deschutes%' OR StreamName LIKE '%Crooked%'",
+            "metolius": "StreamName LIKE '%Metolius%'",
+        }
+
+        where = stream_queries.get(site.watershed, f"StreamName LIKE '%{site.name.split()[0]}%'")
+
+        import time
+
+        with httpx.Client(timeout=120, verify=True) as client:
+            console.print("    fetching StreamNet fish monitoring data...")
+
+            offset = 0
+            while True:
+                resp = None
+                for attempt in range(3):
+                    try:
+                        resp = client.get(TRENDS_URL, params={
+                            "where": where,
+                            "outFields": "*",
+                            "f": "json",
+                            "resultRecordCount": 2000,
+                            "resultOffset": offset,
+                        })
+                        break
+                    except (httpx.ConnectError, httpx.ReadTimeout):
+                        wait = 5 * (attempt + 1)
+                        console.print(f"    [yellow]connection error, retrying in {wait}s...[/yellow]")
+                        time.sleep(wait)
+
+                if resp is None or resp.status_code != 200:
+                    status = resp.status_code if resp else "no response"
+                    console.print(f"    [yellow]ArcGIS unavailable ({status}), skipping monitoring data[/yellow]")
+                    break
+
+                data = resp.json()
+                features = data.get("features", [])
+                if not features:
+                    break
+
+                console.print(f"    found {len(features)} monitoring records (offset {offset})")
+
+                with engine.connect() as conn:
+                    for feat in features:
+                        attrs = feat.get("attributes", {})
+                        geom = feat.get("geometry", {})
+
+                        species = attrs.get("Species", "")
+                        run = attrs.get("Run", "")
+                        stream = attrs.get("StreamName", "")
+                        data_cat = attrs.get("DataCategory", "")
+                        trend_id = attrs.get("TrendsID") or attrs.get("OBJECTID")
+                        pop_name = attrs.get("PopulationName", "")
+
+                        lat = geom.get("y")
+                        lon = geom.get("x")
+
+                        # Get associated count data from escapement table
+                        esc_resp = client.get(ESCDATA_URL, params={
+                            "where": f"TrendsID = {trend_id}" if trend_id else "1=0",
+                            "outFields": "CountYear,CountValue,CountCILowLim,CountCIUpLim,SampleMethod,MilesSurveyed,TimesSurveyed",
+                            "f": "json",
+                            "resultRecordCount": 500,
+                        })
+
+                        if esc_resp.status_code == 200:
+                            esc_data = esc_resp.json()
+                            for esc_feat in esc_data.get("features", []):
+                                esc = esc_feat.get("attributes", {})
+                                year = esc.get("CountYear")
+                                count_val = esc.get("CountValue")
+
+                                if not year or count_val is None:
+                                    continue
+
+                                # Insert as time series (spawner/redd count per year)
+                                param = f"{data_cat}_{species}_{run}".strip("_").replace(" ", "_").lower()
+                                station_id = f"sn_{stream}_{pop_name}".replace(" ", "_")[:50]
+
+                                try:
+                                    conn.execute(UPSERT_TS_SQL, {
+                                        "site_id": str(self.site_id),
+                                        "station_id": station_id,
+                                        "parameter": param,
+                                        "timestamp": f"{int(year)}-01-01",
+                                        "value": float(count_val),
+                                        "unit": "count",
+                                    })
+                                    created += 1
+                                except Exception:
+                                    continue
+
+                    conn.commit()
+
+                if not data.get("exceededTransferLimit"):
+                    break
+                offset += 2000
+
+        console.print(f"    StreamNet ArcGIS: {created} records")
+        return created
+
+    def _ingest_gbif(self, site: Site) -> int:
+        """Fetch non-iNaturalist fish occurrence records from GBIF."""
+        bbox = site.bbox
+        created = 0
+
+        salmon_species = [
+            ("Oncorhynchus tshawytscha", "Chinook salmon"),
+            ("Oncorhynchus kisutch", "Coho salmon"),
+            ("Oncorhynchus mykiss", "Steelhead/Rainbow trout"),
+            ("Oncorhynchus nerka", "Sockeye/Kokanee"),
+            ("Oncorhynchus clarkii", "Cutthroat trout"),
+            ("Salvelinus confluentus", "Bull trout"),
+            ("Salvelinus fontinalis", "Brook trout"),
+            ("Prosopium williamsoni", "Mountain whitefish"),
+            ("Lampetra tridentata", "Pacific lamprey"),
+        ]
+
         with httpx.Client(timeout=30) as client, engine.connect() as conn:
-            for sci_name, common_name in SALMON_SPECIES:
+            for sci_name, common_name in salmon_species:
                 offset = 0
                 while True:
                     resp = client.get(GBIF_API, params={
@@ -166,39 +232,37 @@ class StreamNetAdapter(IngestionAdapter):
                         break
 
                     for rec in results:
-                        # Skip iNaturalist records (we already have them)
                         if rec.get("datasetName", "").startswith("iNaturalist"):
                             continue
 
                         source_id = f"gbif_{rec.get('key', '')}"
-                        lat = rec.get("decimalLatitude")
-                        lon = rec.get("decimalLongitude")
                         event_date = rec.get("eventDate", "")
                         if not event_date:
                             year = rec.get("year")
                             event_date = f"{year}-01-01" if year else "2020-01-01"
-                        # Normalize year-only dates
                         if len(event_date) == 4 and event_date.isdigit():
                             event_date = f"{event_date}-01-01"
 
-                        conn.execute(UPSERT_SQL, {
-                            "site_id": str(self.site_id),
-                            "source_type": "gbif_fish",
-                            "source_id": source_id,
-                            "observed_at": event_date[:10],
-                            "taxon_name": rec.get("scientificName", sci_name),
-                            "latitude": lat,
-                            "longitude": lon,
-                            "quality_grade": rec.get("issues", [""])[0] if rec.get("issues") else "accepted",
-                            "data_payload": json.dumps({
-                                "common_name": common_name,
-                                "dataset": rec.get("datasetName"),
-                                "institution": rec.get("institutionCode"),
-                                "basis_of_record": rec.get("basisOfRecord"),
-                                "catalog_number": rec.get("catalogNumber"),
-                            }),
-                        })
-                        created += 1
+                        try:
+                            conn.execute(UPSERT_OBS_SQL, {
+                                "site_id": str(self.site_id),
+                                "source_type": "gbif_fish",
+                                "source_id": source_id,
+                                "observed_at": event_date[:10],
+                                "taxon_name": rec.get("scientificName", sci_name),
+                                "latitude": rec.get("decimalLatitude"),
+                                "longitude": rec.get("decimalLongitude"),
+                                "quality_grade": "museum_specimen",
+                                "data_payload": json.dumps({
+                                    "common_name": common_name,
+                                    "dataset": rec.get("datasetName"),
+                                    "institution": rec.get("institutionCode"),
+                                    "basis_of_record": rec.get("basisOfRecord"),
+                                }),
+                            })
+                            created += 1
+                        except Exception:
+                            continue
 
                     conn.commit()
 
@@ -206,7 +270,6 @@ class StreamNetAdapter(IngestionAdapter):
                         break
                     offset += 300
 
-                if created > 0:
-                    console.print(f"    {common_name}: {created} total records")
-
-        return created, 0
+        if created > 0:
+            console.print(f"    GBIF fish records: {created}")
+        return created
