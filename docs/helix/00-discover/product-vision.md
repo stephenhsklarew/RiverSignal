@@ -24,10 +24,10 @@ A watershed program manager in Klamath Falls opens RiverSignal on Monday morning
 
 | Attribute | Description |
 |-----------|-------------|
-| Who | Watershed program managers and restoration ecologists at Oregon state agencies, watershed councils, land trusts, and tribal natural resource teams managing 1-10 active restoration sites with 2-8 person field teams |
-| Pain | Spend 15-25 hours/week synthesizing field observations, sensor data, GIS layers, and compliance records into management decisions and funder reports; junior staff lack the pattern-recognition to interpret monitoring data without senior review |
-| Current Solution | Manual expert review of iNaturalist exports, spreadsheet-based indicator tracking, GIS analyst producing static maps on request, and hand-written quarterly reports for grant funders |
-| Why They Switch | Federal and state restoration budgets (OWEB, NOAA, BPA) increasingly require quantified outcome evidence; senior ecologists are retiring faster than they are replaced; data volume from citizen science and sensors is growing 20-30% annually while interpretation capacity is flat |
+| Who | **Primary**: Watershed program managers and restoration ecologists at Oregon state agencies, watershed councils, land trusts, and tribal natural resource teams managing 1-10 active restoration sites with 2-8 person field teams. **Secondary**: Fly fishing guides and serious anglers operating on Oregon's Deschutes, McKenzie, Metolius, and Klamath rivers (150+ trips/year) |
+| Pain | **Restoration**: Spend 15-25 hours/week synthesizing field observations, sensor data, GIS layers, and compliance records into management decisions and funder reports; junior staff lack the pattern-recognition to interpret monitoring data without senior review. **Fishing**: Check 5+ websites daily for conditions, stocking, flows; no single source combines water data + species distribution + harvest trends for a specific reach |
+| Current Solution | **Restoration**: Manual expert review of iNaturalist exports, spreadsheet-based indicator tracking, GIS analyst producing static maps on request, and hand-written quarterly reports for grant funders. **Fishing**: ODFW website for stocking, USGS for flows, myodfw.com for recreation reports, word-of-mouth for fishing intel |
+| Why They Switch | Federal and state restoration budgets (OWEB, NOAA, BPA) increasingly require quantified outcome evidence; senior ecologists are retiring faster than they are replaced; data volume from citizen science and sensors is growing 20-30% annually while interpretation capacity is flat. Fishing guides adopt because it replaces a fragmented daily research workflow with a single morning briefing |
 
 ## Key Value Propositions
 
@@ -38,6 +38,7 @@ A watershed program manager in Klamath Falls opens RiverSignal on Monday morning
 | Automated funder/compliance reporting | Quarterly board reports that previously took 2-3 days of analyst time generate in minutes from monitored data |
 | Intervention outcome memory | The system learns which restoration actions worked at which sites, building institutional knowledge that survives staff turnover |
 | Invasive species early warning with spread modeling | Managers catch outbreaks weeks earlier by reasoning over observation patterns, river networks, and disturbance corridors |
+| Fishing intelligence for guides and anglers | Guides get species-by-reach distribution, harvest trends, stocking alerts, and water conditions in one view -- replacing 5+ daily website checks |
 
 ## Success Definition
 
