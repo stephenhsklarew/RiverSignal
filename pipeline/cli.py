@@ -36,7 +36,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "ebird", "mtbs", "nhdplus", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "ebird", "mtbs", "nhdplus", "restoration", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -52,6 +52,7 @@ def ingest(source: str, watershed: str):
     from pipeline.ingest.mtbs import MTBSAdapter
     from pipeline.ingest.nhdplus import NHDPlusAdapter
     from pipeline.ingest.owdp import OWDPAdapter
+    from pipeline.ingest.restoration import RestorationAdapter
     from pipeline.ingest.snotel import SNOTELAdapter
     from pipeline.ingest.streamnet import StreamNetAdapter
     from pipeline.ingest.usgs import USGSAdapter
@@ -66,6 +67,7 @@ def ingest(source: str, watershed: str):
         "ebird": EBirdAdapter,
         "mtbs": MTBSAdapter,
         "nhdplus": NHDPlusAdapter,
+        "restoration": RestorationAdapter,
     }
 
     watersheds = list(WATERSHEDS.keys()) if watershed == "all" else [watershed]
