@@ -244,3 +244,83 @@ def get_post_fire_recovery(watershed: str, fire_name: str = None) -> list[dict]:
         }
         for r in rows
     ]
+
+
+def get_species_near_me(lat: float, lon: float, radius_km: float = 2.0) -> list[dict]:
+    """Returns species with photos observed near a GPS point.
+
+    Args:
+        lat: latitude (e.g., 44.125)
+        lon: longitude (e.g., -122.471)
+        radius_km: search radius in km (default 2.0)
+
+    Returns:
+        List of species with common_name, photo_url, observation_count
+    """
+    radius_deg = radius_km / 111.0
+
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT o.taxon_name, o.data_payload->>'common_name' as common_name,
+                o.iconic_taxon as taxonomic_group, count(*) as observation_count,
+                max(o.observed_at)::date as last_seen,
+                (SELECT g.photo_url FROM gold.species_gallery g WHERE g.taxon_name = o.taxon_name LIMIT 1) as photo_url,
+                (SELECT g.photo_license FROM gold.species_gallery g WHERE g.taxon_name = o.taxon_name LIMIT 1) as photo_license,
+                (SELECT g.observer FROM gold.species_gallery g WHERE g.taxon_name = o.taxon_name LIMIT 1) as attribution
+            FROM observations o
+            WHERE o.taxon_name IS NOT NULL AND o.location IS NOT NULL
+              AND ST_DWithin(o.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)
+            GROUP BY o.taxon_name, o.data_payload->>'common_name', o.iconic_taxon
+            ORDER BY count(*) DESC LIMIT 50
+        """), {"lat": lat, "lon": lon, "radius": radius_deg}).fetchall()
+
+    return [
+        {"taxon_name": r[0], "common_name": r[1] or r[0], "taxonomic_group": r[2],
+         "observation_count": r[3], "last_seen": str(r[4]) if r[4] else None,
+         "photo_url": r[5], "photo_license": r[6], "attribution": r[7]}
+        for r in rows
+    ]
+
+
+def get_river_story(river_name: str, watershed: str) -> dict:
+    """Returns narrative timeline for a river: fires, restoration, species, regulatory events.
+
+    Args:
+        river_name: e.g., "McKenzie River"
+        watershed: e.g., "mckenzie"
+
+    Returns:
+        Dict with timeline, health score, fire recovery, swim safety
+    """
+    with engine.connect() as conn:
+        events = conn.execute(text("""
+            SELECT event_year, event_type, event_name, description, magnitude
+            FROM gold.river_story_timeline WHERE watershed = :ws
+            ORDER BY event_year DESC LIMIT 30
+        """), {"ws": watershed}).fetchall()
+
+        health = conn.execute(text("""
+            SELECT health_score, avg_water_temp, avg_do, monthly_species
+            FROM gold.river_health_score WHERE watershed = :ws
+            ORDER BY obs_year DESC, obs_month DESC LIMIT 1
+        """), {"ws": watershed}).fetchone()
+
+        recovery = conn.execute(text("""
+            SELECT fire_name, fire_year, acres, observation_year, years_since_fire, species_total_watershed
+            FROM gold.post_fire_recovery WHERE watershed = :ws AND acres > 1000
+            ORDER BY fire_year DESC, observation_year
+        """), {"ws": watershed}).fetchall()
+
+        swim = conn.execute(text("""
+            SELECT station_id, avg_temp_c, avg_flow_cfs, temp_comfort, safety_rating
+            FROM gold.swim_safety WHERE watershed = :ws
+            ORDER BY obs_year DESC, obs_month DESC LIMIT 5
+        """), {"ws": watershed}).fetchall()
+
+    return {
+        "timeline": [{"year": r[0], "type": r[1], "name": r[2], "description": r[3]} for r in events],
+        "health": {"score": health[0], "water_temp_c": float(health[1]) if health[1] else None,
+                   "do_mg_l": float(health[2]) if health[2] else None, "species": health[3]} if health else None,
+        "fire_recovery": [{"fire": r[0], "year": r[1], "acres": r[2], "obs_year": r[3], "years_since": r[4], "species": r[5]} for r in recovery],
+        "swim_safety": [{"station": r[0], "temp_c": float(r[1]) if r[1] else None, "flow_cfs": float(r[2]) if r[2] else None, "comfort": r[3], "safety": r[4]} for r in swim],
+    }

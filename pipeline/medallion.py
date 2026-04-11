@@ -49,6 +49,12 @@ VIEWS = [
     "gold.river_miles",
     "gold.species_gallery",
     "gold.species_by_river_mile",
+    "gold.river_health_score",
+    "gold.whats_alive_now",
+    "gold.hatch_chart",
+    "gold.river_story_timeline",
+    "gold.swim_safety",
+    "gold.stewardship_opportunities",
 ]
 
 
