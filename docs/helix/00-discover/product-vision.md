@@ -2,12 +2,16 @@
 
 ## Platform Strategy
 
-This project builds a **shared data platform** serving two products:
+This project builds a **shared data platform** serving four products across two domains:
 
-- **RiverSignal** (B2B/B2G) -- Watershed intelligence copilot for restoration professionals, ecologists, and agencies
-- **[RiverPath](riverpath-vision.md)** (B2C) -- AI-native field companion for families, anglers, educators, and river advocates
+|  | **B2B (Professional)** | **B2C (Consumer Mobile-First)** |
+|---|---|---|
+| **Watershed Ecology** | **RiverSignal** — watershed intelligence copilot | **[RiverPath](riverpath-vision.md)** — river field companion |
+| **Deep Time Geology** | **DeepSignal** — geologic intelligence platform | **[DeepTrail](deeptrail-vision.md)** — ancient world explorer |
 
-Both products share the same PostgreSQL + PostGIS database (2.2M+ records), 15 ingestion pipelines, and 21-view medallion architecture. The data platform is the strategic asset; the products are presentation layers with different UX, tone, and business models on top of the same ecological intelligence engine.
+All four products share the same PostgreSQL + PostGIS data lake, ingestion pipeline architecture, silver/gold medallion layer, LLM reasoning engine, and FastAPI backend. The data platform is the strategic asset; the products are presentation layers with different UX, tone, and business models.
+
+**The key insight**: geology IS the foundation of watershed ecology. Every river, every species habitat, every water quality reading is shaped by the rocks beneath. Deep time context makes ecological intelligence more powerful, and ecological context makes geology more relevant.
 
 ## Mission Statement (RiverSignal)
 
