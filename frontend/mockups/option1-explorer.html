@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RiverPath — Explorer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&display=swap');
+
+:root {
+  --bg-deep: #0a0e14;
+  --bg-surface: #131820;
+  --bg-elevated: #1a2030;
+  --text-primary: #e8ece4;
+  --text-secondary: #7a8a7e;
+  --text-muted: #4a5a4e;
+  --accent-river: #3ecfb4;
+  --accent-warm: #e8a848;
+  --accent-alert: #e85454;
+  --accent-forest: #2a8a5a;
+  --glass: rgba(20, 30, 40, 0.75);
+  --glass-border: rgba(62, 207, 180, 0.12);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Topographic background pattern */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(62, 207, 180, 0.02) 1deg, transparent 2deg) 0 0 / 200px 200px,
+    radial-gradient(ellipse at 30% 20%, rgba(62, 207, 180, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(232, 168, 72, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Topo contour lines */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 200 Q100 150 200 200 T400 200' fill='none' stroke='%233ecfb4' stroke-width='0.3' opacity='0.08'/%3E%3Cpath d='M0 220 Q100 170 200 220 T400 220' fill='none' stroke='%233ecfb4' stroke-width='0.3' opacity='0.06'/%3E%3Cpath d='M0 180 Q100 130 200 180 T400 180' fill='none' stroke='%233ecfb4' stroke-width='0.3' opacity='0.05'/%3E%3Cpath d='M0 240 Q100 190 200 240 T400 240' fill='none' stroke='%233ecfb4' stroke-width='0.3' opacity='0.04'/%3E%3C/svg%3E") repeat;
+  pointer-events: none;
+  z-index: 0;
+  animation: topoShift 30s linear infinite;
+}
+
+@keyframes topoShift {
+  from { background-position: 0 0; }
+  to { background-position: 400px 200px; }
+}
+
+.app { position: relative; z-index: 1; }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  backdrop-filter: blur(20px);
+  background: rgba(10, 14, 20, 0.8);
+  border-bottom: 1px solid var(--glass-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent-river);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.logo-icon::after {
+  content: '';
+  position: absolute;
+  width: 140%;
+  height: 3px;
+  background: var(--bg-deep);
+  top: 50%;
+  left: -20%;
+  transform: rotate(-15deg);
+  border-radius: 2px;
+}
+
+.logo h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.5px;
+}
+
+.logo h1 span { color: var(--accent-river); }
+
+.nav {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.nav-btn:hover, .nav-btn.active {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--glass-border);
+}
+
+/* Hero Section */
+.hero {
+  padding: 60px 28px 40px;
+  text-align: center;
+  position: relative;
+}
+
+.hero h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+}
+
+.hero h2 em {
+  font-style: italic;
+  color: var(--accent-river);
+}
+
+.hero p {
+  color: var(--text-secondary);
+  font-size: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* River Cards */
+.rivers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 28px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.river-card {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.river-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--glass-border);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(62, 207, 180, 0.05);
+}
+
+.river-card.active {
+  border-color: var(--accent-river);
+  box-shadow: 0 0 0 1px var(--accent-river), 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.card-hero {
+  height: 140px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.6) saturate(1.2);
+  transition: all 0.5s;
+}
+
+.river-card:hover .card-hero img {
+  filter: brightness(0.7) saturate(1.4);
+  transform: scale(1.05);
+}
+
+.card-hero .health-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  backdrop-filter: blur(10px);
+  border: 2px solid;
+}
+
+.health-badge.good { background: rgba(46, 138, 90, 0.6); border-color: rgba(62, 207, 180, 0.5); }
+.health-badge.moderate { background: rgba(232, 168, 72, 0.5); border-color: rgba(232, 168, 72, 0.5); }
+
+.card-body {
+  padding: 16px;
+}
+
+.card-body h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+
+.card-body .tagline {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-river);
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Detail Panel */
+.detail-panel {
+  max-width: 1400px;
+  margin: 20px auto;
+  padding: 0 28px;
+  display: none;
+}
+
+.detail-panel.visible { display: block; animation: slideUp 0.4s ease-out; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.detail-card {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.detail-card h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* Health Gauge */
+.health-gauge {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.gauge-ring {
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+.gauge-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.gauge-ring circle {
+  fill: none;
+  stroke-width: 8;
+  cx: 60;
+  cy: 60;
+  r: 50;
+}
+
+.gauge-bg { stroke: var(--bg-elevated); }
+
+.gauge-fill {
+  stroke: var(--accent-river);
+  stroke-dasharray: 314;
+  stroke-dashoffset: 94;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease;
+}
+
+.gauge-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-value .number {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gauge-value .label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.health-metrics { flex: 1; }
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.metric-row:last-child { border: none; }
+
+.metric-label { font-size: 13px; color: var(--text-secondary); }
+.metric-value { font-size: 14px; font-weight: 600; }
+.metric-value.good { color: var(--accent-river); }
+.metric-value.warm { color: var(--accent-warm); }
+
+/* Indicator Species */
+.indicator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.indicator-dot.present { background: var(--accent-river); box-shadow: 0 0 8px rgba(62, 207, 180, 0.4); }
+.indicator-dot.absent { background: var(--accent-alert); box-shadow: 0 0 8px rgba(232, 84, 84, 0.3); }
+.indicator-dot.invasive { background: var(--accent-warm); }
+
+.indicator-name { flex: 1; }
+.indicator-tag { font-size: 10px; color: var(--text-muted); }
+
+/* Species Gallery */
+.species-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.species-card {
+  flex-shrink: 0;
+  width: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  transition: transform 0.2s;
+}
+
+.species-card:hover { transform: scale(1.03); }
+
+.species-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.species-card .species-info {
+  padding: 8px 10px;
+}
+
+.species-card .common-name {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.species-card .sci-name {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Timeline */
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent-river), var(--accent-warm), var(--accent-alert));
+  border-radius: 1px;
+}
+
+.timeline-event {
+  position: relative;
+  padding: 0 0 20px 20px;
+}
+
+.timeline-event::before {
+  content: '';
+  position: absolute;
+  left: -21px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.timeline-event.fire::before { border-color: var(--accent-alert); background: rgba(232, 84, 84, 0.3); }
+.timeline-event.restoration::before { border-color: var(--accent-river); background: rgba(62, 207, 180, 0.3); }
+.timeline-event.species::before { border-color: var(--accent-warm); background: rgba(232, 168, 72, 0.3); }
+
+.event-year {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.event-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* Floating Chat */
+.chat-float {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+}
+
+.chat-toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-river);
+  border: none;
+  color: var(--bg-deep);
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(62, 207, 180, 0.3);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 40px rgba(62, 207, 180, 0.4);
+}
+
+.chat-panel {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 380px;
+  max-height: 520px;
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  animation: chatIn 0.3s ease-out;
+}
+
+.chat-panel.open { display: flex; }
+
+@keyframes chatIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chat-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.chat-header h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.chat-header p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  min-height: 200px;
+}
+
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.suggestion {
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.suggestion:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-river);
+  background: rgba(62, 207, 180, 0.08);
+}
+
+.chat-input-bar {
+  padding: 12px 16px;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-bar input {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.chat-input-bar input::placeholder { color: var(--text-muted); }
+.chat-input-bar input:focus { border-color: var(--accent-river); }
+
+.chat-send {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--accent-river);
+  border: none;
+  color: var(--bg-deep);
+  font-size: 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.chat-send:hover { opacity: 0.85; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .rivers { grid-template-columns: repeat(2, 1fr); }
+  .detail-grid { grid-template-columns: 1fr; }
+  .hero h2 { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <h1>River<span>Path</span></h1>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active">Explore</button>
+      <button class="nav-btn">My Rivers</button>
+      <button class="nav-btn">Stewardship</button>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h2>Discover the <em>living story</em><br>of Oregon's rivers</h2>
+    <p>Real-time ecological intelligence from 2.2 million data points across 4 iconic watersheds</p>
+  </section>
+
+  <!-- River Cards -->
+  <section class="rivers">
+    <div class="river-card active" onclick="showDetail('mckenzie')">
+      <div class="card-hero">
+        <img src="https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&h=300&fit=crop" alt="McKenzie River">
+        <div class="health-badge good">70</div>
+      </div>
+      <div class="card-body">
+        <h3>McKenzie River</h3>
+        <div class="tagline">Post-fire recovery &middot; Chinook spawning</div>
+        <div class="card-stats">
+          <div class="stat"><div class="stat-value">7,885</div><div class="stat-label">Species</div></div>
+          <div class="stat"><div class="stat-value">8.4°</div><div class="stat-label">Water</div></div>
+          <div class="stat"><div class="stat-value">550</div><div class="stat-label">Projects</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="river-card" onclick="showDetail('deschutes')">
+      <div class="card-hero">
+        <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&h=300&fit=crop" alt="Deschutes River">
+        <div class="health-badge good">65</div>
+      </div>
+      <div class="card-body">
+        <h3>Deschutes River</h3>
+        <div class="tagline">Canyon ecology &middot; Steelhead runs</div>
+        <div class="card-stats">
+          <div class="stat"><div class="stat-value">6,605</div><div class="stat-label">Species</div></div>
+          <div class="stat"><div class="stat-value">111</div><div class="stat-label">Miles</div></div>
+          <div class="stat"><div class="stat-value">1,757</div><div class="stat-label">Steelhead</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="river-card" onclick="showDetail('metolius')">
+      <div class="card-hero">
+        <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&h=300&fit=crop" alt="Metolius River">
+        <div class="health-badge good">85</div>
+      </div>
+      <div class="card-body">
+        <h3>Metolius River</h3>
+        <div class="tagline">Spring-fed pristine &middot; Bull trout refuge</div>
+        <div class="card-stats">
+          <div class="stat"><div class="stat-value">3,013</div><div class="stat-label">Species</div></div>
+          <div class="stat"><div class="stat-value">9.5°</div><div class="stat-label">Constant</div></div>
+          <div class="stat"><div class="stat-value">41</div><div class="stat-label">Miles</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="river-card" onclick="showDetail('klamath')">
+      <div class="card-hero">
+        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=300&fit=crop" alt="Klamath Basin">
+        <div class="health-badge moderate">55</div>
+      </div>
+      <div class="card-body">
+        <h3>Upper Klamath</h3>
+        <div class="tagline">Dam removal recovery &middot; Tribal stewardship</div>
+        <div class="card-stats">
+          <div class="stat"><div class="stat-value">4,941</div><div class="stat-label">Species</div></div>
+          <div class="stat"><div class="stat-value">203</div><div class="stat-label">Projects</div></div>
+          <div class="stat"><div class="stat-value">14</div><div class="stat-label">Gauges</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detail Panel (McKenzie shown by default) -->
+  <section class="detail-panel visible" id="detail-panel">
+    <div class="detail-grid">
+      <!-- Health Score -->
+      <div class="detail-card">
+        <h4>River Health &middot; McKenzie River</h4>
+        <div class="health-gauge">
+          <div class="gauge-ring">
+            <svg viewBox="0 0 120 120">
+              <circle class="gauge-bg" />
+              <circle class="gauge-fill" />
+            </svg>
+            <div class="gauge-value">
+              <div class="number">70</div>
+              <div class="label">Health</div>
+            </div>
+          </div>
+          <div class="health-metrics">
+            <div class="metric-row">
+              <span class="metric-label">Water Temperature</span>
+              <span class="metric-value good">8.4°C</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Dissolved Oxygen</span>
+              <span class="metric-value good">11.3 mg/L</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Species This Month</span>
+              <span class="metric-value">162</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Swim Safety</span>
+              <span class="metric-value good">Refreshing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Indicator Species -->
+      <div class="detail-card">
+        <h4>Indicator Species</h4>
+        <div class="indicator-grid">
+          <div class="indicator"><span class="indicator-dot present"></span><span class="indicator-name">Chinook Salmon</span><span class="indicator-tag">62 obs</span></div>
+          <div class="indicator"><span class="indicator-dot present"></span><span class="indicator-name">Steelhead</span><span class="indicator-tag">56 obs</span></div>
+          <div class="indicator"><span class="indicator-dot present"></span><span class="indicator-name">Cutthroat Trout</span><span class="indicator-tag">57 obs</span></div>
+          <div class="indicator"><span class="indicator-dot present"></span><span class="indicator-name">Bull Trout</span><span class="indicator-tag">2 obs</span></div>
+          <div class="indicator"><span class="indicator-dot present"></span><span class="indicator-name">Tailed Frog</span><span class="indicator-tag">17 obs</span></div>
+          <div class="indicator"><span class="indicator-dot present"></span><span class="indicator-name">Pacific Giant Sal.</span><span class="indicator-tag">52 obs</span></div>
+          <div class="indicator"><span class="indicator-dot invasive"></span><span class="indicator-name">Scotch Broom ⚠️</span><span class="indicator-tag">113</span></div>
+          <div class="indicator"><span class="indicator-dot invasive"></span><span class="indicator-name">Knotweed ⚠️</span><span class="indicator-tag">17</span></div>
+        </div>
+      </div>
+
+      <!-- Species Gallery -->
+      <div class="detail-card" style="grid-column: 1 / -1;">
+        <h4>Species Gallery &middot; 7,885 species with photos</h4>
+        <div class="species-row">
+          <div class="species-card"><img src="https://inaturalist-open-data.s3.amazonaws.com/photos/630807642/medium.jpg" alt=""><div class="species-info"><div class="common-name">Rainbow Trout</div><div class="sci-name">Oncorhynchus mykiss</div></div></div>
+          <div class="species-card"><img src="https://inaturalist-open-data.s3.amazonaws.com/photos/581873006/medium.jpg" alt=""><div class="species-info"><div class="common-name">Bull Trout</div><div class="sci-name">Salvelinus confluentus</div></div></div>
+          <div class="species-card"><img src="https://inaturalist-open-data.s3.amazonaws.com/photos/593360725/medium.jpg" alt=""><div class="species-info"><div class="common-name">Mountain Whitefish</div><div class="sci-name">Prosopium williamsoni</div></div></div>
+          <div class="species-card"><img src="https://inaturalist-open-data.s3.amazonaws.com/photos/632720228/medium.jpg" alt=""><div class="species-info"><div class="common-name">Brown Trout</div><div class="sci-name">Salmo trutta</div></div></div>
+          <div class="species-card"><img src="https://inaturalist-open-data.s3.amazonaws.com/photos/590861477/medium.jpg" alt=""><div class="species-info"><div class="common-name">Brook Trout</div><div class="sci-name">Salvelinus fontinalis</div></div></div>
+          <div class="species-card"><img src="https://inaturalist-open-data.s3.amazonaws.com/photos/533157590/medium.jpg" alt=""><div class="species-info"><div class="common-name">Stickleback</div><div class="sci-name">Gasterosteus aculeatus</div></div></div>
+        </div>
+      </div>
+
+      <!-- River Story Timeline -->
+      <div class="detail-card">
+        <h4>River Story</h4>
+        <div class="timeline">
+          <div class="timeline-event restoration">
+            <div class="event-year">2025</div>
+            <div class="event-title">Floodplain Reconnection</div>
+            <div class="event-desc">McKenzie Watershed Alliance phase 3</div>
+          </div>
+          <div class="timeline-event species">
+            <div class="event-year">2024</div>
+            <div class="event-title">3,389 species recorded</div>
+            <div class="event-desc">+393 species from prior year</div>
+          </div>
+          <div class="timeline-event restoration">
+            <div class="event-year">2021</div>
+            <div class="event-title">230 riparian restoration projects</div>
+            <div class="event-desc">Post-fire recovery efforts begin</div>
+          </div>
+          <div class="timeline-event fire">
+            <div class="event-year">2020</div>
+            <div class="event-title">Holiday Farm Fire 🔥</div>
+            <div class="event-desc">174,390 acres burned in McKenzie corridor</div>
+          </div>
+          <div class="timeline-event species">
+            <div class="event-year">2019</div>
+            <div class="event-title">1,282 species (pre-fire baseline)</div>
+            <div class="event-desc">Benchmark for recovery tracking</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fishing Intel -->
+      <div class="detail-card">
+        <h4>Fishing Intelligence</h4>
+        <div style="margin-bottom: 16px;">
+          <div class="metric-row"><span class="metric-label">Steelhead Harvest (2024)</span><span class="metric-value">1,803</span></div>
+          <div class="metric-row"><span class="metric-label">Chinook Spawning</span><span class="metric-value good">Active</span></div>
+          <div class="metric-row"><span class="metric-label">Stocking This Week</span><span class="metric-value">2,200 trout</span></div>
+          <div class="metric-row"><span class="metric-label">June Hatches</span><span class="metric-value">146 species</span></div>
+        </div>
+        <h4 style="margin-top: 8px;">Recovery Trajectory</h4>
+        <div style="display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-top: 12px;">
+          <div style="flex:1; background: var(--accent-alert); opacity: 0.6; height: 25%; border-radius: 4px 4px 0 0;" title="2019: 1,282 spp"></div>
+          <div style="flex:1; background: var(--accent-warm); opacity: 0.7; height: 33%; border-radius: 4px 4px 0 0;" title="2020: 1,681 spp (fire year)"></div>
+          <div style="flex:1; background: var(--accent-forest); height: 50%; border-radius: 4px 4px 0 0;" title="2021: 2,562 spp"></div>
+          <div style="flex:1; background: var(--accent-forest); height: 53%; border-radius: 4px 4px 0 0;" title="2022: 2,687 spp"></div>
+          <div style="flex:1; background: var(--accent-forest); height: 59%; border-radius: 4px 4px 0 0;" title="2023: 2,996 spp"></div>
+          <div style="flex:1; background: var(--accent-river); height: 67%; border-radius: 4px 4px 0 0;" title="2024: 3,389 spp"></div>
+          <div style="flex:1; background: var(--accent-river); height: 72%; border-radius: 4px 4px 0 0;" title="2025: 3,644 spp"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+          <span>2019</span><span>2020🔥</span><span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Floating Chat -->
+<div class="chat-float">
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-header">
+      <h3>Ask about this river</h3>
+      <p>Powered by ecological intelligence from 2.2M data points</p>
+    </div>
+    <div class="chat-messages">
+      <div class="chat-suggestions">
+        <button class="suggestion">Is this river healthy?</button>
+        <button class="suggestion">What fish are spawning?</button>
+        <button class="suggestion">Did wildfire affect this?</button>
+        <button class="suggestion">What insects are hatching?</button>
+        <button class="suggestion">Is it safe to swim?</button>
+        <button class="suggestion">How can I help?</button>
+      </div>
+    </div>
+    <div class="chat-input-bar">
+      <input type="text" placeholder="Ask anything about the McKenzie River...">
+      <button class="chat-send">→</button>
+    </div>
+  </div>
+  <button class="chat-toggle" onclick="toggleChat()">💬</button>
+</div>
+
+<script>
+function toggleChat() {
+  document.getElementById('chat-panel').classList.toggle('open');
+}
+
+function showDetail(watershed) {
+  document.querySelectorAll('.river-card').forEach(c => c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('detail-panel').classList.add('visible');
+}
+
+// Animate gauge on load
+setTimeout(() => {
+  document.querySelector('.gauge-fill').style.strokeDashoffset = '94';
+}, 300);
+</script>
+</body>
+</html>

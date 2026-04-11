@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RiverSignal — Professional</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --border: #e8e6e1;
+  --border-strong: #d0cec8;
+  --text: #1c1c1a;
+  --text-secondary: #6b6966;
+  --text-muted: #9e9b96;
+  --accent: #1a6b4a;
+  --accent-light: #e8f5ef;
+  --alert: #c4432b;
+  --alert-light: #fef0ed;
+  --warm: #b8860b;
+  --warm-light: #fdf6e3;
+  --blue: #2563eb;
+  --blue-light: #eff6ff;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Dense top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.topbar-brand {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar-brand .dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.topbar-nav button {
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.topbar-nav button:hover { background: var(--bg); }
+.topbar-nav button.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+.topbar-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Main layout */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  height: calc(100vh - 44px);
+}
+
+/* Map placeholder */
+.map-area {
+  background: #e8e6e1;
+  position: relative;
+  overflow: hidden;
+}
+
+.map-area::after {
+  content: 'MapLibre GL • Oregon Watersheds';
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.9);
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+
+/* Map overlay KPIs */
+.map-kpis {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.kpi-chip {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.kpi-chip .kpi-value {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.kpi-chip .kpi-label { color: var(--text-muted); }
+
+/* Watershed selector */
+.watershed-tabs {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.ws-tab {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-right: 1px solid var(--border);
+}
+
+.ws-tab:last-child { border-right: none; }
+.ws-tab.active { background: var(--accent); color: white; }
+.ws-tab:hover:not(.active) { background: var(--bg); }
+
+/* Right panel */
+.panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 5;
+}
+
+.panel-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-header .health-pill {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.health-pill.good { background: var(--accent-light); color: var(--accent); }
+.health-pill.moderate { background: var(--warm-light); color: var(--warm); }
+
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 49px;
+  background: var(--surface);
+  z-index: 4;
+}
+
+.panel-tab {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.panel-tab:hover:not(.active) { color: var(--text-secondary); }
+
+.panel-content { padding: 12px 16px; flex: 1; }
+
+/* Data sections */
+.section { margin-bottom: 16px; }
+.section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.kpi-card {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.kpi-card .value {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.kpi-card .value.green { color: var(--accent); }
+.kpi-card .value.red { color: var(--alert); }
+.kpi-card .value.amber { color: var(--warm); }
+
+.kpi-card .label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Data table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-strong);
+  font-weight: 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.data-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.data-table tr:hover td { background: var(--bg); }
+
+.data-table .mono {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.status-tag.detected { background: var(--accent-light); color: var(--accent); }
+.status-tag.absent { background: var(--alert-light); color: var(--alert); }
+.status-tag.invasive { background: var(--warm-light); color: var(--warm); }
+
+/* Sparkline */
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 24px;
+}
+
+.spark-bar {
+  flex: 1;
+  background: var(--accent);
+  border-radius: 1px 1px 0 0;
+  min-width: 4px;
+  opacity: 0.7;
+}
+
+.spark-bar:last-child { opacity: 1; }
+
+/* Chat sidebar */
+.chat-sidebar {
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  background: var(--bg);
+}
+
+.chat-sidebar .chat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.chat-input-row input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  background: var(--surface);
+}
+
+.chat-input-row input:focus { border-color: var(--accent); }
+
+.chat-input-row button {
+  padding: 7px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Alert bar */
+.alert-bar {
+  padding: 6px 16px;
+  background: var(--warm-light);
+  border-bottom: 1px solid #e8d4a0;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warm);
+}
+
+.alert-bar strong { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="dot"></span>
+    RiverSignal
+  </div>
+  <div class="topbar-nav">
+    <button class="active">Dashboard</button>
+    <button>Reports</button>
+    <button>Interventions</button>
+    <button>Data Sources</button>
+  </div>
+  <div class="topbar-status">
+    <span class="status-dot"></span>
+    <span>15 pipelines &middot; 2.2M records &middot; last sync 2h ago</span>
+  </div>
+</div>
+
+<!-- Alert -->
+<div class="alert-bar">
+  <strong>⚠ 2,757 anomalies detected</strong> — 1,834 temperature exceedances &gt;18°C (Klamath, Deschutes) &middot; 923 low DO events
+</div>
+
+<!-- Main Layout -->
+<div class="layout">
+  <!-- Map Area -->
+  <div class="map-area">
+    <div class="map-kpis">
+      <div class="kpi-chip"><span class="kpi-value">514,917</span><span class="kpi-label">observations</span></div>
+      <div class="kpi-chip"><span class="kpi-value">1.46M</span><span class="kpi-label">time series</span></div>
+      <div class="kpi-chip"><span class="kpi-value">1,391</span><span class="kpi-label">interventions</span></div>
+      <div class="kpi-chip"><span class="kpi-value">24</span><span class="kpi-label">gold views</span></div>
+    </div>
+    <div class="watershed-tabs">
+      <button class="ws-tab active">McKenzie</button>
+      <button class="ws-tab">Deschutes</button>
+      <button class="ws-tab">Metolius</button>
+      <button class="ws-tab">Klamath</button>
+    </div>
+    <!-- Map would render here via MapLibre -->
+    <svg viewBox="0 0 800 600" style="width:100%;height:100%;opacity:0.15">
+      <path d="M100,300 C200,250 300,350 400,300 S600,250 700,300" fill="none" stroke="#1a6b4a" stroke-width="2"/>
+      <path d="M150,200 C250,250 350,150 500,200 S650,180 750,220" fill="none" stroke="#2563eb" stroke-width="1.5"/>
+      <circle cx="300" cy="280" r="8" fill="#1a6b4a" opacity="0.6"/>
+      <circle cx="500" cy="220" r="8" fill="#2563eb" opacity="0.6"/>
+      <circle cx="400" cy="180" r="6" fill="#6b21a8" opacity="0.6"/>
+      <circle cx="250" cy="350" r="7" fill="#c4432b" opacity="0.6"/>
+      <text x="310" y="275" font-size="10" fill="#1a6b4a" font-family="Outfit">McKenzie</text>
+      <text x="510" y="215" font-size="10" fill="#2563eb" font-family="Outfit">Deschutes</text>
+      <text x="410" y="175" font-size="9" fill="#6b21a8" font-family="Outfit">Metolius</text>
+      <text x="260" y="345" font-size="9" fill="#c4432b" font-family="Outfit">Klamath</text>
+    </svg>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>McKenzie River <span class="health-pill good">70</span></h2>
+      <span style="font-size:11px;color:var(--text-muted);">64.6 mi &middot; 30 USGS gauges</span>
+    </div>
+
+    <div class="panel-tabs">
+      <button class="panel-tab active">Overview</button>
+      <button class="panel-tab">Species</button>
+      <button class="panel-tab">Water</button>
+      <button class="panel-tab">Fishing</button>
+      <button class="panel-tab">Interventions</button>
+    </div>
+
+    <div class="panel-content">
+      <!-- KPI Cards -->
+      <div class="section">
+        <div class="section-title">Key Metrics</div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="value green">8.4°C</div><div class="label">Water Temp</div></div>
+          <div class="kpi-card"><div class="value green">11.3</div><div class="label">DO mg/L</div></div>
+          <div class="kpi-card"><div class="value">7,885</div><div class="label">Species</div></div>
+          <div class="kpi-card"><div class="value">550</div><div class="label">Projects</div></div>
+        </div>
+      </div>
+
+      <!-- Species Trend Sparkline -->
+      <div class="section">
+        <div class="section-title">Species Richness (2019–2025)</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="sparkline" style="flex:1;height:32px;">
+            <div class="spark-bar" style="height:22%"></div>
+            <div class="spark-bar" style="height:29%"></div>
+            <div class="spark-bar" style="height:46%"></div>
+            <div class="spark-bar" style="height:48%"></div>
+            <div class="spark-bar" style="height:54%"></div>
+            <div class="spark-bar" style="height:61%"></div>
+            <div class="spark-bar" style="height:65%"></div>
+          </div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent);">3,644</div>
+          <div style="font-size:11px;color:var(--accent);">↑ +255</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-top:4px;font-family:var(--mono);">
+          <span>2019</span><span>2020</span><span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span>
+        </div>
+      </div>
+
+      <!-- Indicator Species Table -->
+      <div class="section">
+        <div class="section-title">Indicator Species</div>
+        <table class="data-table">
+          <thead><tr><th>Species</th><th>Status</th><th>Obs</th><th>Last</th></tr></thead>
+          <tbody>
+            <tr><td>Chinook Salmon</td><td><span class="status-tag detected">detected</span></td><td class="mono">62</td><td class="mono">2025-10</td></tr>
+            <tr><td>Steelhead</td><td><span class="status-tag detected">detected</span></td><td class="mono">56</td><td class="mono">2026-01</td></tr>
+            <tr><td>Cutthroat Trout</td><td><span class="status-tag detected">detected</span></td><td class="mono">57</td><td class="mono">2025-10</td></tr>
+            <tr><td>Bull Trout</td><td><span class="status-tag detected">detected</span></td><td class="mono">2</td><td class="mono">2025-09</td></tr>
+            <tr><td>Tailed Frog</td><td><span class="status-tag detected">detected</span></td><td class="mono">17</td><td class="mono">2025-08</td></tr>
+            <tr><td>Pacific Giant Sal.</td><td><span class="status-tag detected">detected</span></td><td class="mono">52</td><td class="mono">2025-10</td></tr>
+            <tr><td>Cascades Frog</td><td><span class="status-tag detected">detected</span></td><td class="mono">69</td><td class="mono">2025-09</td></tr>
+            <tr><td>Scotch Broom</td><td><span class="status-tag invasive">invasive</span></td><td class="mono">113</td><td class="mono">2026-03</td></tr>
+            <tr><td>Japanese Knotweed</td><td><span class="status-tag invasive">invasive</span></td><td class="mono">17</td><td class="mono">2024-10</td></tr>
+            <tr><td>Am. Bullfrog</td><td><span class="status-tag invasive">invasive</span></td><td class="mono">10</td><td class="mono">2025-03</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Fire Recovery -->
+      <div class="section">
+        <div class="section-title">Holiday Farm Fire Recovery</div>
+        <table class="data-table">
+          <thead><tr><th>Year</th><th>Δ Fire</th><th>Species</th><th>Obs</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">2019</td><td class="mono">-1</td><td class="mono">1,282</td><td class="mono">2,830</td></tr>
+            <tr style="background:var(--alert-light)"><td class="mono">2020 🔥</td><td class="mono">0</td><td class="mono">1,681</td><td class="mono">4,814</td></tr>
+            <tr><td class="mono">2021</td><td class="mono">+1</td><td class="mono">2,562</td><td class="mono">7,770</td></tr>
+            <tr><td class="mono">2022</td><td class="mono">+2</td><td class="mono">2,687</td><td class="mono">9,538</td></tr>
+            <tr><td class="mono">2023</td><td class="mono">+3</td><td class="mono">2,996</td><td class="mono">11,768</td></tr>
+            <tr><td class="mono">2024</td><td class="mono">+4</td><td class="mono">3,389</td><td class="mono">12,822</td></tr>
+            <tr><td class="mono">2025</td><td class="mono">+5</td><td class="mono" style="color:var(--accent);font-weight:600">3,644</td><td class="mono">13,331</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Chat Sidebar -->
+    <div class="chat-sidebar">
+      <div class="chat-label">AI Assistant</div>
+      <div class="chat-input-row">
+        <input type="text" placeholder="Ask: &quot;Is restoration working on the McKenzie?&quot;">
+        <button>Query</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
