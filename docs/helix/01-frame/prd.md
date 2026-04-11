@@ -6,7 +6,14 @@ dun:
 
 ## Summary
 
-RiverSignal is an AI-powered watershed intelligence copilot that transforms fragmented ecological monitoring data into management recommendations, restoration forecasts, and funder-ready reports. It serves watershed program managers, restoration ecologists, agency staff, and fishing guides in the Pacific Northwest who currently spend 15-25 hours/week manually interpreting field observations, GIS layers, and sensor feeds. The data platform is now operational with 15 ingestion pipelines feeding 2.2M records across 4 Oregon watersheds (Klamath, McKenzie, Deschutes, Metolius) from 15 public data sources into 8 normalized database tables. A fishing/angler use case has emerged as a high-value expansion beyond restoration professionals. The next phase targets the AI reasoning layer: answering questions like "Which tributaries show the strongest biological recovery since dam removal?" and "What's biting where on the Deschutes this week?" Success is measured by 40% reduction in monitoring interpretation time, quarterly reports generated in under 1 hour (down from 2-3 days), 70%+ restoration forecast accuracy within one field season, and angler engagement metrics.
+This project builds a shared data platform serving four products across two domains (watershed ecology and deep-time geology) and two markets (B2B professional and B2C consumer):
+
+- **RiverSignal** (B2B) — watershed intelligence copilot for restoration professionals
+- **RiverPath** (B2C) — AI river field companion for families, anglers, educators
+- **DeepSignal** (B2B) — geologic and paleontological intelligence for researchers, land managers
+- **DeepTrail** (B2C) — AI geology field companion for families, rockhounds, educators
+
+The data platform is operational with 15+ ingestion pipelines feeding 2.5M+ records across 5 Oregon watersheds from 15+ public data sources, a 27-view medallion architecture, and a FastAPI + React application with LLM reasoning. The geology/paleontology expansion adds 7+ new data sources (USGS NGMDB, Paleobiology Database, Macrostrat, BLM lands, DOGAMI, mineral deposits, volcanic features), 8 new bronze tables, 3 silver views, and 10 gold views. The key integration insight: geology IS the foundation of watershed ecology — every river, species habitat, and water quality reading is shaped by the rocks beneath.
 
 ## Problem and Goals
 
@@ -70,6 +77,18 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 **Goals**: Know which reaches have active fish, when stocking happens, water conditions, species distribution by stream segment
 **Pain Points**: Checks 5+ websites daily for stocking schedules, water flows, fishing reports; clients ask "what's biting where?" and he relies on word-of-mouth; no single source combines water conditions + species data + harvest trends
 
+### Quinary Persona: Rachel -- Road Trip Family (DeepTrail)
+
+**Role**: Parent of two kids (ages 8 and 12) planning an Oregon road trip through the John Day Fossil Beds
+**Goals**: Find kid-friendly fossil sites, know what's legal to collect, understand what ancient world existed at each stop, make the drive educational and exciting
+**Pain Points**: Googles "can I collect fossils in Oregon" and gets contradictory answers; park brochures are generic; no single app combines geologic history + fossil sites + legal collecting rules + kid-friendly trails; doesn't know which museums are worth stopping at
+
+### Senary Persona: Dr. Torres -- Geologic Researcher (DeepSignal)
+
+**Role**: University geologist studying volcanic influences on watershed hydrology in the Oregon Cascades
+**Goals**: Correlate geologic unit maps with water chemistry data, understand how basalt aquifers create spring-fed systems, identify geologic controls on fish habitat distribution
+**Pain Points**: Geologic maps and watershed data live in completely separate systems; manually overlays USGS geologic maps on water quality data in GIS; no tool connects rock type to water chemistry to species distribution in a queryable way
+
 ## Requirements
 
 ### Must Have (P0)
@@ -88,12 +107,20 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 3. **Multi-site comparison dashboard**: Compare ecological indicators across managed sites to identify which restoration approaches are most effective
 4. **Acoustic biodiversity integration**: Ingest bird/frog audio classification results (from BirdNET or similar) as additional observation inputs
 5. **Fishing intelligence layer**: Species-by-reach distribution, sport catch harvest trends, stocking schedule alerts, and water condition correlation for angler decision support
+6. **Geologic context layer**: For any location, provide the geologic unit, rock type, age, formation name, and narrative explanation of how geology drives local ecology (DeepSignal/DeepTrail)
+7. **Fossil discovery layer**: Fossil occurrences from Paleobiology Database with taxa, ages, and museum links; legal collecting status based on land ownership (DeepTrail)
+8. **Land access and legality**: Public land boundaries (BLM, USFS, NPS, state) with collecting rules clearly displayed per parcel (DeepTrail)
+9. **Deep time storytelling**: For any location, generate an AI narrative of what ancient ecosystem existed there in each geologic period, with fossil evidence (DeepTrail)
 
 ### Nice to Have (P2)
 
 1. **Collaborative annotation**: Allow senior ecologists to annotate, correct, or override system interpretations, feeding back into reasoning quality
 2. **Custom report templates**: Support additional report formats beyond OWEB (NOAA, BPA, tribal reporting frameworks)
 3. **Historical trend visualization**: Show multi-year ecological trajectory graphs per site with intervention markers
+4. **Geology-ecology correlation engine**: Automated analysis linking geologic unit properties (lithology, permeability, mineral content) to downstream water chemistry, species distribution, and restoration outcomes (DeepSignal)
+5. **Museum and site guide**: Nearby fossil museums, geologic interpretive sites, and visitor centers with hours, exhibits, and kid-friendliness ratings (DeepTrail)
+6. **Volcanic feature mapping**: Vents, flows, calderas, lava tubes, and hot springs with geologic history and hazard context (DeepTrail/DeepSignal)
+7. **Mobile-first responsive PWA**: Progressive Web App for RiverPath and DeepTrail with offline caching for remote areas (B2C products)
 4. **eBird integration**: Supplement iNaturalist bird observations with eBird data for richer avian indicators
 
 ## Functional Requirements
