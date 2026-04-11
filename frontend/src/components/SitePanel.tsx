@@ -8,11 +8,19 @@ interface SitePanelProps {
   onClose: () => void
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export default function SitePanel({ site, watershed, onClose }: SitePanelProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'ask'>('overview')
   const [species, setSpecies] = useState<any[]>([])
   const [fishingBrief, setFishingBrief] = useState<any>(null)
   const [story, setStory] = useState<any>(null)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
 
   useEffect(() => {
     if (activeTab === 'species' && species.length === 0) {
@@ -51,7 +59,7 @@ export default function SitePanel({ site, watershed, onClose }: SitePanelProps) 
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0' }}>
-        {(['overview', 'species', 'fishing', 'story'] as const).map(tab => (
+        {(['overview', 'species', 'fishing', 'story', 'ask'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} style={{
             flex: 1, padding: '10px', border: 'none', background: activeTab === tab ? '#f0f4ff' : 'white',
             borderBottom: activeTab === tab ? '2px solid #0f3460' : '2px solid transparent',
@@ -203,6 +211,155 @@ export default function SitePanel({ site, watershed, onClose }: SitePanelProps) 
               ))}
             </>
           )}
+        </div>
+      )}
+
+      {activeTab === 'ask' && (
+        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 160px)' }}>
+          {/* Chat messages */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+            {chatMessages.length === 0 && (
+              <div style={{ color: '#999', fontSize: 13, textAlign: 'center', marginTop: 40 }}>
+                <div style={{ fontSize: 24, marginBottom: 8 }}>💬</div>
+                <div>Ask anything about the {site.name}</div>
+                <div style={{ marginTop: 12, textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Try:</div>
+                  {[
+                    "Is this river healthy?",
+                    "What fish are spawning here?",
+                    "Did wildfire affect this watershed?",
+                    "What insects are hatching this month?",
+                    "What restoration projects happened recently?",
+                    "Is it safe to swim here?",
+                  ].map((q, i) => (
+                    <div key={i} style={{
+                      padding: '6px 10px', margin: '4px 0', background: '#f0f4ff',
+                      borderRadius: 6, cursor: 'pointer', fontSize: 12,
+                    }} onClick={() => { setChatInput(q) }}>
+                      {q}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {chatMessages.map((msg, i) => (
+              <div key={i} style={{
+                marginBottom: 12,
+                display: 'flex',
+                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              }}>
+                <div style={{
+                  maxWidth: '85%',
+                  padding: '10px 14px',
+                  borderRadius: 12,
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  background: msg.role === 'user' ? '#0f3460' : '#f0f4ff',
+                  color: msg.role === 'user' ? 'white' : '#1a1a2e',
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div style={{ color: '#999', fontSize: 13, padding: '8px 0' }}>
+                Thinking about the {site.name}...
+              </div>
+            )}
+          </div>
+
+          {/* Chat input */}
+          <div style={{
+            padding: '12px 16px',
+            borderTop: '1px solid #e0e0e0',
+            display: 'flex',
+            gap: 8,
+          }}>
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && chatInput.trim() && !chatLoading) {
+                  const question = chatInput.trim()
+                  setChatInput('')
+                  setChatMessages(prev => [...prev, { role: 'user', content: question }])
+                  setChatLoading(true)
+
+                  fetch(`${API_BASE}/sites/${watershed}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question }),
+                  })
+                    .then(r => r.json())
+                    .then(data => {
+                      setChatMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: data.answer || data.detail || 'Unable to answer right now.',
+                      }])
+                    })
+                    .catch(() => {
+                      setChatMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Sorry, I need an ANTHROPIC_API_KEY configured to answer questions. The data is available through the other tabs.',
+                      }])
+                    })
+                    .finally(() => setChatLoading(false))
+                }
+              }}
+              placeholder={`Ask about the ${site.name}...`}
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                border: '1px solid #ddd',
+                borderRadius: 8,
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
+            <button
+              onClick={() => {
+                if (chatInput.trim() && !chatLoading) {
+                  const question = chatInput.trim()
+                  setChatInput('')
+                  setChatMessages(prev => [...prev, { role: 'user', content: question }])
+                  setChatLoading(true)
+
+                  fetch(`${API_BASE}/sites/${watershed}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question }),
+                  })
+                    .then(r => r.json())
+                    .then(data => {
+                      setChatMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: data.answer || data.detail || 'Unable to answer right now.',
+                      }])
+                    })
+                    .catch(() => {
+                      setChatMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Sorry, I need an ANTHROPIC_API_KEY configured to answer questions.',
+                      }])
+                    })
+                    .finally(() => setChatLoading(false))
+                }
+              }}
+              disabled={!chatInput.trim() || chatLoading}
+              style={{
+                padding: '10px 16px',
+                background: '#0f3460',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                cursor: chatInput.trim() && !chatLoading ? 'pointer' : 'not-allowed',
+                opacity: chatInput.trim() && !chatLoading ? 1 : 0.5,
+                fontSize: 13,
+              }}
+            >Ask</button>
+          </div>
         </div>
       )}
     </div>
