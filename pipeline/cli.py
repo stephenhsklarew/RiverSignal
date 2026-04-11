@@ -95,6 +95,16 @@ def ingest(source: str, watershed: str):
 
 
 @main.command()
+def refresh():
+    """Refresh all Silver and Gold layer materialized views."""
+    from pipeline.medallion import refresh_all
+
+    console.print("\n[bold]Refreshing medallion layers...[/bold]")
+    refresh_all()
+    console.print("[green]Done.[/green]")
+
+
+@main.command()
 def status():
     """Show data status for all watersheds."""
     session = get_session()
