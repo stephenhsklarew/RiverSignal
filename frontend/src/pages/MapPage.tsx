@@ -80,12 +80,11 @@ export default function MapPage() {
             </button>
           ))}
         </div>
-        <div className="topbar-nav" style={{ marginLeft: 'auto', gap: 2 }}>
-          <Link to="/signal/reports"><button>Reports</button></Link>
-          <Link to="/path"><button>RiverPath</button></Link>
-          <Link to="/deepsignal"><button>DeepSignal</button></Link>
-        </div>
         <div className="topbar-status">
+          <Link to="/riversignal/reports" style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>Reports</Link>
+          <span style={{ color: '#ddd' }}>|</span>
+          <Link to="/path" style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>RiverPath</Link>
+          <Link to="/deepsignal" style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>DeepSignal</Link>
           <DataFreshness compact />
         </div>
       </div>

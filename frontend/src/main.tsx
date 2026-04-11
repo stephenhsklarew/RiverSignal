@@ -26,9 +26,9 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<LandingPage />} />
 
           {/* RiverSignal — B2B watershed intelligence (desktop-first) */}
-          <Route path="/signal" element={<MapPage />} />
-          <Route path="/signal/reports" element={<ReportsPage />} />
-          <Route path="/signal/:watershed" element={<MapPage />} />
+          <Route path="/riversignal" element={<MapPage />} />
+          <Route path="/riversignal/reports" element={<ReportsPage />} />
+          <Route path="/riversignal/:watershed" element={<MapPage />} />
 
           {/* RiverPath — B2C river field companion (mobile-first) */}
           <Route path="/path" element={<HomePage />} />

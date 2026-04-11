@@ -72,7 +72,7 @@ export default function HomePage() {
 
   const handleAsk = (watershed: string, question: string) => {
     if (question.trim()) {
-      navigate(`/signal/${watershed}?q=${encodeURIComponent(question.trim())}`)
+      navigate(`/riversignal/${watershed}?q=${encodeURIComponent(question.trim())}`)
     }
   }
 
@@ -88,7 +88,7 @@ export default function HomePage() {
         <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverSignal" className="home-logo" /></Link>
         <div className="home-nav-links">
           {WATERSHED_ORDER.map(ws => (
-            <Link key={ws} to={`/signal/${ws}`} className="home-nav-link">
+            <Link key={ws} to={`/riversignal/${ws}`} className="home-nav-link">
               {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[ws]}
             </Link>
           ))}
@@ -117,7 +117,7 @@ export default function HomePage() {
             photo={PHOTOS[ws.watershed]}
             reversed={idx % 2 === 1}
             onAsk={(q) => handleAsk(ws.watershed, q)}
-            onNavigate={() => navigate(`/signal/${ws.watershed}`)}
+            onNavigate={() => navigate(`/riversignal/${ws.watershed}`)}
           />
         ))}
       </section>

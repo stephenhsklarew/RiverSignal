@@ -65,7 +65,7 @@ export default function DeepSignalPage() {
             </button>
           ))}
         </nav>
-        <Link to="/signal" className="ds-switch-link">RiverSignal</Link>
+        <Link to="/riversignal" className="ds-switch-link">RiverSignal</Link>
         <Link to="/trail" className="ds-switch-link">DeepTrail</Link>
       </div>
 

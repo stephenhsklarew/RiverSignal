@@ -7,7 +7,7 @@ const products = [
     tagline: 'Watershed Intelligence Copilot',
     description: 'Professional data-dense dashboard for watershed managers, restoration ecologists, and conservation agencies.',
     audience: 'B2B — Desktop-first',
-    path: '/signal',
+    path: '/riversignal',
     icon: '🔬',
     color: '#1a6b4a',
   },
