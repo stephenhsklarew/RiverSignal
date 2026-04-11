@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import logo from '../assets/riversignal-logo.svg'
 import './HomePage.css'
 
 const API_BASE = 'http://localhost:8001/api/v1'
@@ -79,7 +80,7 @@ export default function HomePage() {
 
       {/* Navigation */}
       <nav className="home-nav">
-        <div className="home-nav-brand">RiverSignal</div>
+        <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverSignal" className="home-logo" /></Link>
         <div className="home-nav-links">
           {WATERSHED_ORDER.map(ws => (
             <a key={ws} href={`#${ws}`} className="home-nav-link">

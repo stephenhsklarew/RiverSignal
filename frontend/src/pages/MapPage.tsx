@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
+import logo from '../assets/riversignal-logo.svg'
 import MapView from '../components/MapView'
 import SitePanel from '../components/SitePanel'
 import '../App.css'
@@ -62,8 +63,7 @@ export default function MapPage() {
     <div className="app">
       <div className="topbar">
         <Link to="/" className="topbar-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <span className="dot" />
-          RiverSignal
+          <img src={logo} alt="RiverSignal" style={{ height: 24 }} />
         </Link>
         <div className="topbar-nav">
           <Link to="/"><button>Home</button></Link>
