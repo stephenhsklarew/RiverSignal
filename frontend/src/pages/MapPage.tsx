@@ -68,7 +68,7 @@ export default function MapPage() {
         <div className="topbar-nav">
           <Link to="/"><button>Home</button></Link>
           <button className="active">Dashboard</button>
-          <button>Reports</button>
+          <Link to="/reports"><button>Reports</button></Link>
         </div>
         <div className="topbar-status">
           <span className="status-dot" />
