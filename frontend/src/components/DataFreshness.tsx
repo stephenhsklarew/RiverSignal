@@ -35,12 +35,12 @@ export default function DataFreshness({ compact = false }: { compact?: boolean }
 
   useEffect(() => {
     fetch(`${API_BASE}/data-status`)
-      .then(r => r.json())
-      .then(setStatus)
-      .catch(console.error)
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
+      .then(data => { if (data.bronze) setStatus(data) })
+      .catch(() => {})  // Silently fail — component just won't render
   }, [])
 
-  if (!status) return null
+  if (!status?.bronze) return null
 
   const lastSync = status.bronze.most_recent_sync
 
