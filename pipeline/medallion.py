@@ -47,6 +47,8 @@ VIEWS = [
     "gold.post_fire_recovery",
     "gold.cold_water_refuges",
     "gold.river_miles",
+    "gold.species_gallery",
+    "gold.species_by_river_mile",
 ]
 
 
