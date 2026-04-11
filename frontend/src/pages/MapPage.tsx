@@ -63,7 +63,7 @@ export default function MapPage() {
     <div className="app">
       <div className="topbar">
         <Link to="/" className="topbar-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <img src={logo} alt="RiverSignal" style={{ height: 38 }} />
+          <img src={logo} alt="RiverSignal" style={{ height: 34 }} />
         </Link>
         <div className="topbar-nav">
           <Link to="/"><button>Home</button></Link>
