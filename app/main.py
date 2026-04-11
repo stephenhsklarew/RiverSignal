@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import sites, reasoning, fishing, health
+from app.routers import sites, reasoning, fishing, reports, health
 
 
 @asynccontextmanager
@@ -32,3 +32,4 @@ app.include_router(health.router)
 app.include_router(sites.router, prefix="/api/v1")
 app.include_router(reasoning.router, prefix="/api/v1")
 app.include_router(fishing.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")

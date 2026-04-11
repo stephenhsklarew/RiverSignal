@@ -19,6 +19,10 @@ from pipeline.tools import (
 router = APIRouter(tags=["reasoning"])
 
 
+class ForecastRequest(BaseModel):
+    horizon_months: int = 6
+
+
 class SummaryRequest(BaseModel):
     date_start: str | None = None
     date_end: str | None = None
@@ -106,6 +110,93 @@ def generate_ecological_summary(watershed: str, request: SummaryRequest = None):
 
     return {
         "watershed": watershed,
+        "generated_at": datetime.now().isoformat(),
+        "narrative": narrative,
+        "data": context,
+    }
+
+
+@router.post("/sites/{watershed}/forecast")
+def generate_restoration_forecast(watershed: str, request: ForecastRequest = None):
+    """Generate a restoration forecast for a watershed (FEAT-002).
+
+    Predicts expected species returns and habitat changes based on
+    intervention history, current conditions, and ecological succession models.
+    """
+    horizon = request.horizon_months if request else 6
+
+    with engine.connect() as conn:
+        site = conn.execute(text("SELECT id FROM sites WHERE watershed = :ws"), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(404, f"Watershed '{watershed}' not found")
+
+        # Restoration outcomes (before/after species at intervention sites)
+        outcomes = conn.execute(text("""
+            SELECT intervention_category, intervention_year, intervention_count,
+                   species_before, species_after
+            FROM gold.restoration_outcomes WHERE watershed = :ws
+            ORDER BY intervention_year DESC
+        """), {"ws": watershed}).fetchall()
+
+        # Current species trend
+        trends = conn.execute(text("""
+            SELECT obs_year, species_count, species_delta
+            FROM gold.species_trends WHERE watershed = :ws
+            ORDER BY obs_year DESC LIMIT 5
+        """), {"ws": watershed}).fetchall()
+
+        # Fire recovery (if applicable)
+        fire = conn.execute(text("""
+            SELECT fire_name, fire_year, acres, observation_year, years_since_fire, species_total_watershed
+            FROM gold.post_fire_recovery WHERE watershed = :ws AND acres > 1000
+            ORDER BY fire_year DESC, observation_year DESC LIMIT 10
+        """), {"ws": watershed}).fetchall()
+
+        # Cold water refuges
+        refuges = conn.execute(text("""
+            SELECT station_id, thermal_classification, summer_avg_temp
+            FROM gold.cold_water_refuges WHERE watershed = :ws
+            ORDER BY obs_year DESC LIMIT 10
+        """), {"ws": watershed}).fetchall()
+
+    context = {
+        "watershed": watershed,
+        "horizon_months": horizon,
+        "restoration_outcomes": [
+            {"category": r[0], "year": r[1], "count": r[2], "species_before": r[3], "species_after": r[4]}
+            for r in outcomes
+        ],
+        "species_trends": [{"year": r[0], "count": r[1], "delta": r[2]} for r in trends],
+        "fire_recovery": [
+            {"fire": r[0], "fire_year": r[1], "acres": r[2], "obs_year": r[3], "years_since": r[4], "species": r[5]}
+            for r in fire
+        ],
+        "cold_water_refuges": [
+            {"station": r[0], "classification": r[1], "temp": float(r[2]) if r[2] else None}
+            for r in refuges
+        ],
+    }
+
+    # LLM forecast if available
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    narrative = None
+    if api_key:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=2000,
+                system="You are an ecological forecasting assistant. Given restoration history, species trends, fire recovery data, and thermal conditions, predict what ecological changes to expect in the next 3-12 months. Be specific: name expected species returns, habitat improvements, and risk factors. Assign confidence (high/medium/low) to each prediction.",
+                messages=[{"role": "user", "content": f"Generate a restoration forecast for the {watershed} watershed:\n\n{json.dumps(context, indent=2, default=str)}"}],
+            )
+            narrative = message.content[0].text
+        except Exception as e:
+            narrative = f"LLM forecasting unavailable: {e}"
+
+    return {
+        "watershed": watershed,
+        "horizon_months": horizon,
         "generated_at": datetime.now().isoformat(),
         "narrative": narrative,
         "data": context,

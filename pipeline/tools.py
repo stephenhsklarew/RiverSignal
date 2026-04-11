@@ -185,8 +185,8 @@ def get_indicator_status(watershed: str) -> list[dict]:
     """
     with engine.connect() as conn:
         rows = conn.execute(text("""
-            SELECT taxon_name, common_name, indicator_direction, status, trend,
-                   total_detections, recent_detections, last_detected
+            SELECT taxon_name, common_name, indicator_direction, status,
+                   total_detections, last_detected
             FROM gold.indicator_species_status
             WHERE watershed = :ws
             ORDER BY indicator_direction, status, total_detections DESC
@@ -196,12 +196,10 @@ def get_indicator_status(watershed: str) -> list[dict]:
         {
             "taxon_name": r[0],
             "common_name": r[1],
-            "direction": r[2],  # positive = good sign, negative = bad sign
+            "direction": r[2],
             "status": r[3],
-            "trend": r[4],
-            "total_detections": r[5],
-            "recent_detections": r[6],
-            "last_detected": str(r[7]) if r[7] else None,
+            "total_detections": r[4],
+            "last_detected": str(r[5]) if r[5] else None,
         }
         for r in rows
     ]
@@ -292,30 +290,44 @@ def get_river_story(river_name: str, watershed: str) -> dict:
     Returns:
         Dict with timeline, health score, fire recovery, swim safety
     """
+    def _safe_query(conn, sql, params):
+        try:
+            return conn.execute(text(sql), params).fetchall()
+        except Exception:
+            conn.rollback()
+            return []
+
+    def _safe_query_one(conn, sql, params):
+        try:
+            return conn.execute(text(sql), params).fetchone()
+        except Exception:
+            conn.rollback()
+            return None
+
     with engine.connect() as conn:
-        events = conn.execute(text("""
+        events = _safe_query(conn, """
             SELECT event_year, event_type, event_name, description, magnitude
             FROM gold.river_story_timeline WHERE watershed = :ws
             ORDER BY event_year DESC LIMIT 30
-        """), {"ws": watershed}).fetchall()
+        """, {"ws": watershed})
 
-        health = conn.execute(text("""
+        health = _safe_query_one(conn, """
             SELECT health_score, avg_water_temp, avg_do, monthly_species
             FROM gold.river_health_score WHERE watershed = :ws
             ORDER BY obs_year DESC, obs_month DESC LIMIT 1
-        """), {"ws": watershed}).fetchone()
+        """, {"ws": watershed})
 
-        recovery = conn.execute(text("""
+        recovery = _safe_query(conn, """
             SELECT fire_name, fire_year, acres, observation_year, years_since_fire, species_total_watershed
             FROM gold.post_fire_recovery WHERE watershed = :ws AND acres > 1000
             ORDER BY fire_year DESC, observation_year
-        """), {"ws": watershed}).fetchall()
+        """, {"ws": watershed})
 
-        swim = conn.execute(text("""
+        swim = _safe_query(conn, """
             SELECT station_id, avg_temp_c, avg_flow_cfs, temp_comfort, safety_rating
             FROM gold.swim_safety WHERE watershed = :ws
             ORDER BY obs_year DESC, obs_month DESC LIMIT 5
-        """), {"ws": watershed}).fetchall()
+        """, {"ws": watershed})
 
     return {
         "timeline": [{"year": r[0], "type": r[1], "name": r[2], "description": r[3]} for r in events],
