@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import type { Site } from '../App'
+import type { Site } from '../pages/MapPage'
 
 interface MapViewProps {
   sites: Site[]
