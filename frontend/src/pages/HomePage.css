@@ -1,0 +1,375 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,400&display=swap');
+
+.home {
+  background: #fffdf7;
+  color: #2c2416;
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── River flow accent ── */
+.river-flow {
+  height: 5px;
+  background: linear-gradient(90deg, var(--accent), #2564a8, var(--accent));
+  background-size: 200% 100%;
+  animation: flow 4s ease infinite;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+@keyframes flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Navigation ── */
+.home-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 48px;
+  position: sticky;
+  top: 5px;
+  background: rgba(255, 253, 247, 0.92);
+  backdrop-filter: blur(12px);
+  z-index: 90;
+  border-bottom: 1px solid transparent;
+}
+
+.home-nav-brand {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.home-nav-links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.home-nav-link {
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  transition: color 0.2s;
+}
+
+.home-nav-link:hover { color: var(--text); }
+
+.home-nav-map {
+  padding: 6px 14px;
+  background: var(--accent);
+  color: white !important;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.home-nav-map:hover { opacity: 0.9; }
+
+/* ── Hero ── */
+.home-hero {
+  padding: 100px 48px 80px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.home-hero-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.home-hero-title {
+  font-family: 'Fraunces', serif;
+  font-size: 60px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+  color: #2c2416;
+}
+
+.home-hero-title em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--accent);
+}
+
+.home-hero-subtitle {
+  font-size: 18px;
+  color: var(--text-secondary);
+  max-width: 540px;
+  line-height: 1.65;
+  font-weight: 300;
+}
+
+/* ── Watershed blocks ── */
+.home-watersheds {
+  padding: 0 48px;
+  max-width: 1200px;
+  margin: 0 auto 80px;
+}
+
+.ws-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 100px;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.6s ease;
+}
+
+.ws-block.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ws-block.reversed { direction: rtl; }
+.ws-block.reversed > * { direction: ltr; }
+
+.ws-image {
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 4/3;
+  cursor: pointer;
+}
+
+.ws-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s;
+}
+
+.ws-image:hover img { transform: scale(1.03); }
+
+.ws-health-orb {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 253, 247, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.ws-score {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ws-score.good { color: var(--accent); }
+.ws-score.moderate { color: var(--warm); }
+.ws-score.poor { color: var(--alert); }
+.ws-score-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+
+.ws-title {
+  font-family: 'Fraunces', serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  color: #2c2416;
+}
+
+.ws-title:hover { color: var(--accent); }
+
+.ws-tagline {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.ws-narrative {
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+/* ── Data pills ── */
+.ws-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.pill {
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pill.river { background: var(--accent-light); color: var(--accent); }
+.pill.water { background: #eef4fc; color: #2564a8; }
+.pill.earth { background: #f4f0e8; color: #6b5b3e; }
+.pill.fire { background: var(--alert-light); color: var(--alert); }
+
+/* ── Inline ask ── */
+.ws-ask {
+  background: var(--accent-light);
+  border: 1px solid #c8ddd6;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.ws-ask-label {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.ws-ask-row {
+  display: flex;
+  gap: 6px;
+}
+
+.ws-ask-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #c8ddd6;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  background: white;
+}
+
+.ws-ask-row input:focus { border-color: var(--accent); }
+
+.ws-ask-row button {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.ws-ask-row button:hover { opacity: 0.9; }
+
+/* ── Species section ── */
+.home-species {
+  padding: 60px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-species-title {
+  font-family: 'Fraunces', serif;
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-align: center;
+  color: #2c2416;
+}
+
+.home-species-sub {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-bottom: 28px;
+}
+
+.species-scroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+
+.species-scroll::-webkit-scrollbar { display: none; }
+
+.species-scroll-item {
+  flex-shrink: 0;
+  width: 200px;
+  scroll-snap-align: start;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.species-scroll-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+}
+
+.species-scroll-item img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
+.species-scroll-info { padding: 10px 12px; }
+.species-scroll-common { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.species-scroll-sci { font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+.species-scroll-tag {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--alert-light);
+  color: var(--alert);
+}
+
+/* ── Footer ── */
+.home-footer {
+  padding: 60px 48px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.home-footer-brand {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  color: #2c2416;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .home-hero { padding: 60px 24px 40px; }
+  .home-hero-title { font-size: 36px; }
+  .home-watersheds { padding: 0 24px; }
+  .ws-block { grid-template-columns: 1fr; gap: 24px; }
+  .ws-block.reversed { direction: ltr; }
+  .home-nav { padding: 12px 24px; }
+  .home-nav-links { gap: 12px; }
+}

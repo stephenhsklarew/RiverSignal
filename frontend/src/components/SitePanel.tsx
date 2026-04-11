@@ -7,6 +7,8 @@ interface SitePanelProps {
   site: any
   watershed: string
   onClose: () => void
+  initialQuestion?: string | null
+  onQuestionConsumed?: () => void
 }
 
 interface ChatMessage {
@@ -14,14 +16,35 @@ interface ChatMessage {
   content: string
 }
 
-export default function SitePanel({ site, watershed, onClose }: SitePanelProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'ask'>('overview')
+export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed }: SitePanelProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'ask'>(
+    initialQuestion ? 'ask' : 'overview'
+  )
   const [species, setSpecies] = useState<any[]>([])
   const [fishingBrief, setFishingBrief] = useState<any>(null)
   const [story, setStory] = useState<any>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  const [questionSent, setQuestionSent] = useState(false)
+
+  // Auto-send question from URL (e.g., navigating from home page)
+  useEffect(() => {
+    if (initialQuestion && !questionSent && site) {
+      setQuestionSent(true)
+      setActiveTab('ask')
+      setChatMessages([{ role: 'user', content: initialQuestion }])
+      setChatLoading(true)
+      fetch(`${API_BASE}/sites/${watershed}/chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: initialQuestion }),
+      })
+        .then(r => r.json())
+        .then(data => setChatMessages(prev => [...prev, { role: 'assistant', content: data.answer || data.detail || 'Unable to answer.' }]))
+        .catch(() => setChatMessages(prev => [...prev, { role: 'assistant', content: 'Set ANTHROPIC_API_KEY to enable AI answers.' }]))
+        .finally(() => { setChatLoading(false); onQuestionConsumed?.() })
+    }
+  }, [initialQuestion, site])
 
   useEffect(() => {
     if (activeTab === 'species' && species.length === 0)
