@@ -56,7 +56,16 @@ def create_all():
                     WHEN o.source_type = 'fish_barrier' THEN 'infrastructure_record'
                     ELSE 'other'
                 END as data_tier,
-                o.latitude, o.longitude, o.location, o.data_payload
+                o.latitude, o.longitude, o.location,
+                -- Enriched fields from iNaturalist backfill
+                o.data_payload->>'common_name' as common_name,
+                o.data_payload->>'conservation_status' as conservation_status,
+                o.data_payload->>'photo_url' as photo_url,
+                o.data_payload->>'photo_license' as photo_license,
+                (o.data_payload->>'positional_accuracy')::float as positional_accuracy_m,
+                (o.data_payload->>'captive')::boolean as is_captive,
+                (o.data_payload->>'obscured')::boolean as is_obscured,
+                o.data_payload
             FROM observations o
             JOIN sites s ON s.id = o.site_id
             WHERE o.taxon_name IS NOT NULL
