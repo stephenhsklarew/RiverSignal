@@ -1,0 +1,145 @@
+"""Site endpoints: list sites, get site details, ecological summary."""
+
+from fastapi import APIRouter, HTTPException
+from sqlalchemy import text
+
+from pipeline.db import engine
+
+router = APIRouter(tags=["sites"])
+
+
+@router.get("/sites")
+def list_sites():
+    """List all configured watersheds/sites."""
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT s.id, s.name, s.watershed, s.bbox,
+                   (SELECT count(*) FROM observations o WHERE o.site_id = s.id) as observations,
+                   (SELECT count(*) FROM time_series t WHERE t.site_id = s.id) as time_series,
+                   (SELECT count(*) FROM interventions i WHERE i.site_id = s.id) as interventions
+            FROM sites s ORDER BY s.name
+        """)).fetchall()
+
+    return [
+        {
+            "id": str(r[0]),
+            "name": r[1],
+            "watershed": r[2],
+            "bbox": r[3],
+            "observations": r[4],
+            "time_series": r[5],
+            "interventions": r[6],
+        }
+        for r in rows
+    ]
+
+
+@router.get("/sites/{watershed}")
+def get_site(watershed: str):
+    """Get site details with health score and current conditions."""
+    with engine.connect() as conn:
+        site = conn.execute(text(
+            "SELECT id, name, watershed, bbox FROM sites WHERE watershed = :ws"
+        ), {"ws": watershed}).fetchone()
+
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        # Health score (may not exist if view hasn't been created)
+        try:
+            health = conn.execute(text("""
+                SELECT health_score, avg_water_temp, avg_do, monthly_species, obs_year, obs_month
+                FROM gold.river_health_score WHERE watershed = :ws
+                ORDER BY obs_year DESC, obs_month DESC LIMIT 1
+            """), {"ws": watershed}).fetchone()
+        except Exception:
+            conn.rollback()
+            health = None
+
+        # Scorecard
+        scorecard = conn.execute(text(
+            "SELECT * FROM gold.watershed_scorecard WHERE watershed = :ws"
+        ), {"ws": watershed}).fetchone()
+
+        # Indicator species
+        indicators = conn.execute(text("""
+            SELECT taxon_name, common_name, indicator_direction, status, total_detections, last_detected
+            FROM gold.indicator_species_status WHERE watershed = :ws
+            ORDER BY indicator_direction, status
+        """), {"ws": watershed}).fetchall()
+
+    return {
+        "id": str(site[0]),
+        "name": site[1],
+        "watershed": site[2],
+        "bbox": site[3],
+        "health": {
+            "score": health[0] if health else None,
+            "water_temp_c": float(health[1]) if health and health[1] else None,
+            "dissolved_oxygen_mg_l": float(health[2]) if health and health[2] else None,
+            "species_this_month": health[3] if health else None,
+            "as_of": f"{health[4]}-{health[5]:02d}" if health else None,
+        },
+        "scorecard": {
+            "total_observations": scorecard[2] if scorecard else 0,
+            "total_time_series": scorecard[3] if scorecard else 0,
+            "total_interventions": scorecard[4] if scorecard else 0,
+            "total_species": scorecard[5] if scorecard else 0,
+            "fish_species": scorecard[6] if scorecard else 0,
+            "amphibian_species": scorecard[7] if scorecard else 0,
+            "usgs_stations": scorecard[8] if scorecard else 0,
+            "stream_reaches": scorecard[10] if scorecard else 0,
+            "fire_events": scorecard[12] if scorecard else 0,
+        } if scorecard else None,
+        "indicators": [
+            {
+                "taxon_name": r[0],
+                "common_name": r[1],
+                "direction": r[2],
+                "status": r[3],
+                "detections": r[4],
+                "last_detected": str(r[5]) if r[5] else None,
+            }
+            for r in indicators
+        ],
+    }
+
+
+@router.get("/sites/{watershed}/story")
+def get_site_story(watershed: str):
+    """Get the river story timeline for a watershed."""
+    from pipeline.tools import get_river_story
+    return get_river_story(river_name="", watershed=watershed)
+
+
+@router.get("/sites/{watershed}/species")
+def get_site_species(watershed: str, taxonomic_group: str = None, limit: int = 50):
+    """Get species observed at a watershed with photos."""
+    with engine.connect() as conn:
+        params = {"ws": watershed, "limit": limit}
+        where = "WHERE g.watershed = :ws"
+        if taxonomic_group:
+            where += " AND g.taxonomic_group = :tg"
+            params["tg"] = taxonomic_group
+
+        rows = conn.execute(text(f"""
+            SELECT g.taxon_name, g.common_name, g.taxonomic_group,
+                   g.photo_url, g.photo_license, g.observer, g.conservation_status
+            FROM gold.species_gallery g
+            {where}
+            ORDER BY g.taxonomic_group, g.common_name
+            LIMIT :limit
+        """), params).fetchall()
+
+    return [
+        {
+            "taxon_name": r[0],
+            "common_name": r[1],
+            "taxonomic_group": r[2],
+            "photo_url": r[3],
+            "photo_license": r[4],
+            "observer": r[5],
+            "conservation_status": r[6],
+        }
+        for r in rows
+    ]

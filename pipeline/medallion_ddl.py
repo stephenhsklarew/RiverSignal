@@ -85,16 +85,16 @@ def create_all():
         with open(sql_file) as f:
             sql = f.read()
         with engine.connect() as conn:
-            # Execute each statement separately
             for stmt in sql.split(";"):
                 stmt = stmt.strip()
                 if stmt and not stmt.startswith("--"):
                     try:
                         conn.execute(text(stmt))
+                        conn.commit()
                     except Exception as e:
+                        conn.rollback()
                         if "already exists" not in str(e):
                             print(f"  Warning: {str(e)[:80]}")
-            conn.commit()
         print("All materialized views created.")
     else:
         print(f"No {sql_file} found. Run: python -m pipeline.medallion_ddl --dump")

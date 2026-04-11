@@ -662,29 +662,242 @@ CREATE MATERIALIZED VIEW gold.indicator_species_status AS
 
 -- gold.river_health_score
 DROP MATERIALIZED VIEW IF EXISTS gold.river_health_score CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.river_health_score AS
+ WITH base AS (
+         SELECT s.id AS site_id,
+            s.watershed,
+            s.name AS watershed_name,
+            wc.obs_year,
+            wc.obs_month,
+            count(DISTINCT
+                CASE
+                    WHEN so.obs_year = wc.obs_year AND so.obs_month = wc.obs_month THEN so.taxon_name
+                    ELSE NULL::character varying
+                END) AS monthly_species,
+            round(avg(
+                CASE
+                    WHEN wc.parameter::text = 'water_temperature'::text AND wc.source_type::text = 'usgs'::text THEN wc.value
+                    ELSE NULL::numeric
+                END), 1) AS avg_water_temp,
+            round(avg(
+                CASE
+                    WHEN wc.parameter::text = 'dissolved_oxygen'::text THEN wc.value
+                    ELSE NULL::numeric
+                END), 1) AS avg_do
+           FROM sites s
+             JOIN silver.water_conditions wc ON wc.site_id = s.id
+             LEFT JOIN silver.species_observations so ON so.site_id = s.id AND so.obs_year = wc.obs_year AND so.obs_month = wc.obs_month AND so.taxon_name IS NOT NULL
+          WHERE wc.obs_year >= 2024 AND (wc.parameter::text = ANY (ARRAY['water_temperature'::character varying, 'dissolved_oxygen'::character varying, 'discharge'::character varying]::text[]))
+          GROUP BY s.id, s.watershed, s.name, wc.obs_year, wc.obs_month
+        )
+ SELECT site_id,
+    watershed,
+    watershed_name,
+    obs_year,
+    obs_month,
+    monthly_species,
+    avg_water_temp,
+    avg_do,
+    LEAST(40::bigint, monthly_species * 40 / GREATEST(NULLIF(( SELECT max(base_1.monthly_species) AS max
+           FROM base base_1), 0), 1::bigint)) +
+        CASE
+            WHEN avg_water_temp IS NULL THEN 10
+            WHEN avg_water_temp < 12::numeric THEN 20
+            WHEN avg_water_temp < 16::numeric THEN 15
+            WHEN avg_water_temp < 20::numeric THEN 10
+            ELSE 5
+        END +
+        CASE
+            WHEN avg_do IS NULL THEN 10
+            WHEN avg_do > 8::numeric THEN 20
+            WHEN avg_do > 6::numeric THEN 15
+            WHEN avg_do > 4::numeric THEN 5
+            ELSE 0
+        END AS health_score
+   FROM base;;
 
 -- gold.whats_alive_now
 DROP MATERIALIZED VIEW IF EXISTS gold.whats_alive_now CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.whats_alive_now AS
+ SELECT site_id,
+    watershed,
+    watershed_name,
+    taxonomic_group,
+    count(DISTINCT taxon_name) AS species_active,
+    count(*) AS recent_observations
+   FROM silver.species_observations o
+  WHERE obs_year = EXTRACT(year FROM now())::integer AND obs_month = EXTRACT(month FROM now())::integer AND taxon_name IS NOT NULL AND taxonomic_group IS NOT NULL
+  GROUP BY site_id, watershed, watershed_name, taxonomic_group;;
 
 -- gold.swim_safety
 DROP MATERIALIZED VIEW IF EXISTS gold.swim_safety CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.swim_safety AS
+ SELECT site_id,
+    watershed,
+    station_id,
+    obs_year,
+    obs_month,
+    round(avg(
+        CASE
+            WHEN parameter::text = 'water_temperature'::text THEN value
+            ELSE NULL::numeric
+        END), 1) AS avg_temp_c,
+    round(avg(
+        CASE
+            WHEN parameter::text = 'discharge'::text THEN value
+            ELSE NULL::numeric
+        END), 0) AS avg_flow_cfs,
+        CASE
+            WHEN avg(
+            CASE
+                WHEN parameter::text = 'water_temperature'::text THEN value
+                ELSE NULL::numeric
+            END) < 10::numeric THEN 'very_cold'::text
+            WHEN avg(
+            CASE
+                WHEN parameter::text = 'water_temperature'::text THEN value
+                ELSE NULL::numeric
+            END) < 15::numeric THEN 'cold'::text
+            WHEN avg(
+            CASE
+                WHEN parameter::text = 'water_temperature'::text THEN value
+                ELSE NULL::numeric
+            END) < 20::numeric THEN 'refreshing'::text
+            ELSE 'comfortable'::text
+        END AS temp_comfort,
+        CASE
+            WHEN avg(
+            CASE
+                WHEN parameter::text = 'discharge'::text THEN value
+                ELSE NULL::numeric
+            END) > 5000::numeric THEN 'red'::text
+            WHEN avg(
+            CASE
+                WHEN parameter::text = 'discharge'::text THEN value
+                ELSE NULL::numeric
+            END) > 2000::numeric THEN 'yellow'::text
+            ELSE 'green'::text
+        END AS safety_rating
+   FROM silver.water_conditions w
+  WHERE source_type::text = 'usgs'::text AND (parameter::text = ANY (ARRAY['water_temperature'::character varying, 'discharge'::character varying]::text[])) AND obs_year >= 2024
+  GROUP BY site_id, watershed, station_id, obs_year, obs_month;;
 
 -- gold.river_story_timeline
 DROP MATERIALIZED VIEW IF EXISTS gold.river_story_timeline CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.river_story_timeline AS
+ SELECT fp.site_id,
+    s.watershed,
+    fp.fire_year AS event_year,
+    'fire'::text AS event_type,
+    fp.fire_name AS event_name,
+    ('Wildfire burned '::text || round(fp.acres)) || ' acres'::text AS description,
+    fp.acres AS magnitude
+   FROM fire_perimeters fp
+     JOIN sites s ON s.id = fp.site_id
+  WHERE fp.fire_year IS NOT NULL AND fp.acres > 100::double precision
+UNION ALL
+ SELECT i.site_id,
+    i.watershed,
+    i.intervention_year AS event_year,
+    'restoration'::text AS event_type,
+    i.intervention_category AS event_name,
+    ((count(*) || ' '::text) || i.intervention_category) || ' projects'::text AS description,
+    count(*)::double precision AS magnitude
+   FROM silver.interventions_enriched i
+  WHERE i.intervention_year IS NOT NULL
+  GROUP BY i.site_id, i.watershed, i.intervention_year, i.intervention_category
+UNION ALL
+ SELECT iw.site_id,
+    s.watershed,
+    iw.listing_year AS event_year,
+    'regulatory'::text AS event_type,
+    iw.water_name AS event_name,
+    'Listed as impaired: '::text || COALESCE(iw.parameter, iw.category)::text AS description,
+    1.0 AS magnitude
+   FROM impaired_waters iw
+     JOIN sites s ON s.id = iw.site_id
+  WHERE iw.listing_year IS NOT NULL
+  ORDER BY 3 DESC;;
 
 -- gold.species_gallery
 DROP MATERIALIZED VIEW IF EXISTS gold.species_gallery CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.species_gallery AS
+ SELECT DISTINCT ON (s.watershed, o.taxon_name) o.site_id,
+    s.watershed,
+    o.taxon_name,
+    o.iconic_taxon AS taxonomic_group,
+    o.data_payload ->> 'common_name'::text AS common_name,
+    o.data_payload ->> 'photo_url'::text AS photo_url,
+    o.data_payload ->> 'photo_license'::text AS photo_license,
+    o.data_payload ->> 'user'::text AS observer,
+    o.data_payload ->> 'conservation_status'::text AS conservation_status,
+    o.quality_grade,
+    o.observed_at::date AS photo_date
+   FROM observations o
+     JOIN sites s ON s.id = o.site_id
+  WHERE o.source_type::text = 'inaturalist'::text AND o.taxon_name IS NOT NULL AND (o.data_payload ->> 'photo_url'::text) IS NOT NULL AND (o.data_payload ->> 'photo_license'::text) IS NOT NULL
+  ORDER BY s.watershed, o.taxon_name, (
+        CASE
+            WHEN o.quality_grade::text = 'research'::text THEN 0
+            ELSE 1
+        END), o.observed_at DESC;;
 
 -- gold.hatch_chart
 DROP MATERIALIZED VIEW IF EXISTS gold.hatch_chart CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.hatch_chart AS
+ SELECT site_id,
+    watershed,
+    taxon_name,
+    common_name,
+    obs_month,
+    count(*) AS observation_count,
+    count(DISTINCT obs_year) AS years_observed,
+    rank() OVER (PARTITION BY site_id, taxon_name ORDER BY (count(*)) DESC) AS month_rank,
+        CASE
+            WHEN rank() OVER (PARTITION BY site_id, taxon_name ORDER BY (count(*)) DESC) <= 2 THEN 'peak'::text
+            ELSE 'present'::text
+        END AS activity_level,
+    ( SELECT g.photo_url
+           FROM gold.species_gallery g
+          WHERE g.taxon_name::text = o.taxon_name::text AND g.watershed::text = o.watershed::text
+         LIMIT 1) AS photo_url
+   FROM silver.species_observations o
+  WHERE taxonomic_group::text = 'Insecta'::text AND taxon_name IS NOT NULL AND (taxon_rank::text = ANY (ARRAY['species'::character varying, 'genus'::character varying, 'subfamily'::character varying]::text[]))
+  GROUP BY site_id, watershed, taxon_name, common_name, obs_month
+ HAVING count(*) >= 3;;
 
 -- gold.species_by_river_mile
 DROP MATERIALIZED VIEW IF EXISTS gold.species_by_river_mile CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.species_by_river_mile AS
+ WITH river_obs AS (
+         SELECT rm.watershed,
+            rm.river_name,
+            (floor(rm.segment_start_mile / 5::numeric) * 5::numeric)::integer AS mile_section_start,
+            (floor(rm.segment_start_mile / 5::numeric) * 5::numeric + 5::numeric)::integer AS mile_section_end,
+            o.taxon_name,
+            o.iconic_taxon,
+            o.data_payload ->> 'common_name'::text AS common_name,
+            o.observed_at,
+            o.quality_grade
+           FROM gold.river_miles rm
+             JOIN observations o ON st_dwithin(o.location, rm.flowline, 0.005::double precision)
+          WHERE o.taxon_name IS NOT NULL AND o.source_type::text = 'inaturalist'::text AND (rm.river_name::text = ANY (ARRAY['Deschutes River'::character varying, 'McKenzie River'::character varying, 'Metolius River'::character varying, 'Williamson River'::character varying, 'Sprague River'::character varying, 'Crooked River'::character varying, 'South Fork McKenzie River'::character varying, 'Blue River'::character varying]::text[]))
+        )
+ SELECT watershed,
+    river_name,
+    mile_section_start,
+    mile_section_end,
+    taxon_name,
+    common_name,
+    iconic_taxon AS taxonomic_group,
+    count(*) AS observation_count,
+    min(observed_at)::date AS first_seen,
+    max(observed_at)::date AS last_seen,
+    ( SELECT g.photo_url
+           FROM gold.species_gallery g
+          WHERE g.taxon_name::text = ro.taxon_name::text AND g.watershed::text = ro.watershed::text
+         LIMIT 1) AS photo_url
+   FROM river_obs ro
+  GROUP BY watershed, river_name, mile_section_start, mile_section_end, taxon_name, common_name, iconic_taxon
+ HAVING count(*) >= 2;;
 
