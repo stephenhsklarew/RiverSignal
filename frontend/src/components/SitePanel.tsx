@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import Markdown from 'react-markdown'
 
 const API_BASE = 'http://localhost:8001/api/v1'
 
@@ -220,28 +221,12 @@ export default function SitePanel({ site, watershed, onClose }: SitePanelProps) 
         )}
 
         {activeTab === 'ask' && (
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 300 }}>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {chatMessages.length === 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <div className="section-title">Suggested Questions</div>
-                  <div className="chat-suggestions">
-                    {["Is this river healthy?", "What fish are spawning?", "Did wildfire affect this?", "What insects are hatching?", "Is it safe to swim?", "What restoration happened?"].map((q, i) => (
-                      <button key={i} className="suggestion-chip" onClick={() => setChatInput(q)}>{q}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="chat-messages">
-                {chatMessages.map((msg, i) => (
-                  <div key={i} className={`chat-bubble ${msg.role}`}>
-                    <div className="bubble">{msg.content}</div>
-                  </div>
-                ))}
-                {chatLoading && <div className="chat-thinking">Analyzing {site.name} data...</div>}
-              </div>
-            </div>
-          </div>
+          <AskTab
+            site={site}
+            chatMessages={chatMessages}
+            chatLoading={chatLoading}
+            onSuggestionClick={(q: string) => setChatInput(q)}
+          />
         )}
       </div>
 
@@ -258,6 +243,78 @@ export default function SitePanel({ site, watershed, onClose }: SitePanelProps) 
           />
           <button onClick={sendChat} disabled={!chatInput.trim() || chatLoading}>Query</button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Ask Tab (extracted for proper layout) ── */
+function AskTab({ site, chatMessages, chatLoading, onSuggestionClick }: {
+  site: any; chatMessages: ChatMessage[];
+  chatLoading: boolean; onSuggestionClick: (q: string) => void
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [chatMessages, chatLoading])
+
+  return (
+    <div className="ask-container">
+      <div className="ask-messages" ref={scrollRef}>
+        {chatMessages.length === 0 && (
+          <div className="ask-empty">
+            <div className="section-title">Suggested Questions</div>
+            <div className="chat-suggestions">
+              {[
+                "Is this river healthy?",
+                "What fish are spawning here?",
+                "Did wildfire affect this watershed?",
+                "What insects are hatching this month?",
+                "Is it safe to swim here?",
+                "What restoration projects happened recently?",
+                "What species should I look for?",
+                "How has biodiversity changed since the fire?",
+              ].map((q, i) => (
+                <button key={i} className="suggestion-chip" onClick={() => onSuggestionClick(q)}>{q}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        {chatMessages.map((msg, i) => (
+          <div key={i} className={`chat-bubble ${msg.role}`}>
+            <div className="bubble">
+              {msg.role === 'assistant' ? (
+                <Markdown components={{
+                  h1: ({children}) => <h3 className="md-h">{children}</h3>,
+                  h2: ({children}) => <h4 className="md-h">{children}</h4>,
+                  h3: ({children}) => <h5 className="md-h">{children}</h5>,
+                  p: ({children}) => <p className="md-p">{children}</p>,
+                  ul: ({children}) => <ul className="md-ul">{children}</ul>,
+                  ol: ({children}) => <ol className="md-ol">{children}</ol>,
+                  li: ({children}) => <li className="md-li">{children}</li>,
+                  strong: ({children}) => <strong className="md-strong">{children}</strong>,
+                  table: ({children}) => <table className="md-table">{children}</table>,
+                  th: ({children}) => <th className="md-th">{children}</th>,
+                  td: ({children}) => <td className="md-td">{children}</td>,
+                  code: ({children}) => <code className="md-code">{children}</code>,
+                }}>{msg.content}</Markdown>
+              ) : msg.content}
+            </div>
+          </div>
+        ))}
+        {chatLoading && (
+          <div className="chat-bubble assistant">
+            <div className="bubble">
+              <div className="chat-thinking">
+                <span className="thinking-dot" />
+                Analyzing {site.name} data...
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
