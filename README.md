@@ -1,10 +1,14 @@
-# RiverSignal
+# RiverSignal + RiverPath
 
-AI-native biodiversity intelligence copilot for watershed restoration, land management, and conservation decisions.
+A shared data platform powering two products for Pacific Northwest watershed intelligence.
 
-## Overview
+## Two Products, One Platform
 
-RiverSignal transforms fragmented ecological data into actionable management recommendations. It combines multimodal LLMs with ecological reasoning to bridge the gap between data collection and expert interpretation at operational speed.
+**RiverSignal** (B2B) -- AI-powered watershed intelligence copilot for restoration professionals, ecologists, and agencies. Interprets biodiversity data at operational speed and proves restoration outcomes to funders.
+
+**RiverPath** (B2C) -- AI-native field companion for families, anglers, educators, and river advocates. Transforms river visits into adventure, education, and stewardship. *"The AllTrails of living rivers."*
+
+Both products share the same data platform: 2.2M+ records from 15 public data sources, a 21-view medallion architecture, and an LLM reasoning engine with ecological knowledge.
 
 **The core pain:** people can collect nature data faster than they can interpret it -- and that gap is widening with drones, edge sensors, acoustics, and citizen science feeds.
 

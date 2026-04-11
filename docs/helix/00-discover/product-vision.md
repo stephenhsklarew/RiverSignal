@@ -1,6 +1,15 @@
 # Product Vision
 
-## Mission Statement
+## Platform Strategy
+
+This project builds a **shared data platform** serving two products:
+
+- **RiverSignal** (B2B/B2G) -- Watershed intelligence copilot for restoration professionals, ecologists, and agencies
+- **[RiverPath](riverpath-vision.md)** (B2C) -- AI-native field companion for families, anglers, educators, and river advocates
+
+Both products share the same PostgreSQL + PostGIS database (2.2M+ records), 15 ingestion pipelines, and 21-view medallion architecture. The data platform is the strategic asset; the products are presentation layers with different UX, tone, and business models on top of the same ecological intelligence engine.
+
+## Mission Statement (RiverSignal)
 
 RiverSignal delivers AI-powered ecological reasoning to watershed managers, restoration ecologists, and conservation agencies so they can interpret biodiversity data at operational speed and prove restoration outcomes to funders.
 
