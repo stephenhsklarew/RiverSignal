@@ -46,6 +46,7 @@ VIEWS = [
     "gold.harvest_trends",
     "gold.post_fire_recovery",
     "gold.cold_water_refuges",
+    "gold.river_miles",
 ]
 
 

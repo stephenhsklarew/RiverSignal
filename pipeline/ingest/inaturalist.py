@@ -127,6 +127,14 @@ class INaturalistAdapter(IngestionAdapter):
         except (ValueError, AttributeError):
             observed_dt = datetime.now(timezone.utc)
 
+        # Photo URL (first photo, if CC licensed)
+        photos = obs.get("photos", [])
+        photo_url = None
+        photo_license = None
+        if photos:
+            photo_url = photos[0].get("url", "").replace("square", "medium")
+            photo_license = photos[0].get("license_code")
+
         return {
             "site_id": str(self.site_id),
             "source_id": source_id,
@@ -139,12 +147,31 @@ class INaturalistAdapter(IngestionAdapter):
             "longitude": lon,
             "quality_grade": obs.get("quality_grade"),
             "data_payload": json.dumps({
+                # Existing fields
                 "species_guess": obs.get("species_guess"),
                 "place_guess": obs.get("place_guess"),
                 "uri": obs.get("uri"),
-                "photos": len(obs.get("photos", [])),
-                "num_identification_agreements": obs.get(
-                    "num_identification_agreements", 0
-                ),
+                "num_identification_agreements": obs.get("num_identification_agreements", 0),
+                # Common name and taxonomy
+                "common_name": taxon.get("preferred_common_name"),
+                "ancestry": taxon.get("ancestry"),
+                # Native/introduced/threatened classification
+                "native": taxon.get("native"),
+                "introduced": taxon.get("introduced"),
+                "threatened": taxon.get("threatened"),
+                # Spatial precision
+                "positional_accuracy": obs.get("positional_accuracy"),
+                "obscured": obs.get("obscured", False),
+                "captive": obs.get("captive", False),
+                # Anomaly flag
+                "out_of_range": obs.get("out_of_range", False),
+                # Photo
+                "photo_url": photo_url,
+                "photo_license": photo_license,
+                "photo_count": len(photos),
+                # Observer
+                "user": (obs.get("user") or {}).get("login"),
+                # Time precision
+                "time_observed_at": obs.get("time_observed_at"),
             }),
         }
