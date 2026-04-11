@@ -9,7 +9,7 @@ const API_BASE = 'http://localhost:8001/api/v1'
 // Real Oregon watershed photos from Unsplash (free commercial use)
 const PHOTOS: Record<string, string> = {
   mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop', // Tamolitch Blue Pool, McKenzie River OR
-  deschutes: 'https://images.unsplash.com/photo-1470173479932-81a508f4b1b7?w=900&h=600&fit=crop', // Deschutes River OR by Jack Long
+  deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop', // Smith Rock / Crooked River canyon (Deschutes tributary) by Dale Nibbe
   metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop', // Cabin on Metolius River, Camp Sherman OR by Lance Reis
   klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop', // Wood River meandering into Klamath Lake, Chiloquin OR by Dan Meyers
   johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop', // Painted Hills, John Day Fossil Beds National Monument OR by Dan Meyers
