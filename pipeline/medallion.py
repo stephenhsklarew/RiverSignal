@@ -14,6 +14,13 @@ Gold Layer (business aggregates):
 - gold.restoration_outcomes -- before/after species at intervention sites
 - gold.watershed_scorecard -- cross-watershed comparison metrics
 - gold.anomaly_flags -- temperature/DO exceedance alerts
+- gold.seasonal_observation_patterns -- survey timing windows by taxonomic group
+- gold.indicator_species_status -- checklist-based presence/absence tracker
+- gold.species_by_reach -- ODFW fish distribution by stream name
+- gold.stocking_schedule -- upcoming/recent stocking events
+- gold.harvest_trends -- year-over-year sport catch with delta
+- gold.post_fire_recovery -- species trajectory pre/post fire events
+- gold.cold_water_refuges -- thermal classification of stream stations
 """
 
 from sqlalchemy import text
@@ -32,14 +39,41 @@ VIEWS = [
     "gold.restoration_outcomes",
     "gold.watershed_scorecard",
     "gold.anomaly_flags",
+    "gold.seasonal_observation_patterns",
+    "gold.indicator_species_status",
+    "gold.species_by_reach",
+    "gold.stocking_schedule",
+    "gold.harvest_trends",
+    "gold.post_fire_recovery",
+    "gold.cold_water_refuges",
 ]
 
 
 def refresh_all():
-    """Refresh all materialized views in dependency order."""
+    """Refresh all materialized views. Recreates any that don't exist."""
     with engine.connect() as conn:
+        missing = False
         for view in VIEWS:
-            conn.execute(text(f"REFRESH MATERIALIZED VIEW {view}"))
-            count = conn.execute(text(f"SELECT count(*) FROM {view}")).scalar()
-            print(f"  {view:45s}: {count:>10,} rows")
+            try:
+                conn.execute(text(f"REFRESH MATERIALIZED VIEW {view}"))
+                count = conn.execute(text(f"SELECT count(*) FROM {view}")).scalar()
+                print(f"  {view:45s}: {count:>10,} rows")
+            except Exception:
+                conn.rollback()
+                missing = True
+                print(f"  {view:45s}:    MISSING -- run: python -m pipeline.medallion_ddl")
         conn.commit()
+        if missing:
+            print("\n  Some views are missing. Recreating all...")
+            conn.close()
+            from pipeline.medallion_ddl import create_all
+            create_all()
+            # Now refresh
+            with engine.connect() as conn2:
+                for view in VIEWS:
+                    try:
+                        count = conn2.execute(text(f"SELECT count(*) FROM {view}")).scalar()
+                        print(f"  {view:45s}: {count:>10,} rows")
+                    except Exception:
+                        print(f"  {view:45s}:    ERROR")
+                        conn2.rollback()
