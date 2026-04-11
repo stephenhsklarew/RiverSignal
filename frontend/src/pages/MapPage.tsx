@@ -57,34 +57,18 @@ export default function MapPage() {
 
   if (loading) return <div className="loading">Loading watersheds...</div>
 
-  const NAMES: Record<string, string> = {
-    klamath: 'Klamath', mckenzie: 'McKenzie', deschutes: 'Deschutes',
-    metolius: 'Metolius', johnday: 'John Day',
-  }
-
   return (
     <div className="app">
       <div className="topbar">
-        <Link to="/" className="topbar-brand" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Link to="/" className="topbar-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
           <img src={logo} alt="RiverSignal" style={{ height: 34 }} />
-          <span style={{ background: '#1a6b4a', color: '#fff', fontSize: '0.65rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>RiverSignal</span>
         </Link>
         <div className="topbar-nav">
-          {sites.map(s => (
-            <button
-              key={s.watershed}
-              className={selectedSite === s.watershed ? 'active' : ''}
-              onClick={() => setSelectedSite(s.watershed)}
-            >
-              {NAMES[s.watershed] || s.name}
-            </button>
-          ))}
+          <Link to="/"><button>Home</button></Link>
+          <button className="active">Dashboard</button>
+          <Link to="/riversignal/reports"><button>Reports</button></Link>
         </div>
         <div className="topbar-status">
-          <Link to="/riversignal/reports" style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>Reports</Link>
-          <span style={{ color: '#ddd' }}>|</span>
-          <Link to="/path" style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>RiverPath</Link>
-          <Link to="/deepsignal" style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>DeepSignal</Link>
           <DataFreshness compact />
         </div>
       </div>
