@@ -7,6 +7,13 @@ from pipeline.models.core import (
     Site,
     TimeSeries,
 )
+from pipeline.models.spatial import (
+    FirePerimeter,
+    ImpairedWater,
+    StreamFlowline,
+    WatershedBoundary,
+    Wetland,
+)
 
 __all__ = [
     "Base",
@@ -16,4 +23,9 @@ __all__ = [
     "Intervention",
     "DataSource",
     "IngestionJob",
+    "FirePerimeter",
+    "StreamFlowline",
+    "ImpairedWater",
+    "Wetland",
+    "WatershedBoundary",
 ]
