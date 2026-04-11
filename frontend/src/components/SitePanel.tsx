@@ -63,6 +63,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
     if (!chatInput.trim() || chatLoading) return
     const question = chatInput.trim()
     setChatInput('')
+    setActiveTab('ask')
     setChatMessages(prev => [...prev, { role: 'user', content: question }])
     setChatLoading(true)
     fetch(`${API_BASE}/sites/${watershed}/chat`, {
