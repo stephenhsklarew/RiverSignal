@@ -14,6 +14,7 @@ const COLORS: Record<string, string> = {
   mckenzie: '#1a6b4a',
   deschutes: '#2563eb',
   metolius: '#7c3aed',
+  johnday: '#d97706',
 }
 
 export default function MapView({ sites, selectedSite, onSelectSite }: MapViewProps) {

@@ -1,4 +1,4 @@
-"""Watershed configurations for the 4 candidate Oregon watersheds.
+"""Watershed configurations for 5 Oregon watersheds.
 
 Each watershed defines a bounding box and metadata used by ingestion adapters.
 Bounding boxes are approximate and designed to capture the main stem and
@@ -56,6 +56,20 @@ WATERSHEDS = {
             "south": 44.35,
             "east": -121.35,
             "west": -121.80,
+        },
+    },
+    "johnday": {
+        "name": "John Day River",
+        "description": (
+            "John Day River basin in central-eastern Oregon, from Prairie City "
+            "through Picture Gorge to the Columbia. Wild & Scenic, rangeland "
+            "ecology, fossil beds, steelhead and Chinook habitat."
+        ),
+        "bbox": {
+            "north": 45.05,
+            "south": 44.15,
+            "east": -118.40,
+            "west": -119.90,
         },
     },
 }

@@ -12,6 +12,7 @@ const PHOTOS: Record<string, string> = {
   deschutes: 'https://images.unsplash.com/photo-1470173479932-81a508f4b1b7?w=900&h=600&fit=crop', // Deschutes River OR by Jack Long
   metolius: 'https://images.unsplash.com/photo-1688057937854-c94e7ad00b57?w=900&h=600&fit=crop', // Oregon forest river by Peter Robbins
   klamath: 'https://images.unsplash.com/photo-1548869447-faef5000334c?w=900&h=600&fit=crop', // Klamath Falls OR sunset by Eric Muhr
+  johnday: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop', // Eastern Oregon high desert canyon
 }
 
 interface WatershedData {
@@ -42,9 +43,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: 'The largest dam removal in American history',
     narrative: 'The 2023-2024 removal of four dams on the Klamath River — the largest such action in US history — opened 400 miles of habitat for salmon returning for the first time in a century. Upper Klamath Lake\'s endangered suckers and the Klamath Tribes\' stewardship story make this one of the most consequential ecological experiments on Earth.',
   },
+  johnday: {
+    tagline: 'Wild & Scenic through ancient fossil beds',
+    narrative: 'The John Day is one of the longest free-flowing rivers in the Pacific Northwest — 284 miles without a dam. It cuts through the Painted Hills and John Day Fossil Beds, where 40-million-year-old ecosystems are preserved in stone. Today it supports wild steelhead and spring Chinook runs through high-desert rangeland, making it one of Oregon\'s most remote and ecologically significant watersheds.',
+  },
 }
 
-const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath']
+const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -84,7 +89,7 @@ export default function HomePage() {
         <div className="home-nav-links">
           {WATERSHED_ORDER.map(ws => (
             <Link key={ws} to={`/map/${ws}`} className="home-nav-link">
-              {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath' }[ws]}
+              {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[ws]}
             </Link>
           ))}
           <Link to="/map" className="home-nav-link home-nav-map">Map →</Link>

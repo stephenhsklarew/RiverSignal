@@ -63,6 +63,7 @@ WATERSHED_STREAMS = {
     "mckenzie": ["McKenzie", "Blue R", "Horse Cr", "South Fork McKenzie"],
     "deschutes": ["Deschutes", "Crooked R", "Tumalo", "Fall R"],
     "metolius": ["Metolius", "Lake Cr", "Spring Cr", "Canyon Cr"],
+    "johnday": ["John Day", "North Fork John Day", "Middle Fork John Day", "South Fork John Day"],
 }
 
 
