@@ -81,6 +81,13 @@
 .product-icon {
   font-size: 2rem;
   margin-bottom: 12px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.product-logo {
+  height: 32px;
 }
 
 .product-name {

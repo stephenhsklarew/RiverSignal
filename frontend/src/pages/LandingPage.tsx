@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import logo from '../assets/riversignal-logo.svg'
 import './LandingPage.css'
 
 const products = [
@@ -53,7 +54,11 @@ export default function LandingPage() {
       <div className="landing-grid">
         {products.map(p => (
           <Link to={p.path} key={p.name} className="product-card" style={{ '--accent': p.color } as React.CSSProperties}>
-            <div className="product-icon">{p.icon}</div>
+            <div className="product-icon">
+              {p.name === 'RiverSignal'
+                ? <img src={logo} alt="RiverSignal" className="product-logo" />
+                : p.icon}
+            </div>
             <h2 className="product-name">{p.name}</h2>
             <p className="product-tagline">{p.tagline}</p>
             <p className="product-desc">{p.description}</p>
