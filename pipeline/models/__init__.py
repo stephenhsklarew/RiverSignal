@@ -7,6 +7,12 @@ from pipeline.models.core import (
     Site,
     TimeSeries,
 )
+from pipeline.models.geology import (
+    DeepTimeStory,
+    FossilOccurrence,
+    GeologicUnit,
+    LandOwnership,
+)
 from pipeline.models.spatial import (
     FirePerimeter,
     ImpairedWater,
@@ -28,4 +34,8 @@ __all__ = [
     "ImpairedWater",
     "Wetland",
     "WatershedBoundary",
+    "GeologicUnit",
+    "FossilOccurrence",
+    "LandOwnership",
+    "DeepTimeStory",
 ]

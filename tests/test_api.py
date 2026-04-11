@@ -15,9 +15,9 @@ def test_list_sites(client):
     resp = client.get("/api/v1/sites")
     assert resp.status_code == 200
     sites = resp.json()
-    assert len(sites) == 4
+    assert len(sites) == 5
     names = {s["watershed"] for s in sites}
-    assert names == {"klamath", "mckenzie", "deschutes", "metolius"}
+    assert names == {"klamath", "mckenzie", "deschutes", "metolius", "johnday"}
     for site in sites:
         assert site["observations"] > 0
         assert "bbox" in site
@@ -148,3 +148,61 @@ def test_report_markdown(client):
     assert "# McKenzie River" in resp.text
     assert "Species Richness" in resp.text
     assert "Indicator Species" in resp.text
+
+
+# ── Geology endpoints ──
+
+def test_geology_at_point(client):
+    """Test geologic unit lookup at a point in the John Day basin."""
+    resp = client.get("/api/v1/geology/at/44.66/-120.0")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "units" in data
+    assert len(data["units"]) > 0
+    assert "rock_type" in data["units"][0]
+
+
+def test_geology_units_bbox(client):
+    """Test geologic unit polygon retrieval by bbox."""
+    resp = client.get("/api/v1/geology/units?west=-120.5&south=44.0&east=-119.5&north=45.0")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["type"] == "FeatureCollection"
+    assert len(data["features"]) > 0
+
+
+def test_geology_watershed_link(client):
+    """Test geology-watershed correlation endpoint."""
+    resp = client.get("/api/v1/geology/watershed-link/deschutes")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["watershed"] == "deschutes"
+    assert data["count"] > 0
+
+
+def test_fossils_near_john_day(client):
+    """Test fossil occurrence search near John Day Fossil Beds."""
+    resp = client.get("/api/v1/fossils/near/44.66/-120.0?radius_km=50")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["count"] > 0
+    assert "taxon_name" in data["fossils"][0]
+    assert "period" in data["fossils"][0]
+
+
+def test_land_ownership_at_point(client):
+    """Test land ownership lookup."""
+    resp = client.get("/api/v1/land/at/44.66/-120.0")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "collecting_status" in data
+    assert "disclaimer" in data
+
+
+def test_deep_time_timeline(client):
+    """Test deep time timeline at John Day location."""
+    resp = client.get("/api/v1/deep-time/timeline/44.66/-120.0")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "timeline" in data
+    assert len(data["timeline"]) > 0

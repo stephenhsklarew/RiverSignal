@@ -21,6 +21,8 @@ if config.config_file_name is not None:
 
 from pipeline.models.base import Base
 import pipeline.models.core  # noqa: F401 — register models
+import pipeline.models.spatial  # noqa: F401 — register spatial models
+import pipeline.models.geology  # noqa: F401 — register geology models
 
 target_metadata = Base.metadata
 

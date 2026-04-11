@@ -336,3 +336,193 @@ def get_river_story(river_name: str, watershed: str) -> dict:
         "fire_recovery": [{"fire": r[0], "year": r[1], "acres": r[2], "obs_year": r[3], "years_since": r[4], "species": r[5]} for r in recovery],
         "swim_safety": [{"station": r[0], "temp_c": float(r[1]) if r[1] else None, "flow_cfs": float(r[2]) if r[2] else None, "comfort": r[3], "safety": r[4]} for r in swim],
     }
+
+
+# ──────────────────────────────────────────────────────────────
+# Geology / Deep Time tools (FEAT-008, FEAT-009, FEAT-010)
+# ──────────────────────────────────────────────────────────────
+
+def get_geologic_context(lat: float, lon: float) -> dict:
+    """Returns geologic unit, rock type, age, formation, and description for a point.
+
+    Args:
+        lat: latitude
+        lon: longitude
+
+    Returns:
+        Dict with unit_name, formation, rock_type, lithology, age range, period, description.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT unit_name, formation, rock_type, lithology,
+                   age_min_ma, age_max_ma, period, description
+            FROM geologic_units
+            WHERE ST_Contains(geometry, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326))
+            ORDER BY age_max_ma ASC NULLS LAST
+        """), {"lat": lat, "lon": lon}).fetchall()
+
+    if not rows:
+        return {"message": f"No geologic data at ({lat}, {lon}). This area may not have detailed mapping."}
+
+    units = []
+    for r in rows:
+        units.append({
+            "unit_name": r[0], "formation": r[1], "rock_type": r[2], "lithology": r[3],
+            "age_min_ma": r[4], "age_max_ma": r[5], "period": r[6], "description": r[7],
+        })
+    return {"location": {"lat": lat, "lon": lon}, "geologic_units": units}
+
+
+def get_fossils_near_me(lat: float, lon: float, radius_km: float = 25) -> dict:
+    """Returns fossil occurrences within radius with taxa, ages, and legal status.
+
+    Args:
+        lat: latitude
+        lon: longitude
+        radius_km: search radius in km (default 25)
+
+    Returns:
+        Dict with fossils list including taxon, age, period, distance.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT taxon_name, phylum, class_name, order_name, family,
+                   age_min_ma, age_max_ma, period,
+                   latitude, longitude,
+                   ST_Distance(location::geography,
+                       ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as dist_km
+            FROM fossil_occurrences
+            WHERE ST_DWithin(location::geography,
+                ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+            ORDER BY dist_km
+            LIMIT 50
+        """), {"lat": lat, "lon": lon, "radius_m": radius_km * 1000}).fetchall()
+
+    fossils = [{
+        "taxon_name": r[0], "phylum": r[1], "class_name": r[2],
+        "order_name": r[3], "family": r[4],
+        "age_min_ma": r[5], "age_max_ma": r[6], "period": r[7],
+        "latitude": r[8], "longitude": r[9],
+        "distance_km": round(r[10], 1) if r[10] else None,
+    } for r in rows]
+
+    if not fossils:
+        return {
+            "message": f"No documented fossil occurrences within {radius_km}km of ({lat}, {lon}).",
+            "suggestion": "Try expanding the search radius or visiting nearby known fossil sites."
+        }
+
+    return {"location": {"lat": lat, "lon": lon}, "radius_km": radius_km, "fossils": fossils, "count": len(fossils)}
+
+
+def get_deep_time_story(lat: float, lon: float) -> dict:
+    """Returns a deep time narrative describing what this location looked like in past geologic periods.
+
+    Assembles context from geologic units and fossils, then generates a narrative.
+
+    Args:
+        lat: latitude
+        lon: longitude
+
+    Returns:
+        Dict with narrative text, evidence cited, and geologic context.
+    """
+    geology = get_geologic_context(lat, lon)
+    fossils = get_fossils_near_me(lat, lon, radius_km=50)
+
+    context_parts = []
+    if geology.get("geologic_units"):
+        for u in geology["geologic_units"]:
+            age_str = ""
+            if u.get("age_max_ma"):
+                age_str = f" ({u['age_max_ma']}-{u.get('age_min_ma', '?')} Ma)"
+            context_parts.append(
+                f"Geologic unit: {u.get('formation') or u.get('unit_name', 'Unknown')}{age_str}, "
+                f"{u.get('rock_type', '')}, {u.get('lithology', '')}. "
+                f"{u.get('description', '')}"
+            )
+
+    if fossils.get("fossils"):
+        fossil_list = []
+        for f in fossils["fossils"][:20]:
+            fossil_list.append(f"{f['taxon_name']} ({f.get('phylum', '?')}, {f.get('period', '?')})")
+        context_parts.append(f"Nearby fossils: {'; '.join(fossil_list)}")
+
+    return {
+        "location": {"lat": lat, "lon": lon},
+        "geologic_context": geology.get("geologic_units", []),
+        "nearby_fossils": fossils.get("fossils", []),
+        "context_summary": "\n".join(context_parts) if context_parts else "No geologic data available for this location.",
+    }
+
+
+def is_collecting_legal(lat: float, lon: float) -> dict:
+    """Returns definitive land ownership and collecting rules for a point.
+
+    Args:
+        lat: latitude
+        lon: longitude
+
+    Returns:
+        Dict with agency, collecting_status (permitted/restricted/prohibited),
+        collecting_rules text, and disclaimer.
+    """
+    from pipeline.ingest.geology import lookup_land_ownership_at_point
+
+    result = lookup_land_ownership_at_point(lat, lon)
+    if result is None:
+        return {
+            "agency": "unknown",
+            "collecting_status": "unknown",
+            "collecting_rules": "Unable to determine land ownership at this time.",
+            "disclaimer": "Always verify on-site with posted signs and local regulations.",
+        }
+
+    result["disclaimer"] = "Always verify on-site with posted signs and local regulations."
+    return result
+
+
+def get_geology_ecology_link(watershed: str) -> dict:
+    """Explains how geology drives water chemistry, springs, and fish habitat.
+
+    Args:
+        watershed: watershed key (e.g., "mckenzie", "deschutes")
+
+    Returns:
+        Dict with geologic units and their ecological implications.
+    """
+    from pipeline.config.watersheds import WATERSHEDS
+    ws = WATERSHEDS.get(watershed)
+    if not ws:
+        return {"error": f"Unknown watershed: {watershed}"}
+
+    bbox = ws["bbox"]
+
+    with engine.connect() as conn:
+        # Geologic units in the watershed
+        geo_rows = conn.execute(text("""
+            SELECT DISTINCT unit_name, formation, rock_type, lithology, period,
+                   age_min_ma, age_max_ma, description
+            FROM geologic_units
+            WHERE geometry && ST_MakeEnvelope(:west, :south, :east, :north, 4326)
+            ORDER BY age_max_ma DESC NULLS LAST
+        """), bbox).fetchall()
+
+        # Fossil count
+        fossil_count = conn.execute(text("""
+            SELECT count(*)
+            FROM fossil_occurrences
+            WHERE ST_Within(location, ST_MakeEnvelope(:west, :south, :east, :north, 4326))
+        """), bbox).scalar() or 0
+
+    units = [{
+        "unit_name": r[0], "formation": r[1], "rock_type": r[2], "lithology": r[3],
+        "period": r[4], "age_min_ma": r[5], "age_max_ma": r[6], "description": r[7],
+    } for r in geo_rows]
+
+    return {
+        "watershed": watershed,
+        "geologic_units": units,
+        "unit_count": len(units),
+        "fossil_occurrences_in_area": fossil_count,
+    }

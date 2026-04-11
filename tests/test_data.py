@@ -32,7 +32,7 @@ def test_silver_has_common_names():
 
 def test_gold_watershed_scorecard():
     rows = _query("SELECT watershed, total_species FROM gold.watershed_scorecard ORDER BY total_species DESC")
-    assert len(rows) == 4
+    assert len(rows) == 5
     assert rows[0][1] > 5000  # McKenzie or Deschutes should have 5000+ species
 
 
@@ -97,3 +97,42 @@ def test_spatial_fire_perimeters():
 def test_river_miles_exist():
     rows = _query("SELECT max(segment_end_mile) FROM gold.river_miles WHERE river_name = 'Deschutes River'")
     assert rows[0][0] > 100, "Deschutes should be 100+ river miles"
+
+
+# ── Geology data tests ──
+
+def test_geologic_units_loaded():
+    rows = _query("SELECT count(*) FROM geologic_units")
+    assert rows[0][0] >= 300, "Should have 300+ geologic unit polygons"
+
+
+def test_geologic_units_have_geometry():
+    rows = _query("SELECT count(*) FROM geologic_units WHERE geometry IS NOT NULL")
+    total = _query("SELECT count(*) FROM geologic_units")[0][0]
+    assert rows[0][0] == total, "All geologic units should have geometry"
+
+
+def test_fossil_occurrences_loaded():
+    rows = _query("SELECT count(*) FROM fossil_occurrences")
+    assert rows[0][0] >= 600, "Should have 600+ fossil occurrences (John Day + others)"
+
+
+def test_fossil_john_day_coverage():
+    rows = _query("""
+        SELECT count(*) FROM fossil_occurrences
+        WHERE latitude BETWEEN 44.15 AND 45.05
+          AND longitude BETWEEN -119.9 AND -118.4
+    """)
+    assert rows[0][0] >= 500, "John Day basin should have 500+ fossils"
+
+
+def test_land_ownership_loaded():
+    rows = _query("SELECT count(*) FROM land_ownership")
+    assert rows[0][0] >= 30, "Should have 30+ land ownership records"
+
+
+def test_land_ownership_agencies():
+    rows = _query("SELECT DISTINCT agency FROM land_ownership ORDER BY agency")
+    agencies = {r[0] for r in rows}
+    assert "BLM" in agencies, "Should have BLM lands"
+    assert "USFS" in agencies, "Should have USFS lands"
