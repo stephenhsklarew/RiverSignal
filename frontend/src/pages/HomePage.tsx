@@ -5,11 +5,12 @@ import './HomePage.css'
 const API_BASE = 'http://localhost:8001/api/v1'
 
 // Real Oregon watershed photos from Unsplash (free for commercial use)
+// Real Oregon watershed photos from Unsplash (free commercial use)
 const PHOTOS: Record<string, string> = {
-  mckenzie: 'https://images.unsplash.com/photo-1504567961542-e24d9439a724?w=900&h=600&fit=crop',
-  deschutes: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=900&h=600&fit=crop',
-  metolius: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=900&h=600&fit=crop',
-  klamath: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=900&h=600&fit=crop',
+  mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop', // Tamolitch Blue Pool, McKenzie River OR
+  deschutes: 'https://images.unsplash.com/photo-1470173479932-81a508f4b1b7?w=900&h=600&fit=crop', // Deschutes River OR by Jack Long
+  metolius: 'https://images.unsplash.com/photo-1688057937854-c94e7ad00b57?w=900&h=600&fit=crop', // Oregon forest river by Peter Robbins
+  klamath: 'https://images.unsplash.com/photo-1548869447-faef5000334c?w=900&h=600&fit=crop', // Klamath Falls OR sunset by Eric Muhr
 }
 
 interface WatershedData {
