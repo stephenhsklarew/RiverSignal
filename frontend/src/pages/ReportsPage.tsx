@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import logo from '../assets/riversignal-logo.svg'
 import '../App.css'
 import './ReportsPage.css'
@@ -136,7 +137,7 @@ export default function ReportsPage() {
           )}
           {report && format === 'markdown' && (
             <div className="reports-markdown">
-              <Markdown>{report}</Markdown>
+              <Markdown remarkPlugins={[remarkGfm]}>{report}</Markdown>
             </div>
           )}
           {report && format === 'json' && (
