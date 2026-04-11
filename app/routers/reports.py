@@ -152,7 +152,7 @@ def generate_funder_report(watershed: str, request: ReportRequest = None):
             client = anthropic.Anthropic(api_key=api_key)
             msg = client.messages.create(
                 model="claude-sonnet-4-20250514",
-                max_tokens=1000,
+                max_tokens=4096,
                 system="Write a 2-3 paragraph executive summary for this watershed restoration progress report. Be specific, cite numbers, and highlight key outcomes.",
                 messages=[{"role": "user", "content": f"Data:\n{json.dumps(report_data, indent=2, default=str)[:3000]}"}],
             )

@@ -98,7 +98,7 @@ def generate_ecological_summary(watershed: str, request: SummaryRequest = None):
             client = anthropic.Anthropic(api_key=api_key)
             message = client.messages.create(
                 model="claude-sonnet-4-20250514",
-                max_tokens=2000,
+                max_tokens=4096,
                 system="You are an ecological reasoning assistant for the RiverSignal watershed intelligence platform. Given pre-aggregated data about a watershed, produce a concise ecological summary. Include species richness trends, water quality status, invasive species alerts, indicator species presence, and any fire recovery context. Cite specific numbers. Be specific and actionable.",
                 messages=[{"role": "user", "content": f"Generate an ecological summary for the {watershed} watershed based on this data:\n\n{json.dumps(context, indent=2, default=str)}"}],
             )
@@ -186,7 +186,7 @@ def generate_restoration_forecast(watershed: str, request: ForecastRequest = Non
             client = anthropic.Anthropic(api_key=api_key)
             message = client.messages.create(
                 model="claude-sonnet-4-20250514",
-                max_tokens=2000,
+                max_tokens=4096,
                 system="You are an ecological forecasting assistant. Given restoration history, species trends, fire recovery data, and thermal conditions, predict what ecological changes to expect in the next 3-12 months. Be specific: name expected species returns, habitat improvements, and risk factors. Assign confidence (high/medium/low) to each prediction.",
                 messages=[{"role": "user", "content": f"Generate a restoration forecast for the {watershed} watershed:\n\n{json.dumps(context, indent=2, default=str)}"}],
             )
@@ -233,7 +233,7 @@ def chat_with_site(watershed: str, request: ChatRequest):
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=1500,
+        max_tokens=4096,
         system=f"You are a river ecology assistant. Answer questions about the {site[1]} watershed using this context:\n\n{context}\n\nBe specific, cite data, and suggest actions when appropriate. If the question is not about this watershed's ecology, politely redirect.",
         messages=[{"role": "user", "content": request.question}],
     )
