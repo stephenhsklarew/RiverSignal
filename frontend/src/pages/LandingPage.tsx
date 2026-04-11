@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import logo from '../assets/riversignal-logo.svg'
 import './LandingPage.css'
 
 const products = [
@@ -45,7 +44,7 @@ export default function LandingPage() {
   return (
     <div className="landing">
       <header className="landing-header">
-        <img src={logo} alt="RiverSignal" className="landing-logo" />
+        <h1 className="landing-title">Oregon Field Intelligence</h1>
         <p className="landing-subtitle">
           Four products, one data platform. Watershed ecology meets deep time geology.
         </p>

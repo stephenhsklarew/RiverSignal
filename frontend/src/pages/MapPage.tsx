@@ -57,6 +57,11 @@ export default function MapPage() {
 
   if (loading) return <div className="loading">Loading watersheds...</div>
 
+  const NAMES: Record<string, string> = {
+    klamath: 'Klamath', mckenzie: 'McKenzie', deschutes: 'Deschutes',
+    metolius: 'Metolius', johnday: 'John Day',
+  }
+
   return (
     <div className="app">
       <div className="topbar">
@@ -65,9 +70,19 @@ export default function MapPage() {
           <span style={{ background: '#1a6b4a', color: '#fff', fontSize: '0.65rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>RiverSignal</span>
         </Link>
         <div className="topbar-nav">
-          <Link to="/path"><button>RiverPath</button></Link>
-          <button className="active">Dashboard</button>
+          {sites.map(s => (
+            <button
+              key={s.watershed}
+              className={selectedSite === s.watershed ? 'active' : ''}
+              onClick={() => setSelectedSite(s.watershed)}
+            >
+              {NAMES[s.watershed] || s.name}
+            </button>
+          ))}
+        </div>
+        <div className="topbar-nav" style={{ marginLeft: 'auto', gap: 2 }}>
           <Link to="/signal/reports"><button>Reports</button></Link>
+          <Link to="/path"><button>RiverPath</button></Link>
           <Link to="/deepsignal"><button>DeepSignal</button></Link>
         </div>
         <div className="topbar-status">
