@@ -57,8 +57,6 @@ export default function MapPage() {
 
   if (loading) return <div className="loading">Loading watersheds...</div>
 
-  const _totalObs = sites.reduce((a, s) => a + s.observations, 0)
-
   return (
     <div className="app">
       <div className="topbar">
