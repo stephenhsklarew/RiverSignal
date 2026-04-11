@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import logo from '../assets/riversignal-logo.svg'
+import DataFreshness from '../components/DataFreshness'
 import MapView from '../components/MapView'
 import SitePanel from '../components/SitePanel'
 import '../App.css'
@@ -71,8 +72,7 @@ export default function MapPage() {
           <Link to="/reports"><button>Reports</button></Link>
         </div>
         <div className="topbar-status">
-          <span className="status-dot" />
-          <span>15 pipelines · {(totalObs + totalTs).toLocaleString()} records</span>
+          <DataFreshness compact />
         </div>
       </div>
 

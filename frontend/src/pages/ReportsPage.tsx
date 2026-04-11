@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import logo from '../assets/riversignal-logo.svg'
+import DataFreshness from '../components/DataFreshness'
 import '../App.css'
 import './ReportsPage.css'
 
@@ -61,8 +62,7 @@ export default function ReportsPage() {
           <button className="active">Reports</button>
         </div>
         <div className="topbar-status">
-          <span className="status-dot" />
-          <span>OWEB-format report generator</span>
+          <DataFreshness compact />
         </div>
       </div>
 
@@ -104,6 +104,8 @@ export default function ReportsPage() {
               Download {format === 'json' ? '.json' : '.md'}
             </button>
           )}
+
+          <DataFreshness />
 
           <div className="reports-info">
             <div className="section-title">Report Contents</div>
