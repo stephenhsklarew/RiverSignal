@@ -663,58 +663,44 @@ CREATE MATERIALIZED VIEW gold.indicator_species_status AS
 -- gold.river_health_score
 DROP MATERIALIZED VIEW IF EXISTS gold.river_health_score CASCADE;
 CREATE MATERIALIZED VIEW gold.river_health_score AS
- WITH base AS (
-         SELECT s.id AS site_id,
-            s.watershed,
-            s.name AS watershed_name,
-            wc.obs_year,
-            wc.obs_month,
-            count(DISTINCT
-                CASE
-                    WHEN so.obs_year = wc.obs_year AND so.obs_month = wc.obs_month THEN so.taxon_name
-                    ELSE NULL::character varying
-                END) AS monthly_species,
-            round(avg(
-                CASE
-                    WHEN wc.parameter::text = 'water_temperature'::text AND wc.source_type::text = 'usgs'::text THEN wc.value
-                    ELSE NULL::numeric
-                END), 1) AS avg_water_temp,
-            round(avg(
-                CASE
-                    WHEN wc.parameter::text = 'dissolved_oxygen'::text THEN wc.value
-                    ELSE NULL::numeric
-                END), 1) AS avg_do
-           FROM sites s
-             JOIN silver.water_conditions wc ON wc.site_id = s.id
-             LEFT JOIN silver.species_observations so ON so.site_id = s.id AND so.obs_year = wc.obs_year AND so.obs_month = wc.obs_month AND so.taxon_name IS NOT NULL
-          WHERE wc.obs_year >= 2024 AND (wc.parameter::text = ANY (ARRAY['water_temperature'::character varying, 'dissolved_oxygen'::character varying, 'discharge'::character varying]::text[]))
-          GROUP BY s.id, s.watershed, s.name, wc.obs_year, wc.obs_month
-        )
- SELECT site_id,
-    watershed,
-    watershed_name,
-    obs_year,
-    obs_month,
-    monthly_species,
-    avg_water_temp,
-    avg_do,
-    LEAST(40::bigint, monthly_species * 40 / GREATEST(NULLIF(( SELECT max(base_1.monthly_species) AS max
-           FROM base base_1), 0), 1::bigint)) +
+ SELECT s.id AS site_id,
+    s.watershed,
+    s.name AS watershed_name,
+    wc.obs_year,
+    wc.obs_month,
+    count(DISTINCT so.taxon_name) AS monthly_species,
+    round(avg(
         CASE
-            WHEN avg_water_temp IS NULL THEN 10
-            WHEN avg_water_temp < 12::numeric THEN 20
-            WHEN avg_water_temp < 16::numeric THEN 15
-            WHEN avg_water_temp < 20::numeric THEN 10
-            ELSE 5
+            WHEN wc.parameter::text = 'water_temperature'::text AND wc.source_type::text = 'usgs'::text THEN wc.value
+            ELSE NULL::numeric
+        END), 1) AS avg_water_temp,
+    round(avg(
+        CASE
+            WHEN wc.parameter::text = 'dissolved_oxygen'::text THEN wc.value
+            ELSE NULL::numeric
+        END), 1) AS avg_do,
+    30 +
+        CASE
+            WHEN avg(
+            CASE
+                WHEN wc.parameter::text = 'water_temperature'::text AND wc.source_type::text = 'usgs'::text THEN wc.value
+                ELSE NULL::numeric
+            END) < 16::numeric THEN 20
+            ELSE 10
         END +
         CASE
-            WHEN avg_do IS NULL THEN 10
-            WHEN avg_do > 8::numeric THEN 20
-            WHEN avg_do > 6::numeric THEN 15
-            WHEN avg_do > 4::numeric THEN 5
-            ELSE 0
+            WHEN avg(
+            CASE
+                WHEN wc.parameter::text = 'dissolved_oxygen'::text THEN wc.value
+                ELSE NULL::numeric
+            END) > 8::numeric THEN 20
+            ELSE 10
         END AS health_score
-   FROM base;;
+   FROM sites s
+     JOIN silver.water_conditions wc ON wc.site_id = s.id
+     LEFT JOIN silver.species_observations so ON so.site_id = s.id AND so.obs_year = wc.obs_year AND so.obs_month = wc.obs_month AND so.taxon_name IS NOT NULL
+  WHERE wc.obs_year >= 2024 AND (wc.parameter::text = ANY (ARRAY['water_temperature'::character varying, 'dissolved_oxygen'::character varying, 'discharge'::character varying]::text[]))
+  GROUP BY s.id, s.watershed, s.name, wc.obs_year, wc.obs_month;;
 
 -- gold.whats_alive_now
 DROP MATERIALIZED VIEW IF EXISTS gold.whats_alive_now CASCADE;
@@ -869,7 +855,11 @@ CREATE MATERIALIZED VIEW gold.hatch_chart AS
 -- gold.species_by_river_mile
 DROP MATERIALIZED VIEW IF EXISTS gold.species_by_river_mile CASCADE;
 CREATE MATERIALIZED VIEW gold.species_by_river_mile AS
- WITH river_obs AS (
+ WITH named_rivers AS (
+         SELECT DISTINCT river_miles.river_name
+           FROM gold.river_miles
+          WHERE river_miles.river_name IS NOT NULL AND river_miles.length_km > 0.5::double precision
+        ), river_obs AS (
          SELECT rm.watershed,
             rm.river_name,
             (floor(rm.segment_start_mile / 5::numeric) * 5::numeric)::integer AS mile_section_start,
@@ -880,8 +870,9 @@ CREATE MATERIALIZED VIEW gold.species_by_river_mile AS
             o.observed_at,
             o.quality_grade
            FROM gold.river_miles rm
+             JOIN named_rivers nr ON nr.river_name::text = rm.river_name::text
              JOIN observations o ON st_dwithin(o.location, rm.flowline, 0.005::double precision)
-          WHERE o.taxon_name IS NOT NULL AND o.source_type::text = 'inaturalist'::text AND (rm.river_name::text = ANY (ARRAY['Deschutes River'::character varying, 'McKenzie River'::character varying, 'Metolius River'::character varying, 'Williamson River'::character varying, 'Sprague River'::character varying, 'Crooked River'::character varying, 'South Fork McKenzie River'::character varying, 'Blue River'::character varying]::text[]))
+          WHERE o.taxon_name IS NOT NULL AND o.source_type::text = 'inaturalist'::text
         )
  SELECT watershed,
     river_name,
@@ -891,6 +882,11 @@ CREATE MATERIALIZED VIEW gold.species_by_river_mile AS
     common_name,
     iconic_taxon AS taxonomic_group,
     count(*) AS observation_count,
+    count(
+        CASE
+            WHEN quality_grade::text = 'research'::text THEN 1
+            ELSE NULL::integer
+        END) AS research_grade_count,
     min(observed_at)::date AS first_seen,
     max(observed_at)::date AS last_seen,
     ( SELECT g.photo_url

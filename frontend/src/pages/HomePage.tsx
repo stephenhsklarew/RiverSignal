@@ -10,9 +10,9 @@ const API_BASE = 'http://localhost:8001/api/v1'
 const PHOTOS: Record<string, string> = {
   mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop', // Tamolitch Blue Pool, McKenzie River OR
   deschutes: 'https://images.unsplash.com/photo-1470173479932-81a508f4b1b7?w=900&h=600&fit=crop', // Deschutes River OR by Jack Long
-  metolius: 'https://images.unsplash.com/photo-1688057937854-c94e7ad00b57?w=900&h=600&fit=crop', // Oregon forest river by Peter Robbins
-  klamath: 'https://images.unsplash.com/photo-1548869447-faef5000334c?w=900&h=600&fit=crop', // Klamath Falls OR sunset by Eric Muhr
-  johnday: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop', // Eastern Oregon high desert canyon
+  metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop', // Cabin on Metolius River, Camp Sherman OR by Lance Reis
+  klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop', // Wood River meandering into Klamath Lake, Chiloquin OR by Dan Meyers
+  johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop', // Painted Hills, John Day Fossil Beds National Monument OR by Dan Meyers
 }
 
 interface WatershedData {
