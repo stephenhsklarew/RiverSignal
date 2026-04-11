@@ -42,14 +42,31 @@ function App() {
 
   if (loading) return <div className="loading">Loading watersheds...</div>
 
+  const totalObs = sites.reduce((a, s) => a + s.observations, 0)
+  const totalTs = sites.reduce((a, s) => a + s.time_series, 0)
+
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>RiverSignal</h1>
-        <span className="subtitle">Watershed Intelligence Platform</span>
-        <span className="stats">{sites.reduce((a, s) => a + s.observations, 0).toLocaleString()} observations across {sites.length} watersheds</span>
-      </header>
-      <div className="app-body">
+      {/* Top Bar */}
+      <div className="topbar">
+        <div className="topbar-brand">
+          <span className="dot" />
+          RiverSignal
+        </div>
+        <div className="topbar-nav">
+          <button className="active">Dashboard</button>
+          <button>Reports</button>
+          <button>Interventions</button>
+          <button>Data Sources</button>
+        </div>
+        <div className="topbar-status">
+          <span className="status-dot" />
+          <span>15 pipelines · {(totalObs + totalTs).toLocaleString()} records · synced</span>
+        </div>
+      </div>
+
+      {/* Main Body */}
+      <div className={`app-body${siteDetail ? '' : ' no-panel'}`}>
         <MapView
           sites={sites}
           selectedSite={selectedSite}

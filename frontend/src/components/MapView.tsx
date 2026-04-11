@@ -10,10 +10,10 @@ interface MapViewProps {
 }
 
 const COLORS: Record<string, string> = {
-  klamath: '#e74c3c',
-  mckenzie: '#2ecc71',
-  deschutes: '#3498db',
-  metolius: '#9b59b6',
+  klamath: '#c4432b',
+  mckenzie: '#1a6b4a',
+  deschutes: '#2563eb',
+  metolius: '#7c3aed',
 }
 
 export default function MapView({ sites, selectedSite, onSelectSite }: MapViewProps) {
@@ -41,7 +41,6 @@ export default function MapView({ sites, selectedSite, onSelectSite }: MapViewPr
     const map = mapRef.current
     if (!map) return
 
-    // Clear existing markers
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
 
@@ -51,17 +50,16 @@ export default function MapView({ sites, selectedSite, onSelectSite }: MapViewPr
       const color = COLORS[site.watershed] || '#666'
       const isSelected = site.watershed === selectedSite
 
-      // Create marker element
       const el = document.createElement('div')
-      el.style.width = isSelected ? '40px' : '32px'
-      el.style.height = isSelected ? '40px' : '32px'
+      el.style.width = isSelected ? '14px' : '10px'
+      el.style.height = isSelected ? '14px' : '10px'
       el.style.borderRadius = '50%'
       el.style.background = color
-      el.style.border = `3px solid ${isSelected ? '#f39c12' : 'white'}`
+      el.style.border = `2px solid ${isSelected ? color : 'white'}`
       el.style.cursor = 'pointer'
-      el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
+      el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.25)'
       el.style.transition = 'all 0.15s'
-      el.title = `${site.name} (${site.observations.toLocaleString()} observations)`
+      el.title = site.name
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat(center)
@@ -71,55 +69,39 @@ export default function MapView({ sites, selectedSite, onSelectSite }: MapViewPr
         onSelectSite(site.watershed === selectedSite ? null : site.watershed)
       })
 
-      // Add bbox rectangle
-      const sourceId = `bbox-${site.watershed}`
-      if (!map.getSource(sourceId)) {
-        map.on('load', () => {
-          if (map.getSource(sourceId)) return
-          map.addSource(sourceId, {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                  [bbox.west, bbox.south],
-                  [bbox.east, bbox.south],
-                  [bbox.east, bbox.north],
-                  [bbox.west, bbox.north],
-                  [bbox.west, bbox.south],
-                ]],
-              },
+      // Bbox rectangle
+      map.on('load', () => {
+        const sourceId = `bbox-${site.watershed}`
+        if (map.getSource(sourceId)) return
+        map.addSource(sourceId, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [bbox.west, bbox.south], [bbox.east, bbox.south],
+                [bbox.east, bbox.north], [bbox.west, bbox.north],
+                [bbox.west, bbox.south],
+              ]],
             },
-          })
-          map.addLayer({
-            id: `bbox-fill-${site.watershed}`,
-            type: 'fill',
-            source: sourceId,
-            paint: {
-              'fill-color': color,
-              'fill-opacity': isSelected ? 0.15 : 0.05,
-            },
-          })
-          map.addLayer({
-            id: `bbox-line-${site.watershed}`,
-            type: 'line',
-            source: sourceId,
-            paint: {
-              'line-color': color,
-              'line-width': isSelected ? 3 : 1,
-              'line-opacity': isSelected ? 0.8 : 0.3,
-            },
-          })
+          },
         })
-      }
+        map.addLayer({
+          id: `bbox-fill-${site.watershed}`, type: 'fill', source: sourceId,
+          paint: { 'fill-color': color, 'fill-opacity': isSelected ? 0.1 : 0.03 },
+        })
+        map.addLayer({
+          id: `bbox-line-${site.watershed}`, type: 'line', source: sourceId,
+          paint: { 'line-color': color, 'line-width': isSelected ? 2 : 1, 'line-opacity': isSelected ? 0.6 : 0.2 },
+        })
+      })
 
       markersRef.current.push(marker)
     })
   }, [sites, selectedSite, onSelectSite])
 
-  // Fly to selected site
   useEffect(() => {
     const map = mapRef.current
     if (!map || !selectedSite) return
@@ -128,10 +110,41 @@ export default function MapView({ sites, selectedSite, onSelectSite }: MapViewPr
       map.flyTo({
         center: [(site.bbox.east + site.bbox.west) / 2, (site.bbox.north + site.bbox.south) / 2],
         zoom: 9,
-        duration: 1000,
+        duration: 800,
       })
     }
   }, [selectedSite, sites])
 
-  return <div ref={mapContainer} className="map-container" />
+  const totalObs = sites.reduce((a, s) => a + s.observations, 0)
+
+  return (
+    <div className="map-container">
+      {/* KPI chips */}
+      <div className="map-kpis">
+        <div className="kpi-chip">
+          <span className="kpi-value">{totalObs.toLocaleString()}</span>
+          <span className="kpi-label">observations</span>
+        </div>
+        <div className="kpi-chip">
+          <span className="kpi-value">{sites.reduce((a, s) => a + s.interventions, 0).toLocaleString()}</span>
+          <span className="kpi-label">interventions</span>
+        </div>
+      </div>
+
+      {/* Watershed tabs */}
+      <div className="watershed-tabs">
+        {sites.map(s => (
+          <button
+            key={s.watershed}
+            className={`ws-tab${selectedSite === s.watershed ? ' active' : ''}`}
+            onClick={() => onSelectSite(selectedSite === s.watershed ? null : s.watershed)}
+          >
+            {s.name.replace(' River', '').replace('Upper ', '')}
+          </button>
+        ))}
+      </div>
+
+      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+    </div>
+  )
 }
