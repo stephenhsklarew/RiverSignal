@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Outfit:wght@300;400;500;600&display=swap');
+
+.dt-app {
+  min-height: 100vh; background: #1a1612; color: #e8e0d4;
+  font-family: 'Outfit', sans-serif;
+}
+
+.dt-header {
+  padding: 16px 20px 24px; background: linear-gradient(180deg, #2a2318 0%, #1a1612 100%);
+}
+.dt-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.dt-logo { height: 24px; filter: brightness(2); }
+.dt-logo-link { display: flex; }
+.dt-badge {
+  background: #996633; color: #fff; font-size: 0.65rem; font-weight: 600;
+  padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.dt-header-links { margin-left: auto; display: flex; gap: 12px; }
+.dt-nav-link { color: #8a7e6e; font-size: 0.78rem; text-decoration: none; }
+.dt-nav-link:hover { color: #d4a96a; }
+.dt-title {
+  font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 300;
+  color: #d4a96a; line-height: 1.3; max-width: 600px;
+}
+
+/* Location selector — horizontal scroll on mobile */
+.dt-locations {
+  display: flex; gap: 10px; padding: 0 20px 20px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.dt-locations::-webkit-scrollbar { display: none; }
+
+.dt-loc-card {
+  flex-shrink: 0; background: #2a2318; border: 1px solid #3d3328;
+  border-radius: 10px; padding: 12px 16px; cursor: pointer; text-align: left;
+  min-width: 130px; display: flex; flex-direction: column; gap: 2px;
+  font-family: inherit; color: #e8e0d4; transition: all 0.2s;
+}
+.dt-loc-card.active { border-color: #d4a96a; background: #332b1f; }
+.dt-loc-card:hover { border-color: #8a7e6e; }
+.dt-loc-period { font-size: 0.65rem; color: #d4a96a; text-transform: uppercase; letter-spacing: 0.05em; }
+.dt-loc-name { font-size: 0.92rem; font-weight: 500; }
+.dt-loc-age { font-size: 0.72rem; color: #8a7e6e; }
+
+.dt-loading { padding: 60px 20px; text-align: center; color: #8a7e6e; font-style: italic; }
+
+.dt-content { padding: 0 20px 40px; max-width: 720px; margin: 0 auto; }
+
+/* Story card */
+.dt-story-card {
+  background: linear-gradient(135deg, #332b1f, #2a2318);
+  border: 1px solid #3d3328; border-radius: 14px;
+  padding: 28px 24px; margin-bottom: 20px;
+}
+.dt-story-card h2 {
+  font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 500;
+  color: #f0e6d6; margin: 0 0 6px;
+}
+.dt-story-period { font-size: 0.85rem; color: #d4a96a; margin: 0 0 12px; }
+.dt-story-text { font-size: 1rem; color: #c4b8a4; line-height: 1.6; margin: 0; }
+
+/* Legal collecting */
+.dt-legal-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 10px;
+  padding: 16px; margin-bottom: 20px;
+}
+.dt-legal-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.dt-legal-agency { color: #8a7e6e; font-weight: 400; }
+.dt-legal-rules { font-size: 0.82rem; color: #a09484; margin: 6px 0 0; line-height: 1.4; }
+.dt-legal-disclaimer { font-size: 0.72rem; color: #6b5f4f; margin: 6px 0 0; font-style: italic; }
+
+/* Timeline */
+.dt-timeline-section h3,
+.dt-fossil-section h3 {
+  font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500;
+  color: #d4a96a; margin: 0 0 16px;
+}
+
+.dt-timeline { display: flex; flex-direction: column; gap: 0; padding-left: 16px; border-left: 2px solid #3d3328; }
+.dt-tl-item { display: flex; gap: 12px; padding: 8px 0; position: relative; }
+.dt-tl-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  position: absolute; left: -22px; top: 12px;
+}
+.dt-tl-item.geologic_unit .dt-tl-dot { background: #b71c1c; }
+.dt-tl-item.fossil .dt-tl-dot { background: #d4a96a; }
+.dt-tl-content { display: flex; flex-direction: column; gap: 1px; }
+.dt-tl-age { font-size: 0.7rem; color: #8a7e6e; }
+.dt-tl-name { font-size: 0.88rem; color: #e8e0d4; }
+.dt-tl-item.fossil .dt-tl-name { font-style: italic; }
+.dt-tl-meta { font-size: 0.72rem; color: #6b5f4f; }
+
+.dt-timeline-section { margin-bottom: 28px; }
+
+/* Fossil gallery */
+.dt-fossil-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.dt-fossil-card {
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 10px;
+  padding: 14px; display: flex; flex-direction: column; gap: 3px;
+}
+.dt-fossil-name { font-size: 0.85rem; font-style: italic; color: #f0e6d6; font-weight: 500; }
+.dt-fossil-meta { font-size: 0.72rem; color: #8a7e6e; }
+.dt-fossil-age { font-size: 0.72rem; color: #d4a96a; }
+.dt-fossil-dist { font-size: 0.65rem; color: #6b5f4f; }
+
+/* Mobile-first responsive */
+@media (min-width: 768px) {
+  .dt-title { font-size: 2rem; }
+  .dt-content { padding: 0 40px 60px; }
+  .dt-fossil-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Touch targets for mobile */
+.dt-loc-card { min-height: 48px; }
+.dt-nav-link { min-height: 48px; display: flex; align-items: center; }

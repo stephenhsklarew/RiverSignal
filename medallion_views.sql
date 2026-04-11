@@ -1,5 +1,5 @@
 -- Medallion Architecture View Definitions
--- Exported from database, 27 views
+-- Exported from database, 36 views
 -- Re-run: python -m pipeline.medallion_ddl
 
 CREATE SCHEMA IF NOT EXISTS silver;
@@ -130,6 +130,81 @@ CREATE MATERIALIZED VIEW silver.interventions_enriched AS
     i.location
    FROM interventions i
      JOIN sites s ON s.id = i.site_id;;
+
+-- silver.geologic_context
+DROP MATERIALIZED VIEW IF EXISTS silver.geologic_context CASCADE;
+CREATE MATERIALIZED VIEW silver.geologic_context AS
+ SELECT id,
+    source,
+    source_id,
+    unit_name,
+    formation,
+    COALESCE(rock_type, 'unknown'::character varying) AS rock_type,
+    lithology,
+    age_min_ma,
+    age_max_ma,
+    COALESCE(period, 'Unknown'::character varying) AS period,
+    description,
+    geometry,
+        CASE
+            WHEN age_max_ma IS NOT NULL AND age_min_ma IS NOT NULL THEN round(((age_max_ma + age_min_ma) / 2::double precision)::numeric, 2)::double precision
+            ELSE age_max_ma
+        END AS age_midpoint_ma,
+    ingested_at
+   FROM geologic_units gu
+  WHERE geometry IS NOT NULL;;
+
+-- silver.fossil_records
+DROP MATERIALIZED VIEW IF EXISTS silver.fossil_records CASCADE;
+CREATE MATERIALIZED VIEW silver.fossil_records AS
+ SELECT id,
+    source,
+    source_id,
+    taxon_name,
+    taxon_id,
+    common_name,
+    phylum,
+    class_name,
+    order_name,
+    family,
+    age_min_ma,
+    age_max_ma,
+    COALESCE(period, 'Unknown'::character varying) AS period,
+    formation,
+    location,
+    latitude,
+    longitude,
+    collector,
+    reference,
+    museum,
+        CASE
+            WHEN age_max_ma IS NOT NULL AND age_min_ma IS NOT NULL THEN round(((age_max_ma + age_min_ma) / 2::double precision)::numeric, 2)::double precision
+            ELSE age_max_ma
+        END AS age_midpoint_ma,
+    ingested_at
+   FROM fossil_occurrences fo
+  WHERE taxon_name IS NOT NULL AND taxon_name::text <> ''::text;;
+
+-- silver.land_access
+DROP MATERIALIZED VIEW IF EXISTS silver.land_access CASCADE;
+CREATE MATERIALIZED VIEW silver.land_access AS
+ SELECT id,
+    source,
+    source_id,
+    agency,
+    designation,
+    admin_unit,
+    collecting_status,
+    collecting_rules,
+        CASE collecting_status
+            WHEN 'permitted'::text THEN 'green'::text
+            WHEN 'restricted'::text THEN 'yellow'::text
+            WHEN 'prohibited'::text THEN 'red'::text
+            ELSE 'gray'::text
+        END AS status_color,
+    geometry,
+    ingested_at
+   FROM land_ownership lo;;
 
 -- gold.anomaly_flags
 DROP MATERIALIZED VIEW IF EXISTS gold.anomaly_flags CASCADE;
@@ -896,4 +971,119 @@ CREATE MATERIALIZED VIEW gold.species_by_river_mile AS
    FROM river_obs ro
   GROUP BY watershed, river_name, mile_section_start, mile_section_end, taxon_name, common_name, iconic_taxon
  HAVING count(*) >= 2;;
+
+-- gold.geologic_age_at_location
+DROP MATERIALIZED VIEW IF EXISTS gold.geologic_age_at_location CASCADE;
+CREATE MATERIALIZED VIEW gold.geologic_age_at_location AS
+ SELECT id,
+    unit_name,
+    formation,
+    rock_type,
+    lithology,
+    age_min_ma,
+    age_max_ma,
+    age_midpoint_ma,
+    period,
+    description,
+    geometry
+   FROM silver.geologic_context gc;;
+
+-- gold.fossils_nearby
+DROP MATERIALIZED VIEW IF EXISTS gold.fossils_nearby CASCADE;
+CREATE MATERIALIZED VIEW gold.fossils_nearby AS
+ SELECT id,
+    taxon_name,
+    common_name,
+    phylum,
+    class_name,
+    order_name,
+    family,
+    age_min_ma,
+    age_max_ma,
+    age_midpoint_ma,
+    period,
+    formation,
+    latitude,
+    longitude,
+    location,
+    collector,
+    reference,
+    museum
+   FROM silver.fossil_records fr;;
+
+-- gold.legal_collecting_sites
+DROP MATERIALIZED VIEW IF EXISTS gold.legal_collecting_sites CASCADE;
+CREATE MATERIALIZED VIEW gold.legal_collecting_sites AS
+ SELECT id,
+    agency,
+    designation,
+    admin_unit,
+    collecting_status,
+    collecting_rules,
+    status_color,
+    geometry
+   FROM silver.land_access la
+  WHERE collecting_status::text = ANY (ARRAY['permitted'::character varying, 'restricted'::character varying]::text[]);;
+
+-- gold.deep_time_story
+DROP MATERIALIZED VIEW IF EXISTS gold.deep_time_story CASCADE;
+CREATE MATERIALIZED VIEW gold.deep_time_story AS
+ SELECT id AS geologic_unit_id,
+    unit_name,
+    formation,
+    rock_type,
+    lithology,
+    period,
+    age_min_ma,
+    age_max_ma,
+    description,
+    ( SELECT count(*) AS count
+           FROM silver.fossil_records fr
+          WHERE st_dwithin(fr.location::geography, st_centroid(gc.geometry)::geography, 50000::double precision)) AS nearby_fossil_count,
+    ( SELECT string_agg(DISTINCT fr.taxon_name::text, ', '::text ORDER BY (fr.taxon_name::text)) AS string_agg
+           FROM silver.fossil_records fr
+          WHERE st_dwithin(fr.location::geography, st_centroid(gc.geometry)::geography, 50000::double precision)
+         LIMIT 1) AS nearby_taxa
+   FROM silver.geologic_context gc
+  ORDER BY age_max_ma DESC NULLS LAST;;
+
+-- gold.formation_species_history
+DROP MATERIALIZED VIEW IF EXISTS gold.formation_species_history CASCADE;
+CREATE MATERIALIZED VIEW gold.formation_species_history AS
+ SELECT gc.formation,
+    gc.period AS geologic_period,
+    gc.rock_type,
+    gc.age_min_ma,
+    gc.age_max_ma,
+    fr.taxon_name,
+    fr.phylum,
+    fr.class_name,
+    fr.order_name,
+    fr.family,
+    fr.age_midpoint_ma AS fossil_age_midpoint_ma,
+    fr.period AS fossil_period,
+    count(*) AS occurrence_count
+   FROM silver.geologic_context gc
+     JOIN silver.fossil_records fr ON st_dwithin(fr.location::geography, st_centroid(gc.geometry)::geography, 25000::double precision)
+  WHERE gc.formation IS NOT NULL AND gc.formation::text <> ''::text
+  GROUP BY gc.formation, gc.period, gc.rock_type, gc.age_min_ma, gc.age_max_ma, fr.taxon_name, fr.phylum, fr.class_name, fr.order_name, fr.family, fr.age_midpoint_ma, fr.period
+  ORDER BY gc.age_max_ma DESC NULLS LAST, (count(*)) DESC;;
+
+-- gold.geology_watershed_link
+DROP MATERIALIZED VIEW IF EXISTS gold.geology_watershed_link CASCADE;
+CREATE MATERIALIZED VIEW gold.geology_watershed_link AS
+ SELECT s.watershed,
+    gc.unit_name,
+    gc.formation,
+    gc.rock_type,
+    gc.lithology,
+    gc.period,
+    gc.age_min_ma,
+    gc.age_max_ma,
+    gc.description,
+    count(DISTINCT gc.id) AS unit_count
+   FROM silver.geologic_context gc
+     JOIN sites s ON gc.geometry && st_makeenvelope((s.bbox ->> 'west'::text)::double precision, (s.bbox ->> 'south'::text)::double precision, (s.bbox ->> 'east'::text)::double precision, (s.bbox ->> 'north'::text)::double precision, 4326)
+  GROUP BY s.watershed, gc.unit_name, gc.formation, gc.rock_type, gc.lithology, gc.period, gc.age_min_ma, gc.age_max_ma, gc.description
+  ORDER BY s.watershed, gc.age_max_ma DESC NULLS LAST;;
 

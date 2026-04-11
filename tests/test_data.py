@@ -136,3 +136,50 @@ def test_land_ownership_agencies():
     agencies = {r[0] for r in rows}
     assert "BLM" in agencies, "Should have BLM lands"
     assert "USFS" in agencies, "Should have USFS lands"
+
+
+# ── Geology silver/gold view tests ──
+
+def test_silver_geologic_context():
+    rows = _query("SELECT count(*) FROM silver.geologic_context")
+    assert rows[0][0] >= 300, "silver.geologic_context should have 300+ rows"
+
+
+def test_silver_fossil_records():
+    rows = _query("SELECT count(*) FROM silver.fossil_records")
+    assert rows[0][0] >= 600, "silver.fossil_records should have 600+ rows"
+
+
+def test_silver_land_access():
+    rows = _query("SELECT count(*) FROM silver.land_access")
+    assert rows[0][0] >= 30, "silver.land_access should have 30+ rows"
+
+
+def test_gold_geologic_age_at_location():
+    rows = _query("SELECT count(*) FROM gold.geologic_age_at_location")
+    assert rows[0][0] >= 300
+
+
+def test_gold_fossils_nearby():
+    rows = _query("SELECT count(*) FROM gold.fossils_nearby")
+    assert rows[0][0] >= 600
+
+
+def test_gold_legal_collecting_sites():
+    rows = _query("SELECT count(*) FROM gold.legal_collecting_sites WHERE collecting_status = 'permitted'")
+    assert rows[0][0] >= 3, "Should have BLM permitted sites"
+
+
+def test_gold_deep_time_story():
+    rows = _query("SELECT count(*) FROM gold.deep_time_story")
+    assert rows[0][0] >= 300
+
+
+def test_gold_formation_species_history():
+    rows = _query("SELECT count(*) FROM gold.formation_species_history")
+    assert rows[0][0] > 0, "Should have formation-species links"
+
+
+def test_gold_geology_watershed_link():
+    rows = _query("SELECT count(DISTINCT watershed) FROM gold.geology_watershed_link")
+    assert rows[0][0] >= 4, "Should have geology links for at least 4 watersheds"

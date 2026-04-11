@@ -72,7 +72,7 @@ export default function HomePage() {
 
   const handleAsk = (watershed: string, question: string) => {
     if (question.trim()) {
-      navigate(`/map/${watershed}?q=${encodeURIComponent(question.trim())}`)
+      navigate(`/signal/${watershed}?q=${encodeURIComponent(question.trim())}`)
     }
   }
 
@@ -88,7 +88,7 @@ export default function HomePage() {
         <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverSignal" className="home-logo" /></Link>
         <div className="home-nav-links">
           {WATERSHED_ORDER.map(ws => (
-            <Link key={ws} to={`/map/${ws}`} className="home-nav-link">
+            <Link key={ws} to={`/signal/${ws}`} className="home-nav-link">
               {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[ws]}
             </Link>
           ))}
@@ -117,7 +117,7 @@ export default function HomePage() {
             photo={PHOTOS[ws.watershed]}
             reversed={idx % 2 === 1}
             onAsk={(q) => handleAsk(ws.watershed, q)}
-            onNavigate={() => navigate(`/map/${ws.watershed}`)}
+            onNavigate={() => navigate(`/signal/${ws.watershed}`)}
           />
         ))}
       </section>
@@ -127,7 +127,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="home-footer">
-        <div className="home-footer-brand">RiverSignal + RiverPath</div>
+        <div className="home-footer-brand">RiverPath — <Link to="/trail" style={{color:'#d4a96a'}}>Explore DeepTrail</Link></div>
         <p>2.2 million records · 15 public data sources · 24 materialized views · 4 Oregon watersheds</p>
         <p>Built on iNaturalist, USGS, SNOTEL, PRISM, OWRI, ODFW, NHDPlus, MTBS, and more.</p>
       </footer>

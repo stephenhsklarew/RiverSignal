@@ -60,13 +60,15 @@ export default function MapPage() {
   return (
     <div className="app">
       <div className="topbar">
-        <Link to="/" className="topbar-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Link to="/" className="topbar-brand" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src={logo} alt="RiverSignal" style={{ height: 34 }} />
+          <span style={{ background: '#1a6b4a', color: '#fff', fontSize: '0.65rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>RiverSignal</span>
         </Link>
         <div className="topbar-nav">
-          <Link to="/"><button>Home</button></Link>
+          <Link to="/path"><button>RiverPath</button></Link>
           <button className="active">Dashboard</button>
-          <Link to="/reports"><button>Reports</button></Link>
+          <Link to="/signal/reports"><button>Reports</button></Link>
+          <Link to="/deepsignal"><button>DeepSignal</button></Link>
         </div>
         <div className="topbar-status">
           <DataFreshness compact />

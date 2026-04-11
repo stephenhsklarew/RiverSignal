@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Outfit:wght@300;400;500;600&display=swap');
+
+.landing {
+  min-height: 100vh;
+  background: #fafaf8;
+  font-family: 'Outfit', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.landing-header {
+  text-align: center;
+  padding: 64px 0 32px;
+}
+
+.landing-logo {
+  height: 48px;
+  margin-bottom: 16px;
+}
+
+.landing-subtitle {
+  font-family: 'Fraunces', serif;
+  font-size: 1.25rem;
+  color: #64705b;
+  font-weight: 300;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 880px;
+  width: 100%;
+  padding: 24px 0 48px;
+}
+
+.product-card {
+  background: white;
+  border: 1px solid #e8e5de;
+  border-radius: 12px;
+  padding: 32px 28px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.product-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.product-card:hover::before {
+  opacity: 1;
+}
+
+.product-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.product-name {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #2a2a2a;
+  margin: 0 0 4px;
+}
+
+.product-tagline {
+  font-size: 0.95rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+
+.product-desc {
+  font-size: 0.88rem;
+  color: #6b6b6b;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  flex: 1;
+}
+
+.product-audience {
+  font-size: 0.75rem;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.landing-footer {
+  text-align: center;
+  padding: 32px 0 48px;
+  max-width: 880px;
+  width: 100%;
+  border-top: 1px solid #e8e5de;
+}
+
+.landing-stats {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.stat {
+  font-size: 0.85rem;
+  color: #64705b;
+}
+
+.stat strong {
+  color: #2a2a2a;
+  font-weight: 600;
+}
+
+.landing-note {
+  font-size: 0.8rem;
+  color: #999;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .landing-grid {
+    grid-template-columns: 1fr;
+  }
+  .landing-header { padding: 40px 0 20px; }
+  .landing-stats { gap: 16px; }
+}

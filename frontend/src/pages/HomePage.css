@@ -377,3 +377,22 @@
   .home-nav { padding: 12px 24px; }
   .home-nav-links { gap: 12px; }
 }
+
+@media (max-width: 480px) {
+  .home-hero { padding: 40px 16px 32px; }
+  .home-hero-title { font-size: 28px; }
+  .home-hero-subtitle { font-size: 14px; }
+  .home-watersheds { padding: 0 16px; }
+  .home-footer { padding: 40px 16px; }
+  .home-nav { padding: 10px 16px; }
+  /* Touch targets minimum 48px */
+  .home-nav-link { min-height: 48px; display: flex; align-items: center; }
+  .ws-ask-input { min-height: 48px; font-size: 16px; /* prevent iOS zoom */ }
+  .ws-ask-btn { min-height: 48px; min-width: 48px; }
+}
+
+@media (max-width: 375px) {
+  .home-hero-title { font-size: 24px; }
+  .ws-stats { gap: 8px; }
+  .ws-stat { font-size: 11px; }
+}

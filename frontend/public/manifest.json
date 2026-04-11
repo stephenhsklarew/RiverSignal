@@ -1,0 +1,34 @@
+{
+  "name": "RiverSignal Platform",
+  "short_name": "RiverSignal",
+  "description": "Watershed ecology meets deep time geology. Four products, one data platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf8",
+  "theme_color": "#1a6b4a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "science", "outdoors"],
+  "shortcuts": [
+    {
+      "name": "RiverPath",
+      "short_name": "RiverPath",
+      "description": "River field companion",
+      "url": "/path",
+      "icons": [{"src": "/favicon.svg", "sizes": "any"}]
+    },
+    {
+      "name": "DeepTrail",
+      "short_name": "DeepTrail",
+      "description": "Ancient world explorer",
+      "url": "/trail",
+      "icons": [{"src": "/favicon.svg", "sizes": "any"}]
+    }
+  ]
+}

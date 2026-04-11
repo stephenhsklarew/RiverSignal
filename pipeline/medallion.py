@@ -28,9 +28,15 @@ from sqlalchemy import text
 from pipeline.db import engine
 
 VIEWS = [
+    # Silver — ecology
     "silver.species_observations",
     "silver.water_conditions",
     "silver.interventions_enriched",
+    # Silver — geology
+    "silver.geologic_context",
+    "silver.fossil_records",
+    "silver.land_access",
+    # Gold — ecology
     "gold.site_ecological_summary",
     "gold.species_trends",
     "gold.water_quality_monthly",
@@ -55,6 +61,13 @@ VIEWS = [
     "gold.river_story_timeline",
     "gold.swim_safety",
     "gold.stewardship_opportunities",
+    # Gold — geology
+    "gold.geologic_age_at_location",
+    "gold.fossils_nearby",
+    "gold.legal_collecting_sites",
+    "gold.deep_time_story",
+    "gold.formation_species_history",
+    "gold.geology_watershed_link",
 ]
 
 

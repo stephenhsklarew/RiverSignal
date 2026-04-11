@@ -18,10 +18,14 @@ from pipeline.db import engine
 
 # Dependency-ordered list of all views (dependents after their dependencies)
 VIEW_ORDER = [
-    # Silver (no dependencies on gold)
+    # Silver — ecology (no dependencies on gold)
     "silver.species_observations",
     "silver.water_conditions",
     "silver.interventions_enriched",
+    # Silver — geology (depend on bronze geology tables)
+    "silver.geologic_context",
+    "silver.fossil_records",
+    "silver.land_access",
     # Gold: independent views (depend only on bronze or silver)
     "gold.anomaly_flags",
     "gold.cold_water_refuges",
@@ -44,10 +48,17 @@ VIEW_ORDER = [
     "gold.whats_alive_now",
     "gold.swim_safety",
     "gold.river_story_timeline",
-    # Gold: views that depend on other gold views
+    # Gold — ecology: views that depend on other gold views
     "gold.species_gallery",    # independent (reads bronze directly)
     "gold.hatch_chart",        # depends on species_gallery
     "gold.species_by_river_mile",  # depends on river_miles + species_gallery
+    # Gold — geology (depend on silver geology views)
+    "gold.geologic_age_at_location",  # depends on silver.geologic_context
+    "gold.fossils_nearby",            # depends on silver.fossil_records
+    "gold.legal_collecting_sites",    # depends on silver.land_access
+    "gold.deep_time_story",           # depends on silver.geologic_context + silver.fossil_records
+    "gold.formation_species_history", # depends on silver.geologic_context + silver.fossil_records
+    "gold.geology_watershed_link",    # depends on silver.geologic_context + sites
 ]
 
 
