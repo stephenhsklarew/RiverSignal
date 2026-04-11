@@ -83,9 +83,9 @@ export default function HomePage() {
         <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverSignal" className="home-logo" /></Link>
         <div className="home-nav-links">
           {WATERSHED_ORDER.map(ws => (
-            <a key={ws} href={`#${ws}`} className="home-nav-link">
-              {ws === 'klamath' ? 'Klamath' : ws.charAt(0).toUpperCase() + ws.slice(1)}
-            </a>
+            <Link key={ws} to={`/map/${ws}`} className="home-nav-link">
+              {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath' }[ws]}
+            </Link>
           ))}
           <Link to="/map" className="home-nav-link home-nav-map">Map →</Link>
         </div>
