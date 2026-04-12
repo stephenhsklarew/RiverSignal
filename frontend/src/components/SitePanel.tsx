@@ -17,11 +17,13 @@ interface ChatMessage {
 }
 
 export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed }: SitePanelProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'ask'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'recs' | 'ask'>(
     initialQuestion ? 'ask' : 'overview'
   )
   const [species, setSpecies] = useState<any[]>([])
   const [fishingBrief, setFishingBrief] = useState<any>(null)
+  const [recommendations, setRecommendations] = useState<any>(null)
+  const [recsLoading, setRecsLoading] = useState(false)
   const [story, setStory] = useState<any>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
@@ -53,6 +55,12 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
       fetch(`${API_BASE}/sites/${watershed}/fishing/brief`).then(r => r.json()).then(setFishingBrief).catch(console.error)
     if (activeTab === 'story' && !story)
       fetch(`${API_BASE}/sites/${watershed}/story`).then(r => r.json()).then(setStory).catch(console.error)
+    if (activeTab === 'recs' && !recommendations && !recsLoading) {
+      setRecsLoading(true)
+      fetch(`${API_BASE}/sites/${watershed}/recommendations`, { method: 'POST' })
+        .then(r => r.json()).then(d => { setRecommendations(d); setRecsLoading(false) })
+        .catch(() => setRecsLoading(false))
+    }
   }, [activeTab, watershed])
 
   const health = site.health || {}
@@ -89,7 +97,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
 
       {/* Tabs */}
       <div className="panel-tabs">
-        {(['overview', 'species', 'fishing', 'story', 'ask'] as const).map(tab => (
+        {(['overview', 'species', 'fishing', 'story', 'recs', 'ask'] as const).map(tab => (
           <button key={tab} className={`panel-tab${activeTab === tab ? ' active' : ''}`} onClick={() => setActiveTab(tab)}>
             {tab}
           </button>
@@ -242,6 +250,34 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
               </div>
             )}
           </>
+        )}
+
+        {activeTab === 'recs' && (
+          <div className="section">
+            <div className="section-title">Field Recommendations</div>
+            {recsLoading ? (
+              <div style={{ padding: 20, color: '#888', textAlign: 'center' }}>Generating recommendations...</div>
+            ) : recommendations?.recommendations?.length > 0 ? (
+              <div className="recs-list">
+                {recommendations.recommendations.map((rec: any, i: number) => (
+                  <div key={i} className="rec-card">
+                    <div className="rec-rank">#{rec.rank || i + 1}</div>
+                    <div className="rec-body">
+                      <div className="rec-action">{rec.action}</div>
+                      {rec.site && <div className="rec-site">{rec.site}</div>}
+                      <div className="rec-sensitivity">{rec.time_sensitivity}</div>
+                      <div className="rec-reasoning">{rec.reasoning}</div>
+                      <span className="rec-tag">{rec.grounded_in}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recommendations?.narrative ? (
+              <div style={{ padding: 12, fontSize: 13, color: '#666', lineHeight: 1.6 }}>{recommendations.narrative}</div>
+            ) : (
+              <div style={{ padding: 20, color: '#888', textAlign: 'center' }}>No priority actions this period. Sites are in stable condition.</div>
+            )}
+          </div>
         )}
 
         {activeTab === 'ask' && (

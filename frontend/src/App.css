@@ -386,6 +386,27 @@
 .data-table tr:hover td { background: var(--bg); }
 .data-table .mono { font-family: var(--mono); font-size: 11px; }
 
+/* Recommendation cards */
+.recs-list { display: flex; flex-direction: column; gap: 10px; }
+.rec-card {
+  display: flex; gap: 10px; padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+}
+.rec-rank {
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  color: var(--accent); min-width: 28px; padding-top: 2px;
+}
+.rec-body { flex: 1; }
+.rec-action { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 3px; }
+.rec-site { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+.rec-sensitivity { font-size: 11px; color: var(--warm); font-weight: 500; margin-bottom: 4px; }
+.rec-reasoning { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+.rec-tag {
+  display: inline-block; margin-top: 4px; font-size: 10px; padding: 1px 6px;
+  border-radius: 3px; background: var(--accent-light); color: var(--accent);
+  font-weight: 500; text-transform: lowercase;
+}
+
 .status-tag {
   display: inline-block;
   padding: 1px 6px;

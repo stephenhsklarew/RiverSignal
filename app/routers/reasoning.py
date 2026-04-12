@@ -203,6 +203,136 @@ def generate_restoration_forecast(watershed: str, request: ForecastRequest = Non
     }
 
 
+@router.post("/sites/{watershed}/recommendations")
+def generate_recommendations(watershed: str):
+    """Generate prioritized field action recommendations for a watershed (FEAT-003).
+
+    Produces a ranked list of 3-5 recommended actions based on current anomalies,
+    seasonal windows, restoration milestones, and invasive follow-up needs.
+    """
+    with engine.connect() as conn:
+        site = conn.execute(text("SELECT id, name FROM sites WHERE watershed = :ws"), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(404, f"Watershed '{watershed}' not found")
+
+        # Anomalies (urgent signals)
+        anomalies = conn.execute(text("""
+            SELECT anomaly_type, count(*) as cnt, max(detected_date)::date as last
+            FROM gold.anomaly_flags WHERE watershed = :ws
+            GROUP BY anomaly_type ORDER BY cnt DESC
+        """), {"ws": watershed}).fetchall()
+
+        # Invasive detections (treatment urgency)
+        invasives = conn.execute(text("""
+            SELECT taxon_name, detection_count, last_detected, recent_detections
+            FROM gold.invasive_detections WHERE watershed = :ws
+            ORDER BY recent_detections DESC LIMIT 5
+        """), {"ws": watershed}).fetchall()
+
+        # Restoration outcomes (active projects to monitor)
+        outcomes = conn.execute(text("""
+            SELECT intervention_category, intervention_year, intervention_count,
+                   species_before, species_after
+            FROM gold.restoration_outcomes WHERE watershed = :ws
+            ORDER BY intervention_year DESC LIMIT 10
+        """), {"ws": watershed}).fetchall()
+
+        # Seasonal patterns (what to survey now)
+        current_month = datetime.now().month
+        seasonal = conn.execute(text("""
+            SELECT taxon_group, peak_month, avg_observations
+            FROM gold.seasonal_observation_patterns WHERE watershed = :ws
+            ORDER BY avg_observations DESC
+        """), {"ws": watershed}).fetchall()
+
+        # Indicator species (monitoring gaps)
+        indicators = conn.execute(text("""
+            SELECT taxon_name, common_name, indicator_direction, status, last_detected
+            FROM gold.indicator_species_status WHERE watershed = :ws
+        """), {"ws": watershed}).fetchall()
+
+        # Data freshness (stale data warning)
+        freshness = conn.execute(text("""
+            SELECT source_type, max(last_sync_at)::date as last_sync
+            FROM data_sources WHERE site_id = :sid
+            GROUP BY source_type ORDER BY last_sync ASC
+        """), {"sid": site[0]}).fetchall()
+
+    context = {
+        "watershed": watershed,
+        "site_name": site[1],
+        "current_month": current_month,
+        "anomalies": [{"type": r[0], "count": r[1], "last": str(r[2])} for r in anomalies],
+        "invasive_species": [
+            {"name": r[0], "total_detections": r[1], "last_seen": str(r[2]), "recent": r[3]}
+            for r in invasives
+        ],
+        "restoration_outcomes": [
+            {"category": r[0], "year": r[1], "count": r[2], "species_before": r[3], "species_after": r[4]}
+            for r in outcomes
+        ],
+        "seasonal_patterns": [
+            {"taxon_group": r[0], "peak_month": r[1], "avg_obs": r[2]}
+            for r in seasonal
+        ],
+        "indicators": [
+            {"taxon": r[0], "common_name": r[1], "direction": r[2], "status": r[3],
+             "last_detected": str(r[4]) if r[4] else None}
+            for r in indicators
+        ],
+        "data_freshness": [{"source": r[0], "last_sync": str(r[1])} for r in freshness],
+    }
+
+    # LLM-powered recommendations
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    recommendations = []
+    narrative = None
+
+    if api_key:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system="""You are a watershed management advisor for the RiverSignal platform. Given pre-aggregated ecological data, produce a JSON array of 3-5 prioritized field action recommendations.
+
+Each recommendation must have:
+- "rank": integer (1 = highest priority)
+- "action": brief action description (e.g., "Invasive reed canarygrass sweep along riparian corridor")
+- "site": target location within the watershed
+- "time_sensitivity": deadline (e.g., "Within 10 days", "This month", "Next survey window")
+- "reasoning": 2-3 sentences connecting this recommendation to specific data (anomalies, seasonal timing, restoration goals, invasive detections)
+- "grounded_in": what data type drove this (e.g., "invasive_detection", "seasonal_window", "anomaly", "restoration_milestone")
+
+If no actionable signals exist, return an empty array with a "status" field explaining overall site health.
+
+Return ONLY valid JSON — no markdown fences, no explanation outside the JSON.""",
+                messages=[{"role": "user", "content": f"Generate field recommendations for {watershed} watershed:\n\n{json.dumps(context, indent=2, default=str)}"}],
+            )
+            raw = message.content[0].text.strip()
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, list):
+                    recommendations = parsed
+                elif isinstance(parsed, dict) and "recommendations" in parsed:
+                    recommendations = parsed["recommendations"]
+                else:
+                    recommendations = [parsed]
+            except json.JSONDecodeError:
+                narrative = raw  # LLM returned prose instead of JSON
+        except Exception as e:
+            narrative = f"LLM reasoning unavailable: {e}"
+
+    return {
+        "watershed": watershed,
+        "generated_at": datetime.now().isoformat(),
+        "recommendations": recommendations,
+        "narrative": narrative,
+        "data": context,
+    }
+
+
 @router.post("/sites/{watershed}/chat")
 def chat_with_site(watershed: str, request: ChatRequest):
     """Natural-language query about a watershed."""
