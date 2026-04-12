@@ -8,7 +8,7 @@
 /* ── Header (shared) ── */
 .dt-header { padding: 16px 20px 24px; background: linear-gradient(180deg, #2a2318 0%, #1a1612 100%); }
 .dt-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-.dt-logo { height: 24px; filter: brightness(2); }
+.dt-logo { height: 32px; }
 .dt-logo-link { display: flex; }
 .dt-badge { background: #996633; color: #fff; font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
 .dt-badge-sm { background: #996633; color: #fff; font-size: 0.6rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; }

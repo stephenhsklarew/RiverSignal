@@ -229,8 +229,7 @@ export default function DeepTrailPage() {
     <div className="dt-app">
       <header className="dt-header">
         <div className="dt-header-top">
-          <Link to="/" className="dt-logo-link"><img src={logo} alt="" className="dt-logo" /></Link>
-          <span className="dt-badge">DeepTrail</span>
+          <Link to="/" className="dt-logo-link"><img src={logo} alt="DeepTrail" className="dt-logo" /></Link>
           <div className="dt-header-links">
             <Link to="/path" className="dt-nav-link">RiverPath</Link>
             <Link to="/deepsignal" className="dt-nav-link">DeepSignal</Link>
@@ -277,7 +276,7 @@ export default function DeepTrailPage() {
     <div className="dt-app">
       <header className="dt-detail-header">
         <button className="dt-back" onClick={() => setScreen('pick')}>← Back</button>
-        <span className="dt-badge">DeepTrail</span>
+        <img src={logo} alt="DeepTrail" className="dt-logo" />
       </header>
 
       {loading ? <div className="dt-loading">Loading geology data...</div> : (
