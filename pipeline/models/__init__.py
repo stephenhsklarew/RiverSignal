@@ -12,6 +12,7 @@ from pipeline.models.geology import (
     FossilOccurrence,
     GeologicUnit,
     LandOwnership,
+    MineralDeposit,
 )
 from pipeline.models.spatial import (
     FirePerimeter,
@@ -38,4 +39,5 @@ __all__ = [
     "FossilOccurrence",
     "LandOwnership",
     "DeepTimeStory",
+    "MineralDeposit",
 ]

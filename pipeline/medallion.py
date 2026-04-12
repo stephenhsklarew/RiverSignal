@@ -36,6 +36,7 @@ VIEWS = [
     "silver.geologic_context",
     "silver.fossil_records",
     "silver.land_access",
+    "silver.mineral_sites",
     # Gold — ecology
     "gold.site_ecological_summary",
     "gold.species_trends",
@@ -68,6 +69,7 @@ VIEWS = [
     "gold.deep_time_story",
     "gold.formation_species_history",
     "gold.geology_watershed_link",
+    "gold.mineral_sites_nearby",
 ]
 
 

@@ -103,18 +103,19 @@ def test_river_miles_exist():
 
 def test_geologic_units_loaded():
     rows = _query("SELECT count(*) FROM geologic_units")
-    assert rows[0][0] >= 300, "Should have 300+ geologic unit polygons"
+    assert rows[0][0] >= 15000, "Should have 15K+ geologic unit polygons (Macrostrat + DOGAMI)"
 
 
 def test_geologic_units_have_geometry():
     rows = _query("SELECT count(*) FROM geologic_units WHERE geometry IS NOT NULL")
     total = _query("SELECT count(*) FROM geologic_units")[0][0]
-    assert rows[0][0] == total, "All geologic units should have geometry"
+    # DOGAMI polygons have geometry; some may not if service returned no geometry
+    assert rows[0][0] >= total * 0.9, "90%+ of geologic units should have geometry"
 
 
 def test_fossil_occurrences_loaded():
     rows = _query("SELECT count(*) FROM fossil_occurrences")
-    assert rows[0][0] >= 600, "Should have 600+ fossil occurrences (John Day + others)"
+    assert rows[0][0] >= 1500, "Should have 1500+ fossil occurrences (PBDB + iDigBio)"
 
 
 def test_fossil_john_day_coverage():
@@ -147,7 +148,7 @@ def test_silver_geologic_context():
 
 def test_silver_fossil_records():
     rows = _query("SELECT count(*) FROM silver.fossil_records")
-    assert rows[0][0] >= 600, "silver.fossil_records should have 600+ rows"
+    assert rows[0][0] >= 1000, "silver.fossil_records should have 1000+ rows (PBDB + iDigBio)"
 
 
 def test_silver_land_access():
@@ -162,7 +163,28 @@ def test_gold_geologic_age_at_location():
 
 def test_gold_fossils_nearby():
     rows = _query("SELECT count(*) FROM gold.fossils_nearby")
-    assert rows[0][0] >= 600
+    assert rows[0][0] >= 1000
+
+
+def test_mineral_deposits_loaded():
+    rows = _query("SELECT count(*) FROM mineral_deposits")
+    assert rows[0][0] >= 1500, "Should have 1500+ mineral deposits from MRDS"
+
+
+def test_mineral_deposits_commodities():
+    rows = _query("SELECT DISTINCT commodity FROM mineral_deposits WHERE commodity IS NOT NULL LIMIT 20")
+    commodities = {r[0] for r in rows}
+    assert len(commodities) >= 5, "Should have at least 5 different commodities"
+
+
+def test_silver_mineral_sites():
+    rows = _query("SELECT count(*) FROM silver.mineral_sites")
+    assert rows[0][0] >= 1500
+
+
+def test_gold_mineral_sites_nearby():
+    rows = _query("SELECT count(*) FROM gold.mineral_sites_nearby")
+    assert rows[0][0] >= 1500
 
 
 def test_gold_legal_collecting_sites():

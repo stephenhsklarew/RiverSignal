@@ -36,7 +36,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -49,7 +49,10 @@ def ingest(source: str, watershed: str):
     from pipeline.ingest.biodata import BioDataAdapter
     from pipeline.ingest.fish_passage import FishPassageAdapter
     from pipeline.ingest.fishing import FishingDataAdapter
-    from pipeline.ingest.geology import BLMLandOwnershipAdapter, GeologicUnitsAdapter, PBDBFossilAdapter
+    from pipeline.ingest.geology import (
+        BLMLandOwnershipAdapter, DOGAMIAdapter, GeologicUnitsAdapter,
+        IDigBioFossilAdapter, MRDSAdapter, PBDBFossilAdapter,
+    )
     from pipeline.ingest.inaturalist import INaturalistAdapter
     from pipeline.ingest.spatial import ImpairedWatersAdapter, WatershedBoundaryAdapter, WetlandsAdapter
     from pipeline.ingest.mtbs import MTBSAdapter
@@ -80,6 +83,9 @@ def ingest(source: str, watershed: str):
         "macrostrat": GeologicUnitsAdapter,
         "pbdb": PBDBFossilAdapter,
         "blm_sma": BLMLandOwnershipAdapter,
+        "dogami": DOGAMIAdapter,
+        "mrds": MRDSAdapter,
+        "idigbio": IDigBioFossilAdapter,
     }
 
     watersheds = list(WATERSHEDS.keys()) if watershed == "all" else [watershed]

@@ -87,6 +87,27 @@ class LandOwnership(Base):
     )
 
 
+class MineralDeposit(Base):
+    __tablename__ = "mineral_deposits"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source: Mapped[str] = mapped_column(String(50))  # mrds
+    source_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    site_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    commodity: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    dev_status: Mapped[str | None] = mapped_column(String(100), nullable=True)  # Prospect, Past Producer, etc.
+    location = mapped_column(Geometry("POINT", srid=4326), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    data_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_mineral_deposits_location", "location", postgresql_using="gist"),
+        Index("ix_mineral_source_id", "source", "source_id", unique=True),
+    )
+
+
 class DeepTimeStory(Base):
     __tablename__ = "deep_time_stories"
 

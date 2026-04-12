@@ -514,3 +514,349 @@ def lookup_land_ownership_at_point(lat: float, lon: float) -> dict | None:
             }
     except Exception:
         return None
+
+
+# ──────────────────────────────────────────────────────────────
+# Phase 2 adapters: DOGAMI, MRDS, iDigBio, NPS GRI
+# ──────────────────────────────────────────────────────────────
+
+# Oregon DOGAMI OGDC v6 — state geologic map, layer 3
+DOGAMI_URL = "https://gis.dogami.oregon.gov/arcgis/rest/services/Public/OGDC6/MapServer/3/query"
+
+# USGS MRDS — mineral deposit locations (WFS)
+MRDS_URL = "https://mrdata.usgs.gov/services/mrds"
+
+# iDigBio — digitized museum fossil specimens
+IDIGBIO_URL = "https://search.idigbio.org/v2/search/records"
+
+# Commodity code lookup for MRDS
+COMMODITY_NAMES = {
+    "AU": "Gold", "AG": "Silver", "CU": "Copper", "HG": "Mercury",
+    "CR": "Chromium", "NI": "Nickel", "ZN": "Zinc", "PB": "Lead",
+    "FE": "Iron", "MN": "Manganese", "CO": "Cobalt", "MO": "Molybdenum",
+    "W": "Tungsten", "U": "Uranium", "PUM": "Pumice", "ZEO": "Zeolites",
+    "TLC": "Talc", "Cite": "Ite", "PER": "Perlite", "DIA": "Diatomite",
+    "BNT": "Bentonite", "STN": "Stone", "SND": "Sand", "GVL": "Gravel",
+    "Cite": "ite", "HES": "Geothermal",
+}
+
+
+class DOGAMIAdapter(IngestionAdapter):
+    """Oregon DOGAMI OGDC v6 — high-resolution state geologic unit polygons."""
+    source_type = "dogami"
+
+    def ingest(self) -> tuple[int, int]:
+        site = self.session.get(Site, self.site_id)
+        if not site or not site.bbox:
+            raise ValueError(f"Site {self.site_id} not found or no bbox")
+
+        created = 0
+        with httpx.Client(timeout=120) as client:
+            console.print("    fetching DOGAMI OGDC6 geologic units...")
+            features = _arcgis_query_paginated(client, DOGAMI_URL, site.bbox, max_per_page=1000)
+            console.print(f"    received {len(features)} DOGAMI polygons")
+
+            if not features:
+                return 0, 0
+
+            SQL = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    geometry, data_payload)
+                VALUES (gen_random_uuid(), 'dogami', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, :age_min, :age_max, :period, :description,
+                    ST_GeomFromGeoJSON(:geojson), CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+
+            SQL_NO_GEOM = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    data_payload)
+                VALUES (gen_random_uuid(), 'dogami', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, :age_min, :age_max, :period, :description,
+                    CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+
+            with engine.connect() as conn:
+                for f in features:
+                    attrs = f.get("attributes", {})
+                    geojson = _esri_rings_to_geojson(f.get("geometry"))
+
+                    source_id = str(attrs.get("OBJECTID", ""))
+                    unit_name = attrs.get("MAP_UNIT_N", "") or attrs.get("MAP_UNIT_L", "")
+                    formation = attrs.get("FORMATION", "") or ""
+                    rock_type = attrs.get("GN_LITH_TY", "") or attrs.get("G_ROCK_TYP", "")
+                    lithology = attrs.get("LTH_RK_TYP", "") or ""
+                    age_name = attrs.get("AGE_NAME", "") or ""
+                    description = attrs.get("des", "") or ""
+
+                    # DOGAMI doesn't provide numeric ages, just period names
+                    period = age_name.split("/")[0].strip() if age_name else None
+
+                    params = {
+                        "source_id": source_id,
+                        "unit_name": str(unit_name)[:255],
+                        "formation": str(formation)[:255],
+                        "rock_type": str(rock_type)[:100],
+                        "lithology": str(lithology)[:255],
+                        "age_min": None,
+                        "age_max": None,
+                        "period": str(period or "")[:100] if period else None,
+                        "description": str(description),
+                        "payload": json.dumps(attrs),
+                    }
+
+                    if geojson:
+                        params["geojson"] = geojson
+                        conn.execute(SQL, params)
+                    else:
+                        conn.execute(SQL_NO_GEOM, params)
+                    created += 1
+
+                conn.commit()
+
+        return created, 0
+
+
+class MRDSAdapter(IngestionAdapter):
+    """USGS Mineral Resources Data System — mineral deposit locations via WFS."""
+    source_type = "mrds"
+
+    def ingest(self) -> tuple[int, int]:
+        site = self.session.get(Site, self.site_id)
+        if not site or not site.bbox:
+            raise ValueError(f"Site {self.site_id} not found or no bbox")
+
+        bbox = site.bbox
+        created = 0
+
+        with httpx.Client(timeout=120) as client:
+            console.print("    fetching USGS MRDS mineral deposits (WFS)...")
+
+            # WFS requires BBOX in lat,lon order for EPSG:4326
+            wfs_bbox = f"{bbox['south']},{bbox['west']},{bbox['north']},{bbox['east']},urn:ogc:def:crs:EPSG::4326"
+
+            offset = 0
+            while True:
+                params = {
+                    "service": "WFS",
+                    "version": "1.1.0",
+                    "request": "GetFeature",
+                    "typeName": "mrds-high",
+                    "maxFeatures": "500",
+                    "startIndex": str(offset),
+                    "BBOX": wfs_bbox,
+                }
+
+                for attempt in range(3):
+                    try:
+                        resp = client.get(MRDS_URL, params=params, timeout=60)
+                        if resp.status_code == 200:
+                            break
+                    except (httpx.ConnectError, httpx.ReadTimeout):
+                        time.sleep(5)
+                else:
+                    break
+
+                # Parse GML XML response
+                import xml.etree.ElementTree as ET
+                try:
+                    root = ET.fromstring(resp.text)
+                except ET.ParseError:
+                    console.print("    [yellow]MRDS: failed to parse WFS response[/yellow]")
+                    break
+
+                ns = {
+                    "gml": "http://www.opengis.net/gml",
+                    "ms": "http://mapserver.gis.umn.edu/mapserver",
+                    "wfs": "http://www.opengis.net/wfs",
+                }
+
+                members = root.findall(".//gml:featureMember", ns)
+                if not members:
+                    break
+
+                SQL = text("""
+                    INSERT INTO mineral_deposits (id, source, source_id, site_name, commodity,
+                        dev_status, location, latitude, longitude, data_payload)
+                    VALUES (gen_random_uuid(), 'mrds', :source_id, :site_name, :commodity,
+                        :dev_status, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326),
+                        :lat, :lon, CAST(:payload AS jsonb))
+                    ON CONFLICT (source, source_id) DO UPDATE SET
+                        commodity = EXCLUDED.commodity,
+                        dev_status = EXCLUDED.dev_status,
+                        data_payload = EXCLUDED.data_payload
+                """)
+
+                with engine.connect() as conn:
+                    batch_count = 0
+                    for member in members:
+                        feat = member.find("ms:mrds-high", ns)
+                        if feat is None:
+                            continue
+
+                        dep_id = feat.findtext("ms:dep_id", "", ns)
+                        site_name = feat.findtext("ms:site_name", "", ns)
+                        dev_stat = feat.findtext("ms:dev_stat", "", ns)
+                        code_list = feat.findtext("ms:code_list", "", ns).strip()
+
+                        # Expand commodity codes to names
+                        codes = [c.strip() for c in code_list.split() if c.strip()]
+                        commodity_names = [COMMODITY_NAMES.get(c, c) for c in codes]
+                        commodity = ", ".join(commodity_names) if commodity_names else code_list
+
+                        # Extract coordinates from GML pos
+                        pos_el = feat.find(".//gml:pos", ns)
+                        if pos_el is None or not pos_el.text:
+                            continue
+                        parts = pos_el.text.strip().split()
+                        if len(parts) < 2:
+                            continue
+                        lat = float(parts[0])
+                        lon = float(parts[1])
+
+                        payload = {
+                            "dep_id": dep_id, "site_name": site_name,
+                            "dev_stat": dev_stat, "code_list": code_list,
+                            "fips_code": feat.findtext("ms:fips_code", "", ns),
+                            "url": feat.findtext("ms:url", "", ns),
+                        }
+
+                        conn.execute(SQL, {
+                            "source_id": dep_id,
+                            "site_name": str(site_name)[:255],
+                            "commodity": str(commodity)[:255],
+                            "dev_status": str(dev_stat)[:100],
+                            "lat": lat, "lon": lon,
+                            "payload": json.dumps(payload),
+                        })
+                        created += 1
+                        batch_count += 1
+
+                    conn.commit()
+
+                if batch_count < 500:
+                    break
+                offset += batch_count
+
+        console.print(f"    loaded {created} mineral deposits")
+        return created, 0
+
+
+class IDigBioFossilAdapter(IngestionAdapter):
+    """iDigBio — digitized museum fossil specimens with photos."""
+    source_type = "idigbio"
+
+    def ingest(self) -> tuple[int, int]:
+        site = self.session.get(Site, self.site_id)
+        if not site or not site.bbox:
+            raise ValueError(f"Site {self.site_id} not found or no bbox")
+
+        bbox = site.bbox
+        created = 0
+        page_size = 100
+
+        with httpx.Client(timeout=60) as client:
+            console.print("    fetching iDigBio fossil specimens...")
+
+            offset = 0
+            while True:
+                body = {
+                    "rq": {
+                        "basisofrecord": "fossilspecimen",
+                        "geopoint": {
+                            "type": "geo_bounding_box",
+                            "top_left": {"lat": bbox["north"], "lon": bbox["west"]},
+                            "bottom_right": {"lat": bbox["south"], "lon": bbox["east"]},
+                        },
+                    },
+                    "limit": page_size,
+                    "offset": offset,
+                }
+
+                for attempt in range(3):
+                    try:
+                        resp = client.post(IDIGBIO_URL, json=body)
+                        if resp.status_code == 200:
+                            break
+                    except (httpx.ConnectError, httpx.ReadTimeout):
+                        time.sleep(5)
+                else:
+                    break
+
+                data = resp.json()
+                items = data.get("items", [])
+                if not items:
+                    break
+
+                SQL = text("""
+                    INSERT INTO fossil_occurrences (id, source, source_id, taxon_name, taxon_id,
+                        common_name, phylum, class_name, order_name, family,
+                        age_min_ma, age_max_ma, period, formation,
+                        location, latitude, longitude,
+                        collector, reference, museum, data_payload)
+                    VALUES (gen_random_uuid(), 'idigbio', :source_id, :taxon_name, :taxon_id,
+                        :common_name, :phylum, :class_name, :order_name, :family,
+                        :age_min, :age_max, :period, :formation,
+                        ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :lat, :lon,
+                        :collector, :reference, :museum, CAST(:payload AS jsonb))
+                    ON CONFLICT (source, source_id) DO UPDATE SET
+                        taxon_name = EXCLUDED.taxon_name,
+                        data_payload = EXCLUDED.data_payload
+                """)
+
+                with engine.connect() as conn:
+                    for item in items:
+                        idx = item.get("indexTerms", {})
+                        dat = item.get("data", {})
+                        uuid_val = item.get("uuid", "")
+
+                        geopoint = idx.get("geopoint", {})
+                        lat = geopoint.get("lat")
+                        lon = geopoint.get("lon")
+                        if lat is None or lon is None:
+                            continue
+
+                        taxon = idx.get("scientificname", dat.get("dwc:scientificName", ""))
+                        if not taxon:
+                            continue
+
+                        # Check for photo
+                        has_image = idx.get("hasImage", False)
+                        media = idx.get("mediarecords", [])
+                        photo_url = f"https://search.idigbio.org/v2/view/mediarecords/{media[0]}" if media else None
+
+                        conn.execute(SQL, {
+                            "source_id": uuid_val,
+                            "taxon_name": str(taxon)[:255],
+                            "taxon_id": str(idx.get("uuid", ""))[:100],
+                            "common_name": None,
+                            "phylum": (idx.get("phylum") or "")[:100] or None,
+                            "class_name": (idx.get("class") or "")[:100] or None,
+                            "order_name": (idx.get("order") or "")[:100] or None,
+                            "family": (idx.get("family") or "")[:100] or None,
+                            "age_min": None,
+                            "age_max": None,
+                            "period": (dat.get("dwc:earliestPeriodOrLowestSystem") or "")[:100] or None,
+                            "formation": (dat.get("dwc:formation") or "")[:255] or None,
+                            "lat": float(lat),
+                            "lon": float(lon),
+                            "collector": (dat.get("dwc:recordedBy") or "")[:255] or None,
+                            "reference": photo_url or "",
+                            "museum": (idx.get("institutioncode") or "")[:255] or None,
+                            "payload": json.dumps({"uuid": uuid_val, "hasImage": has_image,
+                                                   "catalog": dat.get("dwc:catalogNumber", "")}),
+                        })
+                        created += 1
+
+                    conn.commit()
+
+                if len(items) < page_size:
+                    break
+                offset += len(items)
+                time.sleep(0.5)  # Rate limiting
+
+        console.print(f"    loaded {created} iDigBio fossil specimens")
+        return created, 0

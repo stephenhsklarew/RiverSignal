@@ -26,6 +26,7 @@ VIEW_ORDER = [
     "silver.geologic_context",
     "silver.fossil_records",
     "silver.land_access",
+    "silver.mineral_sites",
     # Gold: independent views (depend only on bronze or silver)
     "gold.anomaly_flags",
     "gold.cold_water_refuges",
@@ -59,6 +60,7 @@ VIEW_ORDER = [
     "gold.deep_time_story",           # depends on silver.geologic_context + silver.fossil_records
     "gold.formation_species_history", # depends on silver.geologic_context + silver.fossil_records
     "gold.geology_watershed_link",    # depends on silver.geologic_context + sites
+    "gold.mineral_sites_nearby",      # depends on silver.mineral_sites
 ]
 
 
