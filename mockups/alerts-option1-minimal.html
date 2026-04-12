@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alert Banner — Option 1: Minimal Inline</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Outfit', sans-serif; background: #fafaf8; }
+
+/* Simulated topbar */
+.topbar {
+  display: flex; align-items: center; height: 44px; padding: 0 16px;
+  background: #fff; border-bottom: 1px solid #e8e5de; gap: 16px;
+}
+.topbar-brand { font-weight: 700; font-size: 14px; color: #1a6b4a; }
+.topbar-nav button {
+  padding: 6px 12px; background: none; border: none; font-family: inherit;
+  font-size: 12px; color: #888; cursor: pointer; border-radius: 4px;
+}
+.topbar-nav button.active { background: #e8f5e9; color: #1a6b4a; font-weight: 500; }
+
+/* ═══════════════════════════════════════════
+   OPTION 1: Minimal single-line ticker
+   Compact, professional, doesn't steal focus.
+   Alerts scroll horizontally if too many.
+   ═══════════════════════════════════════════ */
+.alerts-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  height: 32px;
+  background: #fafaf8;
+  border-bottom: 1px solid #e8e5de;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.alerts-banner::-webkit-scrollbar { display: none; }
+
+.alert-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+
+.alert-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.alert-chip.warning .alert-dot { background: #e65100; }
+.alert-chip.info .alert-dot { background: #1565c0; }
+
+.alert-chip.warning { color: #bf360c; }
+.alert-chip.info { color: #0d47a1; }
+
+.alert-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.alert-text { color: #888; }
+
+.alert-separator {
+  width: 1px;
+  height: 14px;
+  background: #e0dcd4;
+  flex-shrink: 0;
+}
+
+.alert-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.alert-dismiss:hover { color: #888; }
+
+/* Demo content */
+.content {
+  display: flex; height: calc(100vh - 76px);
+}
+.map-placeholder {
+  flex: 1; background: #f0ede6; display: flex; align-items: center;
+  justify-content: center; color: #bbb; font-size: 14px;
+}
+.panel-placeholder {
+  width: 400px; background: #fff; border-left: 1px solid #e8e5de;
+  padding: 20px; font-size: 13px; color: #888;
+}
+.label {
+  position: fixed; bottom: 20px; left: 20px; background: #1a6b4a; color: white;
+  padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">● RiverSignal</div>
+  <div class="topbar-nav">
+    <button>Home</button>
+    <button class="active">Dashboard</button>
+    <button>Reports</button>
+  </div>
+  <div style="margin-left:auto;font-size:11px;color:#aaa;font-family:'JetBrains Mono',monospace">Deschutes River</div>
+</div>
+
+<div class="alerts-banner">
+  <div class="alert-chip warning">
+    <div class="alert-dot"></div>
+    <span class="alert-value">391</span>
+    <span class="alert-text">temperature anomalies</span>
+  </div>
+  <div class="alert-separator"></div>
+  <div class="alert-chip warning">
+    <div class="alert-dot"></div>
+    <span class="alert-value">45</span>
+    <span class="alert-text">dissolved oxygen anomalies</span>
+  </div>
+  <div class="alert-separator"></div>
+  <div class="alert-chip info">
+    <div class="alert-dot"></div>
+    <span class="alert-value">82</span>
+    <span class="alert-text">stocking events · latest Jun 8</span>
+  </div>
+  <button class="alert-dismiss">×</button>
+</div>
+
+<div class="content">
+  <div class="map-placeholder">Map</div>
+  <div class="panel-placeholder">Site Panel — Deschutes River</div>
+</div>
+
+<div class="label">Option 1: Minimal Inline — compact ticker, professional</div>
+
+</body>
+</html>

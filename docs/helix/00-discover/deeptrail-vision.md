@@ -31,16 +31,16 @@ They differ in:
 
 The most powerful insight: **geology IS the foundation of watershed ecology**. Every river, every species habitat, every water quality reading is shaped by the rocks beneath:
 
-| Geologic Context | Ecological Impact |
-|---|---|
-| **Volcanic basalt aquifers** | Spring-fed rivers like the Metolius (constant 9.5°C from Cascade lava tubes) |
-| **John Day Formation fossils** | Understanding what this ecosystem looked like 40 million years ago vs. today |
-| **Cascade volcanic soils** | Nutrient-poor soils drive plant communities and insect diversity |
-| **Klamath Basin lake sediments** | Cyanobacteria blooms driven by phosphorus from volcanic geology |
-| **Deschutes canyon basalt** | Cold-water refuges exist where springs emerge from fractured basalt |
-| **McKenzie River lava flows** | Tamolitch Blue Pool exists because the river goes underground through a lava tube |
-| **Post-fire erosion geology** | Holiday Farm Fire recovery depends on soil type and slope geology |
-| **Fish passage barriers** | Many barriers are natural geologic features (falls, cascades) not just culverts |
+| Geologic Context                 | Ecological Impact                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------- |
+| **Volcanic basalt aquifers**     | Spring-fed rivers like the Metolius (constant 9.5°C from Cascade lava tubes)      |
+| **John Day Formation fossils**   | Understanding what this ecosystem looked like 40 million years ago vs. today      |
+| **Cascade volcanic soils**       | Nutrient-poor soils drive plant communities and insect diversity                  |
+| **Klamath Basin lake sediments** | Cyanobacteria blooms driven by phosphorus from volcanic geology                   |
+| **Deschutes canyon basalt**      | Cold-water refuges exist where springs emerge from fractured basalt               |
+| **McKenzie River lava flows**    | Tamolitch Blue Pool exists because the river goes underground through a lava tube |
+| **Post-fire erosion geology**    | Holiday Farm Fire recovery depends on soil type and slope geology                 |
+| **Fish passage barriers**        | Many barriers are natural geologic features (falls, cascades) not just culverts   |
 
 **DeepSignal** (B2B) can enhance watershed intelligence by answering:
 - "Why is the Metolius so cold?" → geologic answer: Cascade volcanic aquifer

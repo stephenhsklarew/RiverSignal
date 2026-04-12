@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alert Banner — Option 3: Floating Sidebar Toast</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Outfit', sans-serif; background: #fafaf8; }
+
+.topbar {
+  display: flex; align-items: center; height: 44px; padding: 0 16px;
+  background: #fff; border-bottom: 1px solid #e8e5de; gap: 16px;
+}
+.topbar-brand { font-weight: 700; font-size: 14px; color: #1a6b4a; }
+.topbar-nav button {
+  padding: 6px 12px; background: none; border: none; font-family: inherit;
+  font-size: 12px; color: #888; cursor: pointer; border-radius: 4px;
+}
+.topbar-nav button.active { background: #e8f5e9; color: #1a6b4a; font-weight: 500; }
+
+/* ═══════════════════════════════════════════
+   OPTION 3: Floating toast stack
+   Alerts float over the map in the top-left
+   corner, like notification toasts. Doesn't
+   consume vertical space from the layout.
+   Auto-dismiss after 15s or manual dismiss.
+   ═══════════════════════════════════════════ */
+.content {
+  display: flex; height: calc(100vh - 44px); position: relative;
+}
+.map-placeholder {
+  flex: 1; background: #f0ede6; display: flex; align-items: center;
+  justify-content: center; color: #bbb; font-size: 14px;
+  position: relative;
+}
+.panel-placeholder {
+  width: 400px; background: #fff; border-left: 1px solid #e8e5de;
+  padding: 20px; font-size: 13px; color: #888;
+}
+
+.alert-toast-stack {
+  position: absolute;
+  top: 60px;
+  left: 16px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 340px;
+}
+
+.alert-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.alert-toast.warning {
+  background: rgba(255,243,224,0.92);
+  border: 1px solid rgba(230,81,0,0.15);
+}
+
+.alert-toast.info {
+  background: rgba(227,242,253,0.92);
+  border: 1px solid rgba(21,101,192,0.15);
+}
+
+.alert-toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.alert-toast.warning .alert-toast-icon {
+  background: rgba(230,81,0,0.12);
+}
+
+.alert-toast.info .alert-toast-icon {
+  background: rgba(21,101,192,0.12);
+}
+
+.alert-toast-body { flex: 1; min-width: 0; }
+
+.alert-toast-title {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+.alert-toast.warning .alert-toast-title { color: #bf360c; }
+.alert-toast.info .alert-toast-title { color: #0d47a1; }
+
+.alert-toast-meta {
+  font-size: 10px;
+  color: #999;
+}
+
+.alert-toast-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.alert-toast.warning .alert-toast-count { color: #e65100; }
+.alert-toast.info .alert-toast-count { color: #1565c0; }
+
+.alert-toast-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #ccc;
+  cursor: pointer;
+  line-height: 1;
+}
+.alert-toast-close:hover { color: #888; }
+
+/* Progress bar for auto-dismiss */
+.alert-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 0 0 10px 10px;
+  animation: shrink 15s linear forwards;
+}
+
+.alert-toast.warning .alert-toast-progress { background: #e65100; }
+.alert-toast.info .alert-toast-progress { background: #1565c0; }
+
+@keyframes shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+.label {
+  position: fixed; bottom: 20px; left: 20px; background: #1a6b4a; color: white;
+  padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  z-index: 30;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">● RiverSignal</div>
+  <div class="topbar-nav">
+    <button>Home</button>
+    <button class="active">Dashboard</button>
+    <button>Reports</button>
+  </div>
+  <div style="margin-left:auto;font-size:11px;color:#aaa;font-family:'JetBrains Mono',monospace">Deschutes River</div>
+</div>
+
+<div class="content">
+  <div class="map-placeholder">
+    Map
+
+    <div class="alert-toast-stack">
+      <div class="alert-toast warning" style="position:relative;">
+        <div class="alert-toast-icon">⚠</div>
+        <div class="alert-toast-body">
+          <div class="alert-toast-title">Temperature anomalies</div>
+          <div class="alert-toast-meta">Exceedances at 12 stations</div>
+        </div>
+        <div class="alert-toast-count">391</div>
+        <button class="alert-toast-close">×</button>
+        <div class="alert-toast-progress"></div>
+      </div>
+
+      <div class="alert-toast warning" style="position:relative; animation-delay: 0.1s;">
+        <div class="alert-toast-icon">⚠</div>
+        <div class="alert-toast-body">
+          <div class="alert-toast-title">Low dissolved oxygen</div>
+          <div class="alert-toast-meta">Potential fish stress conditions</div>
+        </div>
+        <div class="alert-toast-count">45</div>
+        <button class="alert-toast-close">×</button>
+        <div class="alert-toast-progress"></div>
+      </div>
+
+      <div class="alert-toast info" style="position:relative; animation-delay: 0.2s;">
+        <div class="alert-toast-icon">🐟</div>
+        <div class="alert-toast-body">
+          <div class="alert-toast-title">Stocking events</div>
+          <div class="alert-toast-meta">Latest: Jun 8, 2026</div>
+        </div>
+        <div class="alert-toast-count">82</div>
+        <button class="alert-toast-close">×</button>
+        <div class="alert-toast-progress"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel-placeholder">Site Panel — Deschutes River</div>
+</div>
+
+<div class="label">Option 3: Floating Toasts — overlays map, auto-dismiss, no layout shift</div>
+
+</body>
+</html>
