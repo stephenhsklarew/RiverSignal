@@ -278,11 +278,63 @@ def generate_deep_time_story(body: dict):
             "cached": True,
         }
 
-    # Build context from geology + fossils for LLM
+    # Build context from geology + fossils
     from pipeline.tools import get_deep_time_story
-    result = get_deep_time_story(lat, lon)
+    context = get_deep_time_story(lat, lon)
 
-    return {**result, "cached": False}
+    # Generate LLM narrative if API key available
+    import os
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    narrative = None
+
+    if api_key and context.get("context_summary"):
+        reading_prompts = {
+            "adult": "Write a vivid 2-3 paragraph narrative for a general adult audience. Use accessible language but don't oversimplify. Include specific species names with common-name equivalents in parentheses.",
+            "kid_friendly": "Write a 2-3 paragraph narrative for kids (5th grade reading level). Use 'Imagine you're standing in...' framing. Compare ancient animals to modern ones kids know ('as big as a school bus', 'like a tiny horse the size of a dog'). Keep sentences short and exciting.",
+            "expert": "Write a 2-3 paragraph scientific narrative using proper geological and paleontological terminology. Include formation names, radiometric ages, and taxonomic classifications. Cite specific fossil evidence by taxon name.",
+        }
+
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1500,
+                system=f"""You are a paleontology storyteller for the DeepTrail app. Given geologic and fossil data for a location, generate an engaging narrative about what this place looked like in ancient times.
+
+{reading_prompts.get(reading_level, reading_prompts['adult'])}
+
+Ground every claim in the provided data. If fossil evidence exists, name specific taxa. If only geologic unit data exists, describe the environment based on rock type and age. Do NOT invent species not in the data.""",
+                messages=[{"role": "user", "content": f"Generate a deep time narrative for coordinates ({lat}, {lon}):\n\n{context['context_summary']}"}],
+            )
+            narrative = message.content[0].text
+
+            # Cache the narrative
+            with engine.connect() as conn:
+                geo_unit_id = conn.execute(text("""
+                    SELECT id FROM geologic_units
+                    WHERE ST_Contains(geometry, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326))
+                    ORDER BY age_max_ma ASC NULLS LAST LIMIT 1
+                """), {"lat": lat, "lon": lon}).scalar()
+
+                if geo_unit_id:
+                    conn.execute(text("""
+                        INSERT INTO deep_time_stories (id, geologic_unit_id, latitude, longitude, reading_level, narrative, model_version)
+                        VALUES (gen_random_uuid(), :uid, :lat, :lon, :level, :narrative, 'claude-sonnet-4')
+                        ON CONFLICT (geologic_unit_id, reading_level) DO UPDATE SET
+                            narrative = EXCLUDED.narrative, generated_at = now()
+                    """), {"uid": geo_unit_id, "lat": lat, "lon": lon, "level": reading_level, "narrative": narrative})
+                    conn.commit()
+        except Exception as e:
+            narrative = None
+
+    return {
+        "narrative": narrative or context.get("context_summary", "No geologic data available."),
+        "geologic_context": context.get("geologic_context", []),
+        "nearby_fossils": context.get("nearby_fossils", []),
+        "reading_level": reading_level,
+        "cached": False,
+    }
 
 
 @router.get("/deep-time/timeline/{lat}/{lon}")

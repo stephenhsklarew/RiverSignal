@@ -58,6 +58,10 @@ export default function DeepTrailPage() {
   const [chatMessages, setChatMessages] = useState<{role: string; text: string}[]>([])
   const [chatLoading, setChatLoading] = useState(false)
 
+  // Story narrative
+  const [storyNarrative, setStoryNarrative] = useState('')
+  const [storyLoading, setStoryLoading] = useState(false)
+
   // Fossil/mineral filters
   const [periodFilter, setPeriodFilter] = useState('')
   const [phylumFilter, setPhylumFilter] = useState('')
@@ -113,6 +117,23 @@ export default function DeepTrailPage() {
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [loc])
+
+  // Fetch deep time narrative when location or reading level changes
+  useEffect(() => {
+    if (!loc) return
+    setStoryLoading(true)
+    setStoryNarrative('')
+    fetch(`${API_BASE}/deep-time/story`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat: loc.lat, lon: loc.lon, reading_level: readingLevel }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        setStoryNarrative(data.narrative || 'No geologic data available for this location.')
+        setStoryLoading(false)
+      })
+      .catch(() => { setStoryNarrative('Unable to load story.'); setStoryLoading(false) })
+  }, [loc, readingLevel])
 
   const sendChat = () => {
     if (!chatInput.trim() || chatLoading || !loc) return
@@ -212,7 +233,18 @@ export default function DeepTrailPage() {
             </div>
           </section>
 
-          {/* Ask About This Place — FIRST */}
+          {/* Deep Time Story */}
+          <section className="dt-story-card">
+            {storyLoading ? (
+              <div className="dt-story-loading">Generating deep time narrative...</div>
+            ) : (
+              storyNarrative.split('\n\n').map((para, i) => (
+                <p key={i} className="dt-story-para">{para}</p>
+              ))
+            )}
+          </section>
+
+          {/* Ask About This Place */}
           <section className="dt-chat-section">
             <h3>Ask About This Place</h3>
             <div className="dt-chat-messages">

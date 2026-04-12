@@ -88,6 +88,22 @@
 }
 .dt-reading-btn.active { background: #d4a96a; color: #1a1612; border-color: #d4a96a; }
 
+/* Story card */
+.dt-story-card {
+  background: linear-gradient(135deg, #332b1f, #2a2318);
+  border: 1px solid #3d3328; border-radius: 12px;
+  padding: 20px 22px; margin-bottom: 20px;
+}
+.dt-story-para {
+  font-size: 0.92rem; color: #c4b8a4; line-height: 1.65;
+  margin: 0 0 12px;
+}
+.dt-story-para:last-child { margin-bottom: 0; }
+.dt-story-loading {
+  color: #8a7e6e; font-style: italic; font-size: 0.88rem;
+  padding: 12px 0; text-align: center;
+}
+
 /* Chat */
 .dt-chat-section { margin-bottom: 20px; }
 .dt-chat-section h3, .dt-geo-section h3, .dt-timeline-section h3 {
