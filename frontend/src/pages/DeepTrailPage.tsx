@@ -35,6 +35,44 @@ export default function DeepTrailPage() {
   const [periodFilter, setPeriodFilter] = useState<string>('')
   const [phylumFilter, setPhylumFilter] = useState<string>('')
   const [readingLevel, setReadingLevel] = useState<string>('adult')
+  const [customLat, setCustomLat] = useState('')
+  const [customLon, setCustomLon] = useState('')
+  const [chatInput, setChatInput] = useState('')
+  const [chatMessages, setChatMessages] = useState<{role: string; text: string}[]>([])
+  const [chatLoading, setChatLoading] = useState(false)
+
+  const handleCustomLocation = (e: React.FormEvent) => {
+    e.preventDefault()
+    const lat = parseFloat(customLat)
+    const lon = parseFloat(customLon)
+    if (isNaN(lat) || isNaN(lon)) return
+    setSelectedLoc({ id: 'custom', name: `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, period: '', age: '', story: '' })
+  }
+
+  const sendGeoChat = () => {
+    if (!chatInput.trim() || chatLoading) return
+    const q = chatInput.trim()
+    setChatMessages(prev => [...prev, { role: 'user', text: q }])
+    setChatInput('')
+    setChatLoading(true)
+
+    // Use the existing chat endpoint with geology context
+    fetch(`${API_BASE}/deep-time/story`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat: selectedLoc.lat, lon: selectedLoc.lon, reading_level: readingLevel, question: q }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const answer = data.context_summary || data.narrative || 'No geologic data available for this location.'
+        setChatMessages(prev => [...prev, { role: 'assistant', text: answer }])
+        setChatLoading(false)
+      })
+      .catch(() => {
+        setChatMessages(prev => [...prev, { role: 'assistant', text: 'Unable to answer right now. Please try again.' }])
+        setChatLoading(false)
+      })
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -91,6 +129,14 @@ export default function DeepTrailPage() {
             <span className="dt-loc-age">{loc.age}</span>
           </button>
         ))}
+        {/* Custom location input */}
+        <form onSubmit={handleCustomLocation} className="dt-custom-loc">
+          <input type="text" value={customLat} onChange={e => setCustomLat(e.target.value)}
+            placeholder="Lat" className="dt-custom-input" />
+          <input type="text" value={customLon} onChange={e => setCustomLon(e.target.value)}
+            placeholder="Lon" className="dt-custom-input" />
+          <button type="submit" className="dt-custom-btn">Go</button>
+        </form>
       </div>
 
       {loading ? (
@@ -205,6 +251,30 @@ export default function DeepTrailPage() {
               </div>
             </section>
           )}
+
+          {/* Geology chat */}
+          <section className="dt-chat-section">
+            <h3>Ask About This Place</h3>
+            <div className="dt-chat-messages">
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`dt-chat-msg ${msg.role}`}>
+                  <div className="dt-chat-bubble">{msg.text}</div>
+                </div>
+              ))}
+              {chatLoading && <div className="dt-chat-msg assistant"><div className="dt-chat-bubble">Thinking...</div></div>}
+            </div>
+            <div className="dt-chat-input-row">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') sendGeoChat() }}
+                placeholder="What was this place like 33 million years ago?"
+                className="dt-chat-input"
+              />
+              <button onClick={sendGeoChat} disabled={!chatInput.trim() || chatLoading} className="dt-chat-btn">Ask</button>
+            </div>
+          </section>
         </main>
       )}
     </div>

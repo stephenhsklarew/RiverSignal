@@ -146,5 +146,56 @@
 /* Touch targets for mobile */
 .dt-loc-card { min-height: 48px; }
 .dt-nav-link { min-height: 48px; display: flex; align-items: center; }
+/* Custom location input */
+.dt-custom-loc {
+  display: flex; gap: 6px; flex-shrink: 0; align-items: center;
+}
+.dt-custom-input {
+  width: 70px; background: #2a2318; border: 1px solid #3d3328; border-radius: 6px;
+  padding: 8px 8px; font-size: 0.78rem; color: #e8e0d4; font-family: inherit;
+}
+.dt-custom-input:focus { border-color: #d4a96a; outline: none; }
+.dt-custom-btn {
+  background: #d4a96a; color: #1a1612; border: none; border-radius: 6px;
+  padding: 8px 14px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+}
+.dt-custom-btn:hover { background: #e0b97a; }
+
+/* Geology chat */
+.dt-chat-section { margin-top: 16px; }
+.dt-chat-section h3 {
+  font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500;
+  color: #d4a96a; margin: 0 0 12px;
+}
+.dt-chat-messages {
+  max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 10px;
+}
+.dt-chat-msg { display: flex; }
+.dt-chat-msg.user { justify-content: flex-end; }
+.dt-chat-msg.assistant { justify-content: flex-start; }
+.dt-chat-bubble {
+  max-width: 85%; padding: 10px 14px; border-radius: 12px;
+  font-size: 0.85rem; line-height: 1.5;
+}
+.dt-chat-msg.user .dt-chat-bubble { background: #d4a96a; color: #1a1612; }
+.dt-chat-msg.assistant .dt-chat-bubble { background: #2a2318; color: #e8e0d4; border: 1px solid #3d3328; }
+.dt-chat-input-row { display: flex; gap: 8px; }
+.dt-chat-input {
+  flex: 1; background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
+  padding: 10px 14px; font-size: 0.85rem; color: #e8e0d4; font-family: inherit;
+}
+.dt-chat-input:focus { border-color: #d4a96a; outline: none; }
+.dt-chat-btn {
+  background: #d4a96a; color: #1a1612; border: none; border-radius: 8px;
+  padding: 10px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+}
+.dt-chat-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .dt-filter-select { min-height: 48px; }
 .dt-reading-btn { min-height: 36px; }
+.dt-custom-input { min-height: 48px; }
+.dt-chat-input { min-height: 48px; }
+.dt-chat-btn { min-height: 48px; }
