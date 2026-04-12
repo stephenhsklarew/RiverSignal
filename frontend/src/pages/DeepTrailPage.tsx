@@ -16,7 +16,7 @@ const LOCATIONS = [
 
 interface Fossil {
   taxon_name: string; phylum: string; class_name: string; period: string;
-  age_max_ma: number | null; distance_km: number | null;
+  age_max_ma: number | null; distance_km: number | null; source_id: string | null;
 }
 
 interface TimelineItem {
@@ -31,9 +31,11 @@ export default function DeepTrailPage() {
   const [timeline, setTimeline] = useState<TimelineItem[]>([])
   const [landStatus, setLandStatus] = useState<any>(null)
   const [minerals, setMinerals] = useState<any[]>([])
+  const [geoContext, setGeoContext] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [periodFilter, setPeriodFilter] = useState<string>('')
   const [phylumFilter, setPhylumFilter] = useState<string>('')
+  const [mineralFilter, setMineralFilter] = useState<string>('')
   const [readingLevel, setReadingLevel] = useState<string>('adult')
   const [customLat, setCustomLat] = useState('')
   const [customLon, setCustomLon] = useState('')
@@ -81,11 +83,13 @@ export default function DeepTrailPage() {
       fetch(`${API_BASE}/deep-time/timeline/${selectedLoc.lat}/${selectedLoc.lon}`).then(r => r.json()),
       fetch(`${API_BASE}/land/at/${selectedLoc.lat}/${selectedLoc.lon}`).then(r => r.json()),
       fetch(`${API_BASE}/minerals/near/${selectedLoc.lat}/${selectedLoc.lon}?radius_km=50`).then(r => r.json()),
-    ]).then(([fossilData, timelineData, land, mineralData]) => {
+      fetch(`${API_BASE}/geology/at/${selectedLoc.lat}/${selectedLoc.lon}`).then(r => r.json()),
+    ]).then(([fossilData, timelineData, land, mineralData, geoData]) => {
       setFossils(fossilData.fossils || [])
       setTimeline(timelineData.timeline || [])
       setLandStatus(land)
       setMinerals(mineralData.minerals || [])
+      setGeoContext(geoData)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [selectedLoc])
@@ -101,6 +105,14 @@ export default function DeepTrailPage() {
   })
   const fossilPeriods = [...new Set(fossils.map(f => f.period).filter(Boolean))].sort()
   const fossilPhyla = [...new Set(fossils.map(f => f.phylum).filter(Boolean))].sort()
+
+  // Mineral filtering
+  const filteredMinerals = mineralFilter
+    ? minerals.filter(m => m.commodity?.includes(mineralFilter))
+    : minerals
+  const mineralCommodities = [...new Set(
+    minerals.flatMap(m => (m.commodity || '').split(', ')).filter(Boolean)
+  )].sort()
 
   return (
     <div className="dt-app">
@@ -160,6 +172,22 @@ export default function DeepTrailPage() {
             <p className="dt-story-period">{selectedLoc.period} — {selectedLoc.age}</p>
             <p className="dt-story-text">{selectedLoc.story}</p>
           </section>
+
+          {/* Geologic unit at this location */}
+          {geoContext?.units?.length > 0 && (
+            <section className="dt-geo-section">
+              <h3>Geologic Context</h3>
+              {geoContext.units.slice(0, 3).map((u: any, i: number) => (
+                <div key={i} className="dt-geo-unit">
+                  <span className={`rock-badge-dt ${u.rock_type || ''}`}>{u.rock_type || 'unknown'}</span>
+                  <div>
+                    <div className="dt-geo-name">{u.formation || u.unit_name}</div>
+                    <div className="dt-geo-meta">{u.lithology ? `${u.lithology} · ` : ''}{u.period}{u.age_max_ma ? ` · ${u.age_max_ma}–${u.age_min_ma || '?'} Ma` : ''}</div>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
 
           {/* Legal collecting status */}
           {landStatus && (
@@ -222,8 +250,12 @@ export default function DeepTrailPage() {
                   <div className="dt-fossil-age">
                     {f.period} — {f.age_max_ma ? `${f.age_max_ma} Ma` : '?'}
                   </div>
-                  {f.distance_km && (
+                  {f.distance_km != null && (
                     <div className="dt-fossil-dist">{f.distance_km} km away</div>
+                  )}
+                  {f.source_id && (
+                    <a href={`https://paleobiodb.org/classic/checkTaxonInfo?taxon_no=${f.source_id}`}
+                       target="_blank" rel="noopener noreferrer" className="dt-source-link">PBDB →</a>
                   )}
                 </div>
               ))}
@@ -236,14 +268,20 @@ export default function DeepTrailPage() {
           {/* Mineral deposits */}
           {minerals.length > 0 && (
             <section className="dt-mineral-section">
-              <h3>Mineral Sites Nearby ({minerals.length})</h3>
+              <h3>Mineral Sites Nearby ({filteredMinerals.length})</h3>
+              <div className="dt-filter-row">
+                <select value={mineralFilter} onChange={e => setMineralFilter(e.target.value)} className="dt-filter-select">
+                  <option value="">All Commodities</option>
+                  {mineralCommodities.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
               <div className="dt-fossil-grid">
-                {minerals.slice(0, 20).map((m, i) => (
+                {filteredMinerals.slice(0, 20).map((m, i) => (
                   <div key={i} className="dt-fossil-card">
                     <div className="dt-fossil-name">{m.site_name}</div>
                     <div className="dt-fossil-meta">{m.commodity}</div>
                     <div className="dt-fossil-age">{m.dev_status}</div>
-                    {m.distance_km && (
+                    {m.distance_km != null && (
                       <div className="dt-fossil-dist">{m.distance_km} km away</div>
                     )}
                   </div>

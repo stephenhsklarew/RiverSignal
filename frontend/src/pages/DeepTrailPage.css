@@ -146,6 +146,35 @@
 /* Touch targets for mobile */
 .dt-loc-card { min-height: 48px; }
 .dt-nav-link { min-height: 48px; display: flex; align-items: center; }
+/* Geologic context */
+.dt-geo-section h3 {
+  font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500;
+  color: #d4a96a; margin: 0 0 12px;
+}
+.dt-geo-unit {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 8px 0; border-bottom: 1px solid #3d3328;
+}
+.dt-geo-unit:last-child { border-bottom: none; }
+.dt-geo-name { font-size: 0.88rem; color: #e8e0d4; font-weight: 500; }
+.dt-geo-meta { font-size: 0.72rem; color: #8a7e6e; margin-top: 2px; }
+
+.rock-badge-dt {
+  display: inline-block; font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+  font-weight: 600; text-transform: capitalize; flex-shrink: 0; margin-top: 2px;
+}
+.rock-badge-dt.igneous { background: #4a1a1a; color: #ff6b6b; }
+.rock-badge-dt.sedimentary { background: #4a3a1a; color: #ffb74d; }
+.rock-badge-dt.metamorphic { background: #1a2a4a; color: #64b5f6; }
+
+.dt-source-link {
+  display: inline-block; margin-top: 4px; font-size: 0.65rem;
+  color: #d4a96a; text-decoration: none;
+}
+.dt-source-link:hover { text-decoration: underline; }
+
+.dt-geo-section { margin-bottom: 20px; }
+
 /* Custom location input */
 .dt-custom-loc {
   display: flex; gap: 6px; flex-shrink: 0; align-items: center;
