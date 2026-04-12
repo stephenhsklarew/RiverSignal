@@ -205,16 +205,25 @@ def fishing_alerts(watershed: str):
                 "message": f"{do_anomalies} dissolved oxygen anomalies detected",
             })
 
-        # Recent stocking
+        # Stocking — split past vs upcoming
         stocking = conn.execute(text("""
-            SELECT count(*), max(stocking_date)::date
+            SELECT
+                count(*) FILTER (WHERE stocking_date <= CURRENT_DATE) as past,
+                count(*) FILTER (WHERE stocking_date > CURRENT_DATE) as upcoming,
+                min(stocking_date) FILTER (WHERE stocking_date > CURRENT_DATE)::date as next_date
             FROM gold.stocking_schedule WHERE watershed = :ws
         """), {"ws": watershed}).fetchone()
-        if stocking and stocking[0] > 0:
+        if stocking and stocking[1] and stocking[1] > 0:
             alerts.append({
                 "type": "stocking",
                 "severity": "info",
-                "message": f"{stocking[0]} stocking events on record, latest: {stocking[1]}",
+                "message": f"{stocking[1]} upcoming stocking events, next: {stocking[2]}",
+            })
+        elif stocking and stocking[0] and stocking[0] > 0:
+            alerts.append({
+                "type": "stocking",
+                "severity": "info",
+                "message": f"{stocking[0]} past stocking events on record",
             })
 
     return {"watershed": watershed, "alerts": alerts}
