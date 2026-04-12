@@ -68,48 +68,53 @@ export default function DeepTrailPage() {
   const [chatMessages, setChatMessages] = useState<{role: string; text: string}[]>([])
   const [chatLoading, setChatLoading] = useState(false)
 
-  // Story narrative
+  // Story narrative + audio
   const [storyNarrative, setStoryNarrative] = useState('')
   const [storyLoading, setStoryLoading] = useState(false)
   const [speaking, setSpeaking] = useState(false)
+  const [audioLoading, setAudioLoading] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  const speakStory = () => {
-    if (!('speechSynthesis' in window)) return
-    if (speaking) {
-      speechSynthesis.cancel()
+  const speakStory = async () => {
+    // Stop if already playing
+    if (speaking && audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
       setSpeaking(false)
       return
     }
     if (!storyNarrative || storyLoading) return
 
-    // iOS Safari workaround: split long text into chunks < 200 chars
-    // at sentence boundaries to prevent the speech engine from stopping
-    const sentences = storyNarrative.replace(/\n\n/g, '. ').split(/(?<=[.!?])\s+/)
-    const chunks: string[] = []
-    let current = ''
-    for (const s of sentences) {
-      if ((current + ' ' + s).length > 180 && current) {
-        chunks.push(current.trim())
-        current = s
-      } else {
-        current = current ? current + ' ' + s : s
+    setAudioLoading(true)
+    try {
+      const resp = await fetch(`${API_BASE}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: storyNarrative, voice: 'nova' }),
+      })
+      if (!resp.ok) throw new Error('TTS failed')
+      const blob = await resp.blob()
+      const url = URL.createObjectURL(blob)
+
+      if (audioRef.current) { audioRef.current.pause(); URL.revokeObjectURL(audioRef.current.src) }
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => setSpeaking(false)
+      audio.onerror = () => setSpeaking(false)
+      setSpeaking(true)
+      setAudioLoading(false)
+      audio.play()
+    } catch {
+      setAudioLoading(false)
+      // Fallback to browser speech synthesis
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(storyNarrative)
+        utterance.rate = 0.95; utterance.lang = 'en-US'
+        utterance.onend = () => setSpeaking(false)
+        setSpeaking(true)
+        speechSynthesis.speak(utterance)
       }
     }
-    if (current.trim()) chunks.push(current.trim())
-
-    setSpeaking(true)
-    let idx = 0
-    const speakNext = () => {
-      if (idx >= chunks.length) { setSpeaking(false); return }
-      const utterance = new SpeechSynthesisUtterance(chunks[idx])
-      utterance.rate = 0.95
-      utterance.pitch = 1.0
-      utterance.lang = 'en-US'
-      utterance.onend = () => { idx++; speakNext() }
-      utterance.onerror = () => { setSpeaking(false) }
-      speechSynthesis.speak(utterance)
-    }
-    speakNext()
   }
 
   // Fossil/mineral filters
@@ -171,7 +176,8 @@ export default function DeepTrailPage() {
   // Fetch deep time narrative when location or reading level changes
   useEffect(() => {
     if (!loc) return
-    speechSynthesis.cancel()
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0 }
+    if ('speechSynthesis' in window) speechSynthesis.cancel()
     setSpeaking(false)
     setStoryLoading(true)
     setStoryNarrative('')
@@ -301,11 +307,9 @@ export default function DeepTrailPage() {
                 {storyNarrative.split('\n\n').map((para, i) => (
                   <p key={i} className="dt-story-para">{para}</p>
                 ))}
-                {'speechSynthesis' in window && (
-                  <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory}>
-                    {speaking ? '⏹ Stop' : '🔊 Listen to Story'}
-                  </button>
-                )}
+                <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory} disabled={audioLoading}>
+                  {audioLoading ? '⏳ Loading audio...' : speaking ? '⏹ Stop' : '🔊 Listen to Story'}
+                </button>
               </>
             )}
           </section>

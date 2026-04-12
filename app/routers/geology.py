@@ -1,8 +1,10 @@
 """Geology API endpoints: geologic context, fossils, land ownership, deep time."""
 
 import json
+import os
 
 from fastapi import APIRouter, Query
+from fastapi.responses import Response
 from sqlalchemy import text
 
 from pipeline.db import engine
@@ -381,3 +383,34 @@ def get_deep_time_timeline(lat: float, lon: float):
     timeline.sort(key=lambda x: x.get("age_max_ma") or 0, reverse=True)
 
     return {"lat": lat, "lon": lon, "timeline": timeline}
+
+
+@router.post("/tts")
+def text_to_speech(body: dict):
+    """Convert text to natural speech using OpenAI TTS.
+
+    Request body: {"text": "...", "voice": "nova"}
+    Returns: audio/mpeg binary
+    """
+    text_input = body.get("text", "")
+    voice = body.get("voice", "nova")
+
+    if not text_input:
+        return Response(content=b"", media_type="audio/mpeg", status_code=400)
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return Response(content=b"", media_type="audio/mpeg", status_code=503)
+
+    import httpx
+    resp = httpx.post(
+        "https://api.openai.com/v1/audio/speech",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={"model": "tts-1", "voice": voice, "input": text_input[:4096]},
+        timeout=30,
+    )
+
+    if resp.status_code != 200:
+        return Response(content=b"", media_type="audio/mpeg", status_code=502)
+
+    return Response(content=resp.content, media_type="audio/mpeg")
