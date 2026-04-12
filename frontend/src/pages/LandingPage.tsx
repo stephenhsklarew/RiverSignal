@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import rsLogo from '../assets/riversignal-logo.svg'
 import rpLogo from '../assets/riverpath-logo.svg'
+import dtLogo from '../assets/deeptrail-logo.svg'
 import './LandingPage.css'
 
 const products = [
@@ -60,6 +61,8 @@ export default function LandingPage() {
                 ? <img src={rsLogo} alt="RiverSignal" className="product-logo" />
                 : p.name === 'RiverPath'
                 ? <img src={rpLogo} alt="RiverPath" className="product-logo" />
+                : p.name === 'DeepTrail'
+                ? <img src={dtLogo} alt="DeepTrail" className="product-logo" />
                 : p.icon}
             </div>
             <h2 className="product-name">{p.name}</h2>

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import logo from '../assets/riversignal-logo.svg'
+import logo from '../assets/deeptrail-logo.svg'
 import './DeepTrailPage.css'
 
 const API_BASE = 'http://localhost:8001/api/v1'
