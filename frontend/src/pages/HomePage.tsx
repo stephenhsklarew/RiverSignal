@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import logo from '../assets/riversignal-logo.svg'
+import logo from '../assets/riverpath-logo.svg'
 import './HomePage.css'
 
 const API_BASE = 'http://localhost:8001/api/v1'
