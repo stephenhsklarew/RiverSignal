@@ -111,13 +111,25 @@ def search_observations(
     q: str = Query(..., description="Search term (taxon name or common name)"),
     limit: int = Query(500, le=2000),
 ):
-    """Search observations by species name, returning GeoJSON for map display."""
+    """Search observations by species name, returning GeoJSON for map display.
+
+    Searches taxon_name, common_name, and iconic_taxon. Handles plurals
+    by also trying a truncated stem (e.g. "mayfly" → "mayfl").
+    """
     with engine.connect() as conn:
         site = conn.execute(text(
             "SELECT id FROM sites WHERE watershed = :ws"
         ), {"ws": watershed}).fetchone()
         if not site:
             raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        # Truncate search term to handle plurals: "mayfly" → "mayfl", "eagles" → "eagle"
+        term = q.strip()
+        if len(term) > 4:
+            search_term = term[:-2]  # drop last 2 chars to match plural/conjugation variants
+        else:
+            search_term = term
+        pattern = f"%{search_term}%"
 
         rows = conn.execute(text("""
             SELECT o.taxon_name,
@@ -131,10 +143,11 @@ def search_observations(
             WHERE o.site_id = :site_id
               AND o.latitude IS NOT NULL
               AND (o.taxon_name ILIKE :q
-                   OR o.data_payload->>'common_name' ILIKE :q)
+                   OR o.data_payload->>'common_name' ILIKE :q
+                   OR o.iconic_taxon ILIKE :q)
             ORDER BY o.observed_at DESC
             LIMIT :limit
-        """), {"site_id": site[0], "q": f"%{q}%", "limit": limit}).fetchall()
+        """), {"site_id": site[0], "q": pattern, "limit": limit}).fetchall()
 
     features = []
     for r in rows:
