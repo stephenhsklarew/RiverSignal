@@ -114,6 +114,37 @@
   .dt-fossil-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* Story header with reading toggle */
+.dt-story-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.dt-reading-toggle { display: flex; gap: 4px; flex-shrink: 0; }
+.dt-reading-btn {
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 4px;
+  padding: 3px 10px; font-size: 0.7rem; color: #8a7e6e; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.dt-reading-btn.active { background: #d4a96a; color: #1a1612; border-color: #d4a96a; }
+.dt-reading-btn:hover { border-color: #8a7e6e; }
+
+/* Fossil filters */
+.dt-filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.dt-filter-select {
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 6px;
+  padding: 6px 10px; font-size: 0.78rem; color: #e8e0d4;
+  font-family: inherit; min-width: 120px; cursor: pointer;
+}
+.dt-filter-select:focus { border-color: #d4a96a; outline: none; }
+
+.dt-empty { color: #6b5f4f; font-size: 0.85rem; font-style: italic; padding: 20px 0; }
+
+/* Mineral section */
+.dt-mineral-section { margin-top: 8px; }
+.dt-mineral-section h3 {
+  font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500;
+  color: #d4a96a; margin: 0 0 16px;
+}
+
 /* Touch targets for mobile */
 .dt-loc-card { min-height: 48px; }
 .dt-nav-link { min-height: 48px; display: flex; align-items: center; }
+.dt-filter-select { min-height: 48px; }
+.dt-reading-btn { min-height: 36px; }

@@ -201,21 +201,61 @@ function WatershedBlock({ data, photo, reversed, onAsk, onNavigate }: {
 /* ── Species Carousel ── */
 function SpeciesSection() {
   const [species, setSpecies] = useState<any[]>([])
+  const [activeGroup, setActiveGroup] = useState<string>('all')
+
+  const GROUPS = [
+    { key: 'all', label: 'All Species' },
+    { key: 'Actinopterygii', label: 'Fish' },
+    { key: 'Aves', label: 'Birds' },
+    { key: 'Insecta', label: 'Insects' },
+    { key: 'Plantae', label: 'Plants' },
+    { key: 'Mammalia', label: 'Mammals' },
+    { key: 'Amphibia', label: 'Amphibians' },
+  ]
 
   useEffect(() => {
-    // Fetch fish species with photos from McKenzie (most diverse)
-    fetch(`${API_BASE}/sites/mckenzie/species?taxonomic_group=Actinopterygii&limit=12`)
-      .then(r => r.json())
-      .then(data => setSpecies(data.filter((s: any) => s.photo_url)))
-      .catch(console.error)
-  }, [])
+    // Fetch species with photos from multiple watersheds for diversity
+    const watersheds = ['mckenzie', 'deschutes', 'klamath', 'johnday', 'metolius']
+    const groupParam = activeGroup !== 'all' ? `&taxonomic_group=${activeGroup}` : ''
+    Promise.all(
+      watersheds.map(ws =>
+        fetch(`${API_BASE}/sites/${ws}/species?limit=10${groupParam}`)
+          .then(r => r.json())
+          .catch(() => [])
+      )
+    ).then(results => {
+      const all = results.flat().filter((s: any) => s.photo_url)
+      // Deduplicate by taxon_name, shuffle
+      const seen = new Set<string>()
+      const unique = all.filter((s: any) => {
+        if (seen.has(s.taxon_name)) return false
+        seen.add(s.taxon_name)
+        return true
+      })
+      // Shuffle
+      for (let i = unique.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [unique[i], unique[j]] = [unique[j], unique[i]]
+      }
+      setSpecies(unique.slice(0, 24))
+    })
+  }, [activeGroup])
 
   if (species.length === 0) return null
 
   return (
     <section className="home-species">
-      <h2 className="home-species-title">18,544 species documented</h2>
-      <p className="home-species-sub">Every species photographed, mapped, and connected to the living story of its watershed</p>
+      <h2 className="home-species-title">18,500+ species documented</h2>
+      <p className="home-species-sub">Photographed, mapped, and connected to the living story of each watershed</p>
+      <div className="species-group-tabs">
+        {GROUPS.map(g => (
+          <button key={g.key}
+            className={`species-group-tab${activeGroup === g.key ? ' active' : ''}`}
+            onClick={() => setActiveGroup(g.key)}>
+            {g.label}
+          </button>
+        ))}
+      </div>
       <div className="species-scroll">
         {species.map((s, i) => (
           <div key={i} className="species-scroll-item">

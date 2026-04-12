@@ -216,6 +216,32 @@ def get_legal_collecting_sites(
     }
 
 
+@router.get("/minerals/near/{lat}/{lon}")
+def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=200)):
+    """Return mineral deposit locations within radius of a point."""
+    sql = text("""
+        SELECT source_id, site_name, commodity, dev_status,
+               latitude, longitude,
+               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km
+        FROM mineral_deposits
+        WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+        ORDER BY distance_km
+        LIMIT 100
+    """)
+    with engine.connect() as conn:
+        rows = conn.execute(sql, {
+            "lat": lat, "lon": lon, "radius_m": radius_km * 1000
+        }).fetchall()
+
+    minerals = [{
+        "source_id": r[0], "site_name": r[1], "commodity": r[2],
+        "dev_status": r[3], "latitude": r[4], "longitude": r[5],
+        "distance_km": round(r[6], 1) if r[6] else None,
+    } for r in rows]
+
+    return {"minerals": minerals, "count": len(minerals), "radius_km": radius_km}
+
+
 @router.post("/deep-time/story")
 def generate_deep_time_story(body: dict):
     """Generate a deep time narrative for a location.

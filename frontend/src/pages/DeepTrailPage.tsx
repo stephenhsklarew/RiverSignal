@@ -30,7 +30,11 @@ export default function DeepTrailPage() {
   const [fossils, setFossils] = useState<Fossil[]>([])
   const [timeline, setTimeline] = useState<TimelineItem[]>([])
   const [landStatus, setLandStatus] = useState<any>(null)
+  const [minerals, setMinerals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [periodFilter, setPeriodFilter] = useState<string>('')
+  const [phylumFilter, setPhylumFilter] = useState<string>('')
+  const [readingLevel, setReadingLevel] = useState<string>('adult')
 
   useEffect(() => {
     setLoading(true)
@@ -38,16 +42,27 @@ export default function DeepTrailPage() {
       fetch(`${API_BASE}/fossils/near/${selectedLoc.lat}/${selectedLoc.lon}?radius_km=50`).then(r => r.json()),
       fetch(`${API_BASE}/deep-time/timeline/${selectedLoc.lat}/${selectedLoc.lon}`).then(r => r.json()),
       fetch(`${API_BASE}/land/at/${selectedLoc.lat}/${selectedLoc.lon}`).then(r => r.json()),
-    ]).then(([fossilData, timelineData, land]) => {
+      fetch(`${API_BASE}/minerals/near/${selectedLoc.lat}/${selectedLoc.lon}?radius_km=50`).then(r => r.json()),
+    ]).then(([fossilData, timelineData, land, mineralData]) => {
       setFossils(fossilData.fossils || [])
       setTimeline(timelineData.timeline || [])
       setLandStatus(land)
+      setMinerals(mineralData.minerals || [])
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [selectedLoc])
 
   const statusColor = landStatus?.collecting_status === 'permitted' ? '#4caf50'
     : landStatus?.collecting_status === 'prohibited' ? '#f44336' : '#ff9800'
+
+  // Fossil filtering
+  const filteredFossils = fossils.filter(f => {
+    if (periodFilter && f.period !== periodFilter) return false
+    if (phylumFilter && f.phylum !== phylumFilter) return false
+    return true
+  })
+  const fossilPeriods = [...new Set(fossils.map(f => f.period).filter(Boolean))].sort()
+  const fossilPhyla = [...new Set(fossils.map(f => f.phylum).filter(Boolean))].sort()
 
   return (
     <div className="dt-app">
@@ -82,9 +97,20 @@ export default function DeepTrailPage() {
         <div className="dt-loading">Traveling through deep time...</div>
       ) : (
         <main className="dt-content">
-          {/* Hero story card */}
+          {/* Hero story card with reading level toggle */}
           <section className="dt-story-card">
-            <h2>{selectedLoc.name}</h2>
+            <div className="dt-story-header">
+              <h2>{selectedLoc.name}</h2>
+              <div className="dt-reading-toggle">
+                {(['adult', 'kid_friendly', 'expert'] as const).map(level => (
+                  <button key={level}
+                    className={`dt-reading-btn${readingLevel === level ? ' active' : ''}`}
+                    onClick={() => setReadingLevel(level)}>
+                    {level === 'kid_friendly' ? 'Kids' : level === 'expert' ? 'Expert' : 'Adult'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p className="dt-story-period">{selectedLoc.period} — {selectedLoc.age}</p>
             <p className="dt-story-text">{selectedLoc.story}</p>
           </section>
@@ -127,11 +153,21 @@ export default function DeepTrailPage() {
             </div>
           </section>
 
-          {/* Fossil gallery */}
+          {/* Fossil gallery with filters */}
           <section className="dt-fossil-section">
-            <h3>Fossils Found Nearby ({fossils.length})</h3>
+            <h3>Fossils Found Nearby ({filteredFossils.length})</h3>
+            <div className="dt-filter-row">
+              <select value={periodFilter} onChange={e => setPeriodFilter(e.target.value)} className="dt-filter-select">
+                <option value="">All Periods</option>
+                {fossilPeriods.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={phylumFilter} onChange={e => setPhylumFilter(e.target.value)} className="dt-filter-select">
+                <option value="">All Phyla</option>
+                {fossilPhyla.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
             <div className="dt-fossil-grid">
-              {fossils.slice(0, 20).map((f, i) => (
+              {filteredFossils.slice(0, 30).map((f, i) => (
                 <div key={i} className="dt-fossil-card">
                   <div className="dt-fossil-name">{f.taxon_name}</div>
                   <div className="dt-fossil-meta">
@@ -145,8 +181,30 @@ export default function DeepTrailPage() {
                   )}
                 </div>
               ))}
+              {filteredFossils.length === 0 && (
+                <div className="dt-empty">No fossils match the selected filters. Try broadening your search.</div>
+              )}
             </div>
           </section>
+
+          {/* Mineral deposits */}
+          {minerals.length > 0 && (
+            <section className="dt-mineral-section">
+              <h3>Mineral Sites Nearby ({minerals.length})</h3>
+              <div className="dt-fossil-grid">
+                {minerals.slice(0, 20).map((m, i) => (
+                  <div key={i} className="dt-fossil-card">
+                    <div className="dt-fossil-name">{m.site_name}</div>
+                    <div className="dt-fossil-meta">{m.commodity}</div>
+                    <div className="dt-fossil-age">{m.dev_status}</div>
+                    {m.distance_km && (
+                      <div className="dt-fossil-dist">{m.distance_km} km away</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </main>
       )}
     </div>

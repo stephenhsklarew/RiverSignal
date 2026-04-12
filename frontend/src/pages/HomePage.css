@@ -299,7 +299,34 @@
   text-align: center;
   color: var(--text-secondary);
   font-size: 15px;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
+}
+
+.species-group-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.species-group-tab {
+  background: none;
+  border: 1px solid var(--border, #e0dcd4);
+  padding: 5px 14px;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-secondary, #888);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.species-group-tab:hover { border-color: var(--accent, #1a6b4a); color: var(--accent, #1a6b4a); }
+.species-group-tab.active {
+  background: var(--accent, #1a6b4a);
+  color: white;
+  border-color: var(--accent, #1a6b4a);
 }
 
 .species-scroll {
