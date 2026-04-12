@@ -1,7 +1,23 @@
-import { StrictMode, lazy, Suspense } from 'react'
+import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import './index.css'
+
+function DynamicFavicon() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null
+    if (!link) return
+    if (pathname.startsWith('/trail')) {
+      link.href = '/favicon-deeptrail.svg'
+    } else if (pathname.startsWith('/path')) {
+      link.href = '/favicon-riverpath.svg'
+    } else {
+      link.href = '/favicon.svg'
+    }
+  }, [pathname])
+  return null
+}
 
 // Lazy-loaded product routes for code splitting
 const LandingPage = lazy(() => import('./pages/LandingPage'))
@@ -20,6 +36,7 @@ const Loading = () => (
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <DynamicFavicon />
       <Suspense fallback={<Loading />}>
         <Routes>
           {/* Landing — product selector */}
