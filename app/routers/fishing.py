@@ -136,6 +136,90 @@ def hatch_chart(watershed: str):
     ]
 
 
+@router.get("/sites/{watershed}/fishing/barriers")
+def fish_passage_barriers(watershed: str):
+    """Get fish passage barriers in a watershed (FEAT-007 FR-5)."""
+    with engine.connect() as conn:
+        site = conn.execute(text("SELECT id FROM sites WHERE watershed = :ws"), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        rows = conn.execute(text("""
+            SELECT taxon_name, latitude, longitude,
+                   data_payload->>'barrier_type' as barrier_type,
+                   data_payload->>'passage_status' as passage_status,
+                   data_payload->>'stream_name' as stream_name,
+                   data_payload->>'barrier_name' as barrier_name
+            FROM observations
+            WHERE site_id = :sid AND source_type = 'fish_barrier'
+            ORDER BY taxon_name
+        """), {"sid": site[0]}).fetchall()
+
+    return [
+        {
+            "stream_name": r[5] or r[0],
+            "barrier_name": r[6],
+            "barrier_type": r[3],
+            "passage_status": r[4],
+            "latitude": r[1],
+            "longitude": r[2],
+        }
+        for r in rows
+    ]
+
+
+@router.get("/sites/{watershed}/fishing/alerts")
+def fishing_alerts(watershed: str):
+    """Get current fishing-relevant alerts for a watershed (FEAT-007 FR-7).
+
+    Checks for: temperature exceedances, low flow, recent stocking, anomalies.
+    """
+    with engine.connect() as conn:
+        site = conn.execute(text("SELECT id FROM sites WHERE watershed = :ws"), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        alerts = []
+
+        # Temperature anomalies
+        temp_anomalies = conn.execute(text("""
+            SELECT count(*) FROM gold.anomaly_flags
+            WHERE watershed = :ws AND anomaly_type ILIKE '%temp%'
+        """), {"ws": watershed}).scalar() or 0
+        if temp_anomalies > 0:
+            alerts.append({
+                "type": "temperature",
+                "severity": "warning",
+                "message": f"{temp_anomalies} temperature anomalies detected",
+            })
+
+        # DO anomalies
+        do_anomalies = conn.execute(text("""
+            SELECT count(*) FROM gold.anomaly_flags
+            WHERE watershed = :ws AND anomaly_type ILIKE '%oxygen%' OR anomaly_type ILIKE '%do%'
+        """), {"ws": watershed}).scalar() or 0
+        if do_anomalies > 0:
+            alerts.append({
+                "type": "dissolved_oxygen",
+                "severity": "warning",
+                "message": f"{do_anomalies} dissolved oxygen anomalies detected",
+            })
+
+        # Recent stocking
+        stocking = conn.execute(text("""
+            SELECT count(*), max(stocking_date)::date
+            FROM gold.stocking_schedule WHERE watershed = :ws
+        """), {"ws": watershed}).fetchone()
+        if stocking and stocking[0] > 0:
+            alerts.append({
+                "type": "stocking",
+                "severity": "info",
+                "message": f"{stocking[0]} stocking events on record, latest: {stocking[1]}",
+            })
+
+    return {"watershed": watershed, "alerts": alerts}
+
+
 @router.get("/river/{river_name}/species")
 def river_species_by_mile(river_name: str, mile_start: float = 0, mile_end: float = 999, taxonomic_group: str = None):
     """Get species with photos for a river section by mile range."""
