@@ -29,6 +29,11 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true)
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(initialQuestion)
 
+  // Observation search state
+  const [obsSearch, setObsSearch] = useState('')
+  const [obsOverlay, setObsOverlay] = useState<any>(null)
+  const [, setObsSearching] = useState(false)
+
   useEffect(() => {
     fetch(`${API_BASE}/sites`)
       .then(r => r.json())
@@ -55,6 +60,24 @@ export default function MapPage() {
     }
   }, [selectedSite])
 
+  const handleObsSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!obsSearch.trim() || !selectedSite) return
+    setObsSearching(true)
+    fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(obsSearch.trim())}`)
+      .then(r => r.json())
+      .then(data => {
+        setObsOverlay(data)
+        setObsSearching(false)
+      })
+      .catch(() => setObsSearching(false))
+  }
+
+  const clearObsSearch = () => {
+    setObsSearch('')
+    setObsOverlay(null)
+  }
+
   if (loading) return <div className="loading">Loading watersheds...</div>
 
   return (
@@ -68,6 +91,22 @@ export default function MapPage() {
           <button className="active">Dashboard</button>
           <Link to="/riversignal/reports"><button>Reports</button></Link>
         </div>
+
+        {/* Observation search */}
+        <form onSubmit={handleObsSearch} className="obs-search-form">
+          <input
+            type="text"
+            value={obsSearch}
+            onChange={e => setObsSearch(e.target.value)}
+            placeholder={selectedSite ? "Search observations (e.g. mayfly, salmon, eagle)..." : "Select a watershed first"}
+            disabled={!selectedSite}
+            className="obs-search-input"
+          />
+          {obsOverlay && (
+            <button type="button" onClick={clearObsSearch} className="obs-search-clear" title="Clear search">&times;</button>
+          )}
+        </form>
+
         <div className="topbar-status">
           <DataFreshness compact />
         </div>
@@ -78,6 +117,7 @@ export default function MapPage() {
           sites={sites}
           selectedSite={selectedSite}
           onSelectSite={setSelectedSite}
+          observationOverlay={obsOverlay}
         />
         {siteDetail && (
           <SitePanel

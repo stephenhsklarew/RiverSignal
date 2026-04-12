@@ -152,6 +152,27 @@ def test_report_markdown(client):
 
 # ── Geology endpoints ──
 
+def test_observation_search(client):
+    """Search for mayfly observations on Deschutes — returns GeoJSON."""
+    resp = client.get("/api/v1/sites/deschutes/observations/search?q=mayfl")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["type"] == "FeatureCollection"
+    assert data["count"] > 0
+    feat = data["features"][0]
+    assert feat["geometry"]["type"] == "Point"
+    assert "taxon_name" in feat["properties"]
+    assert feat["properties"]["taxon_name"] is not None
+
+
+def test_observation_search_by_taxon(client):
+    """Search by scientific name."""
+    resp = client.get("/api/v1/sites/mckenzie/observations/search?q=Oncorhynchus")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["count"] > 0
+
+
 def test_geology_at_point(client):
     """Test geologic unit lookup at a point in the John Day basin."""
     resp = client.get("/api/v1/geology/at/44.66/-120.0")

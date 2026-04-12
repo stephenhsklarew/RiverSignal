@@ -1,6 +1,6 @@
 """Site endpoints: list sites, get site details, ecological summary."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
 
 from pipeline.db import engine
@@ -102,6 +102,61 @@ def get_site(watershed: str):
             }
             for r in indicators
         ],
+    }
+
+
+@router.get("/sites/{watershed}/observations/search")
+def search_observations(
+    watershed: str,
+    q: str = Query(..., description="Search term (taxon name or common name)"),
+    limit: int = Query(500, le=2000),
+):
+    """Search observations by species name, returning GeoJSON for map display."""
+    with engine.connect() as conn:
+        site = conn.execute(text(
+            "SELECT id FROM sites WHERE watershed = :ws"
+        ), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        rows = conn.execute(text("""
+            SELECT o.taxon_name,
+                   o.data_payload->>'common_name' as common_name,
+                   o.latitude, o.longitude,
+                   o.observed_at::date as obs_date,
+                   o.data_payload->>'photo_url' as photo_url,
+                   o.quality_grade,
+                   o.source_type
+            FROM observations o
+            WHERE o.site_id = :site_id
+              AND o.latitude IS NOT NULL
+              AND (o.taxon_name ILIKE :q
+                   OR o.data_payload->>'common_name' ILIKE :q)
+            ORDER BY o.observed_at DESC
+            LIMIT :limit
+        """), {"site_id": site[0], "q": f"%{q}%", "limit": limit}).fetchall()
+
+    features = []
+    for r in rows:
+        features.append({
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [r[3], r[2]]},
+            "properties": {
+                "taxon_name": r[0],
+                "common_name": r[1],
+                "observed_at": str(r[4]) if r[4] else None,
+                "photo_url": r[5],
+                "quality_grade": r[6],
+                "source": r[7],
+            },
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "query": q,
+        "watershed": watershed,
+        "count": len(features),
     }
 
 

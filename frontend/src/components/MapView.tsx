@@ -3,10 +3,24 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Site } from '../pages/MapPage'
 
+interface ObservationFeature {
+  type: 'Feature'
+  geometry: { type: 'Point'; coordinates: [number, number] }
+  properties: {
+    taxon_name: string
+    common_name: string | null
+    observed_at: string | null
+    photo_url: string | null
+    quality_grade: string | null
+    source: string | null
+  }
+}
+
 interface MapViewProps {
   sites: Site[]
   selectedSite: string | null
   onSelectSite: (watershed: string | null) => void
+  observationOverlay?: { type: 'FeatureCollection'; features: ObservationFeature[] } | null
 }
 
 const COLORS: Record<string, string> = {
@@ -17,10 +31,14 @@ const COLORS: Record<string, string> = {
   johnday: '#d97706',
 }
 
-export default function MapView({ sites, selectedSite, onSelectSite }: MapViewProps) {
+const OBS_LAYER_ID = 'observation-points'
+const OBS_SOURCE_ID = 'observation-source'
+
+export default function MapView({ sites, selectedSite, onSelectSite, observationOverlay }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
+  const popupRef = useRef<maplibregl.Popup | null>(null)
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
@@ -33,10 +51,77 @@ export default function MapView({ sites, selectedSite, onSelectSite }: MapViewPr
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
-    mapRef.current = map
 
+    map.on('load', () => {
+      // Add observation overlay source (empty initially)
+      map.addSource(OBS_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+      map.addLayer({
+        id: OBS_LAYER_ID,
+        type: 'circle',
+        source: OBS_SOURCE_ID,
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#e65100',
+          'circle-stroke-color': '#fff',
+          'circle-stroke-width': 1.5,
+          'circle-opacity': 0.85,
+        },
+      })
+
+      // Click handler for observation points
+      map.on('click', OBS_LAYER_ID, (e) => {
+        if (!e.features || e.features.length === 0) return
+        const props = e.features[0].properties as any
+        const coords = (e.features[0].geometry as any).coordinates.slice() as [number, number]
+
+        const photoHtml = props.photo_url
+          ? `<img src="${props.photo_url}" style="width:180px;border-radius:4px;margin-bottom:6px;" /><br/>`
+          : ''
+        const html = `
+          <div style="font-family:Outfit,sans-serif;font-size:12px;max-width:200px;">
+            ${photoHtml}
+            <strong style="font-style:italic;">${props.taxon_name || ''}</strong><br/>
+            ${props.common_name ? `<span style="color:#666;">${props.common_name}</span><br/>` : ''}
+            ${props.observed_at ? `<span style="color:#999;font-size:11px;">${props.observed_at}</span>` : ''}
+          </div>
+        `
+
+        if (popupRef.current) popupRef.current.remove()
+        popupRef.current = new maplibregl.Popup({ maxWidth: '220px' })
+          .setLngLat(coords)
+          .setHTML(html)
+          .addTo(map)
+      })
+
+      map.on('mouseenter', OBS_LAYER_ID, () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', OBS_LAYER_ID, () => { map.getCanvas().style.cursor = '' })
+    })
+
+    mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
   }, [])
+
+  // Update observation overlay when data changes
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const updateSource = () => {
+      const source = map.getSource(OBS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+      if (source) {
+        source.setData(observationOverlay || { type: 'FeatureCollection', features: [] })
+      }
+    }
+
+    if (map.isStyleLoaded()) {
+      updateSource()
+    } else {
+      map.on('load', updateSource)
+    }
+  }, [observationOverlay])
 
   useEffect(() => {
     const map = mapRef.current
@@ -130,6 +215,12 @@ export default function MapView({ sites, selectedSite, onSelectSite }: MapViewPr
           <span className="kpi-value">{sites.reduce((a, s) => a + s.interventions, 0).toLocaleString()}</span>
           <span className="kpi-label">interventions</span>
         </div>
+        {observationOverlay && observationOverlay.features.length > 0 && (
+          <div className="kpi-chip" style={{ background: 'rgba(230,81,0,0.1)', borderColor: '#e65100' }}>
+            <span className="kpi-value" style={{ color: '#e65100' }}>{observationOverlay.features.length}</span>
+            <span className="kpi-label">matching</span>
+          </div>
+        )}
       </div>
 
       {/* Watershed tabs */}
