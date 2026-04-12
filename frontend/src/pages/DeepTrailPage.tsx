@@ -7,16 +7,26 @@ import './DeepTrailPage.css'
 
 const API_BASE = 'http://localhost:8001/api/v1'
 
-// Watershed centers as curated locations
+// Watershed centers as curated locations with landscape photos
 const WATERSHEDS = [
-  { id: 'klamath', name: 'Upper Klamath Basin', lat: 42.65, lon: -121.55 },
-  { id: 'mckenzie', name: 'McKenzie River', lat: 44.075, lon: -122.3 },
-  { id: 'deschutes', name: 'Deschutes River', lat: 44.325, lon: -121.225 },
-  { id: 'metolius', name: 'Metolius River', lat: 44.5, lon: -121.575 },
-  { id: 'johnday', name: 'John Day River', lat: 44.6, lon: -119.15 },
+  { id: 'klamath', name: 'Upper Klamath Basin', lat: 42.65, lon: -121.55,
+    photo: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=400&fit=crop',
+    caption: 'Crater Lake & volcanic highlands' },
+  { id: 'mckenzie', name: 'McKenzie River', lat: 44.075, lon: -122.3,
+    photo: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=400&fit=crop',
+    caption: 'Tamolitch Blue Pool — lava tube hydrology' },
+  { id: 'deschutes', name: 'Deschutes River', lat: 44.325, lon: -121.225,
+    photo: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=400&fit=crop',
+    caption: 'Smith Rock — 30 Ma welded tuff canyon' },
+  { id: 'metolius', name: 'Metolius River', lat: 44.5, lon: -121.575,
+    photo: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=400&fit=crop',
+    caption: 'Spring-fed from Cascade volcanic aquifer' },
+  { id: 'johnday', name: 'John Day River', lat: 44.6, lon: -119.15,
+    photo: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=400&fit=crop',
+    caption: 'Painted Hills — 33 Ma volcanic ash layers' },
 ]
 
-interface Location { id: string; name: string; lat: number; lon: number }
+interface Location { id: string; name: string; lat: number; lon: number; photo?: string; caption?: string }
 interface Fossil {
   taxon_name: string; common_name: string | null; phylum: string; class_name: string; period: string;
   age_max_ma: number | null; distance_km: number | null; source_id: string | null;
@@ -61,6 +71,23 @@ export default function DeepTrailPage() {
   // Story narrative
   const [storyNarrative, setStoryNarrative] = useState('')
   const [storyLoading, setStoryLoading] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
+
+  const speakStory = () => {
+    if (speaking) {
+      speechSynthesis.cancel()
+      setSpeaking(false)
+      return
+    }
+    if (!storyNarrative || storyLoading) return
+    const utterance = new SpeechSynthesisUtterance(storyNarrative)
+    utterance.rate = 0.95
+    utterance.pitch = 1.0
+    utterance.onend = () => setSpeaking(false)
+    utterance.onerror = () => setSpeaking(false)
+    setSpeaking(true)
+    speechSynthesis.speak(utterance)
+  }
 
   // Fossil/mineral filters
   const [periodFilter, setPeriodFilter] = useState('')
@@ -121,6 +148,8 @@ export default function DeepTrailPage() {
   // Fetch deep time narrative when location or reading level changes
   useEffect(() => {
     if (!loc) return
+    speechSynthesis.cancel()
+    setSpeaking(false)
     setStoryLoading(true)
     setStoryNarrative('')
     fetch(`${API_BASE}/deep-time/story`, {
@@ -199,7 +228,11 @@ export default function DeepTrailPage() {
         <div className="dt-watershed-list">
           {WATERSHEDS.map(ws => (
             <button key={ws.id} className="dt-watershed-btn" onClick={() => selectLocation(ws)}>
-              <span className="dt-ws-name">{ws.name}</span>
+              <img src={ws.photo} alt={ws.name} className="dt-ws-thumb" loading="lazy" />
+              <div className="dt-ws-info">
+                <span className="dt-ws-name">{ws.name}</span>
+                <span className="dt-ws-caption">{ws.caption}</span>
+              </div>
               <span className="dt-ws-arrow">→</span>
             </button>
           ))}
@@ -223,6 +256,9 @@ export default function DeepTrailPage() {
           <section className="dt-loc-hero">
             <h1>{loc!.name}</h1>
             <p className="dt-loc-coords">{loc!.lat.toFixed(4)}°N, {Math.abs(loc!.lon).toFixed(4)}°W</p>
+            {loc!.photo && (
+              <img src={loc!.photo} alt={loc!.name} className="dt-hero-img" />
+            )}
             <div className="dt-reading-toggle">
               {(['adult', 'kid_friendly', 'expert'] as const).map(level => (
                 <button key={level} className={`dt-reading-btn${readingLevel === level ? ' active' : ''}`}
@@ -238,9 +274,14 @@ export default function DeepTrailPage() {
             {storyLoading ? (
               <div className="dt-story-loading">Generating deep time narrative...</div>
             ) : (
-              storyNarrative.split('\n\n').map((para, i) => (
-                <p key={i} className="dt-story-para">{para}</p>
-              ))
+              <>
+                {storyNarrative.split('\n\n').map((para, i) => (
+                  <p key={i} className="dt-story-para">{para}</p>
+                ))}
+                <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory}>
+                  {speaking ? '⏹ Stop' : '🔊 Listen'}
+                </button>
+              </>
             )}
           </section>
 

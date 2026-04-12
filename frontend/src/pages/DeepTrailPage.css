@@ -63,14 +63,20 @@
 
 .dt-watershed-list { display: flex; flex-direction: column; gap: 0; }
 .dt-watershed-btn {
-  display: flex; align-items: center; width: 100%; padding: 16px 4px;
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 4px;
   background: none; border: none; border-bottom: 1px solid #3d3328;
-  cursor: pointer; font-family: inherit; color: #e8e0d4; min-height: 56px;
-  transition: background 0.15s;
+  cursor: pointer; font-family: inherit; color: #e8e0d4; min-height: 64px;
+  transition: background 0.15s; text-align: left;
 }
 .dt-watershed-btn:hover { background: #2a2318; }
-.dt-ws-name { font-size: 1rem; font-weight: 500; }
-.dt-ws-arrow { margin-left: auto; color: #6b5f4f; font-size: 1.2rem; }
+.dt-ws-thumb {
+  width: 72px; height: 48px; border-radius: 6px; object-fit: cover;
+  flex-shrink: 0;
+}
+.dt-ws-info { flex: 1; min-width: 0; }
+.dt-ws-name { font-size: 1rem; font-weight: 500; display: block; }
+.dt-ws-caption { font-size: 0.72rem; color: #8a7e6e; display: block; margin-top: 2px; }
+.dt-ws-arrow { color: #6b5f4f; font-size: 1.2rem; flex-shrink: 0; }
 
 /* ── Screen 2: Location Detail ── */
 .dt-content { padding: 0 20px 40px; max-width: 720px; margin: 0 auto; }
@@ -78,7 +84,11 @@
 
 .dt-loc-hero { margin-bottom: 20px; }
 .dt-loc-hero h1 { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 500; color: #f0e6d6; margin: 0 0 4px; }
-.dt-loc-coords { font-size: 0.78rem; color: #8a7e6e; margin: 0 0 10px; font-family: monospace; }
+.dt-loc-coords { font-size: 0.78rem; color: #8a7e6e; margin: 0 0 12px; font-family: monospace; }
+.dt-hero-img {
+  width: 100%; aspect-ratio: 16/7; object-fit: cover; border-radius: 10px;
+  margin-bottom: 12px;
+}
 
 .dt-reading-toggle { display: flex; gap: 4px; }
 .dt-reading-btn {
@@ -103,6 +113,14 @@
   color: #8a7e6e; font-style: italic; font-size: 0.88rem;
   padding: 12px 0; text-align: center;
 }
+.dt-listen-btn {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
+  padding: 8px 16px; font-size: 0.82rem; color: #d4a96a; cursor: pointer;
+  font-family: inherit; transition: all 0.15s; min-height: 44px;
+}
+.dt-listen-btn:hover { border-color: #d4a96a; background: #332b1f; }
+.dt-listen-btn.active { background: #d4a96a; color: #1a1612; border-color: #d4a96a; }
 
 /* Chat */
 .dt-chat-section { margin-bottom: 20px; }
