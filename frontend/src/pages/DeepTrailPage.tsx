@@ -74,19 +74,42 @@ export default function DeepTrailPage() {
   const [speaking, setSpeaking] = useState(false)
 
   const speakStory = () => {
+    if (!('speechSynthesis' in window)) return
     if (speaking) {
       speechSynthesis.cancel()
       setSpeaking(false)
       return
     }
     if (!storyNarrative || storyLoading) return
-    const utterance = new SpeechSynthesisUtterance(storyNarrative)
-    utterance.rate = 0.95
-    utterance.pitch = 1.0
-    utterance.onend = () => setSpeaking(false)
-    utterance.onerror = () => setSpeaking(false)
+
+    // iOS Safari workaround: split long text into chunks < 200 chars
+    // at sentence boundaries to prevent the speech engine from stopping
+    const sentences = storyNarrative.replace(/\n\n/g, '. ').split(/(?<=[.!?])\s+/)
+    const chunks: string[] = []
+    let current = ''
+    for (const s of sentences) {
+      if ((current + ' ' + s).length > 180 && current) {
+        chunks.push(current.trim())
+        current = s
+      } else {
+        current = current ? current + ' ' + s : s
+      }
+    }
+    if (current.trim()) chunks.push(current.trim())
+
     setSpeaking(true)
-    speechSynthesis.speak(utterance)
+    let idx = 0
+    const speakNext = () => {
+      if (idx >= chunks.length) { setSpeaking(false); return }
+      const utterance = new SpeechSynthesisUtterance(chunks[idx])
+      utterance.rate = 0.95
+      utterance.pitch = 1.0
+      utterance.lang = 'en-US'
+      utterance.onend = () => { idx++; speakNext() }
+      utterance.onerror = () => { setSpeaking(false) }
+      speechSynthesis.speak(utterance)
+    }
+    speakNext()
   }
 
   // Fossil/mineral filters
@@ -278,9 +301,11 @@ export default function DeepTrailPage() {
                 {storyNarrative.split('\n\n').map((para, i) => (
                   <p key={i} className="dt-story-para">{para}</p>
                 ))}
-                <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory}>
-                  {speaking ? '⏹ Stop' : '🔊 Listen'}
-                </button>
+                {'speechSynthesis' in window && (
+                  <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory}>
+                    {speaking ? '⏹ Stop' : '🔊 Listen to Story'}
+                  </button>
+                )}
               </>
             )}
           </section>
