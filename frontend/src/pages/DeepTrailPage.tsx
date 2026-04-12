@@ -18,7 +18,7 @@ const WATERSHEDS = [
 
 interface Location { id: string; name: string; lat: number; lon: number }
 interface Fossil {
-  taxon_name: string; phylum: string; class_name: string; period: string;
+  taxon_name: string; common_name: string | null; phylum: string; class_name: string; period: string;
   age_max_ma: number | null; distance_km: number | null; source_id: string | null;
   image_url: string | null; museum: string | null; latitude: number; longitude: number;
 }
@@ -330,6 +330,7 @@ export default function DeepTrailPage() {
               {f.image_url ? <img src={f.image_url} alt={f.taxon_name} loading="lazy" /> : <span>{PHYLUM_ICONS[f.phylum] || '🪨'}</span>}
             </div>
             <div className="dt-list-body">
+              {f.common_name && <div className="dt-list-common">{f.common_name}</div>}
               <div className="dt-list-name">{f.taxon_name}</div>
               <div className="dt-list-meta">{f.phylum}{f.class_name ? ` · ${f.class_name}` : ''}{f.museum ? ` · ${f.museum}` : ''}</div>
               <div className="dt-list-sub">{f.period}{f.age_max_ma ? ` · ${f.age_max_ma} Ma` : ''}{f.distance_km != null ? ` · ${f.distance_km} km` : ''}</div>
