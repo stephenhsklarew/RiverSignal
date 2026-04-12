@@ -8,6 +8,7 @@ interface MapViewProps {
   selectedSite: string | null
   onSelectSite: (watershed: string | null) => void
   observationOverlay?: any | null
+  barrierOverlay?: any | null
 }
 
 const COLORS: Record<string, string> = {
@@ -20,8 +21,10 @@ const COLORS: Record<string, string> = {
 
 const OBS_LAYER_ID = 'observation-points'
 const OBS_SOURCE_ID = 'observation-source'
+const BAR_LAYER_ID = 'barrier-points'
+const BAR_SOURCE_ID = 'barrier-source'
 
-export default function MapView({ sites, selectedSite, onSelectSite, observationOverlay }: MapViewProps) {
+export default function MapView({ sites, selectedSite, onSelectSite, observationOverlay, barrierOverlay }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
@@ -99,6 +102,39 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
 
       map.on('mouseenter', OBS_LAYER_ID, () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', OBS_LAYER_ID, () => { map.getCanvas().style.cursor = '' })
+
+      // Barrier overlay source + layer
+      map.addSource(BAR_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+      map.addLayer({
+        id: BAR_LAYER_ID,
+        type: 'circle',
+        source: BAR_SOURCE_ID,
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#d32f2f',
+          'circle-stroke-color': '#fff',
+          'circle-stroke-width': 1.5,
+          'circle-opacity': 0.85,
+        },
+      })
+
+      map.on('click', BAR_LAYER_ID, (e) => {
+        if (!e.features?.length) return
+        const props = e.features[0].properties as any
+        const coords = (e.features[0].geometry as any).coordinates.slice() as [number, number]
+        const html = `<div style="font-family:Outfit,sans-serif;font-size:12px;">
+          <strong>${props.name || 'Barrier'}</strong><br/>
+          Type: ${props.type || '—'}<br/>
+          Status: ${props.status || '—'}
+        </div>`
+        if (popupRef.current) popupRef.current.remove()
+        popupRef.current = new maplibregl.Popup({ maxWidth: '200px' }).setLngLat(coords).setHTML(html).addTo(map)
+      })
+      map.on('mouseenter', BAR_LAYER_ID, () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', BAR_LAYER_ID, () => { map.getCanvas().style.cursor = '' })
     })
 
     mapRef.current = map
@@ -109,6 +145,14 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
   useEffect(() => {
     pushOverlay(observationOverlay)
   }, [observationOverlay, pushOverlay])
+
+  // Push barrier overlay
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoadedRef.current) return
+    const src = map.getSource(BAR_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+    if (src) src.setData(barrierOverlay || { type: 'FeatureCollection', features: [] })
+  }, [barrierOverlay])
 
   // Watershed markers + bbox rectangles
   useEffect(() => {

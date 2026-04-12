@@ -419,6 +419,49 @@
 .stewardship-year { font-family: var(--mono); font-size: 11px; color: var(--text-muted); min-width: 36px; }
 .stewardship-name { color: var(--text-secondary); }
 
+/* Fishing alerts banner */
+.alerts-bar {
+  display: flex; flex-direction: column; gap: 0;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.alert-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 16px; font-size: 12px;
+}
+.alert-item.warning { background: #fff8e1; color: #e65100; }
+.alert-item.info { background: #e3f2fd; color: #1565c0; }
+.alert-icon { font-size: 14px; }
+.alert-dismiss {
+  margin-left: auto; background: none; border: none;
+  font-size: 16px; cursor: pointer; color: inherit; opacity: 0.5; padding: 0 4px;
+}
+.alert-dismiss:hover { opacity: 1; }
+
+/* Barrier toggle */
+.barrier-toggle {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--text-muted); cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+.barrier-toggle input { width: 14px; height: 14px; cursor: pointer; }
+.barrier-toggle-label { user-select: none; }
+
+/* Seasonal planner */
+.seasonal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seasonal-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px; text-align: center;
+}
+.seasonal-group { font-size: 11px; font-weight: 500; color: var(--text-primary); }
+.seasonal-peak { font-size: 12px; color: var(--accent); font-weight: 600; }
+.seasonal-obs { font-size: 10px; color: var(--text-muted); }
+
+.hatch-mini { display: flex; flex-direction: column; gap: 3px; }
+.hatch-row { display: flex; align-items: center; font-size: 11px; gap: 8px; }
+.hatch-name { flex: 1; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hatch-month { font-family: var(--mono); font-size: 10px; color: var(--text-muted); min-width: 28px; }
+.hatch-count { font-family: var(--mono); font-size: 10px; color: var(--accent); min-width: 24px; text-align: right; }
+
 .status-tag {
   display: inline-block;
   padding: 1px 6px;

@@ -155,6 +155,9 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
 
             {/* Stewardship Opportunities */}
             <StewardshipSection watershed={watershed} />
+
+            {/* Seasonal Trip Planner */}
+            <SeasonalPlanner watershed={watershed} />
           </>
         )}
 
@@ -211,6 +214,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 </tbody>
               </table>
             </div>
+            <BarriersTable watershed={watershed} />
           </>
         )}
 
@@ -454,6 +458,82 @@ function StewardshipSection({ watershed }: { watershed: string }) {
           Contact your local watershed council for volunteer opportunities.
         </div>
       )}
+    </div>
+  )
+}
+
+
+/* ── Seasonal Trip Planner ── */
+function SeasonalPlanner({ watershed }: { watershed: string }) {
+  const [data, setData] = useState<any>(null)
+  const MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+  useEffect(() => {
+    fetch(`${API_BASE}/sites/${watershed}/seasonal`)
+      .then(r => r.json()).then(setData).catch(console.error)
+  }, [watershed])
+
+  if (!data?.seasonal_patterns?.length) return null
+
+  return (
+    <div className="section">
+      <div className="section-title">Best Time to Visit</div>
+      <div className="seasonal-grid">
+        {data.seasonal_patterns.slice(0, 6).map((p: any, i: number) => (
+          <div key={i} className="seasonal-card">
+            <div className="seasonal-group">{p.taxon_group}</div>
+            <div className="seasonal-peak">Peak: {MONTHS[p.peak_month] || '?'}</div>
+            <div className="seasonal-obs">{p.avg_observations} avg obs</div>
+          </div>
+        ))}
+      </div>
+      {data.hatch_chart?.length > 0 && (
+        <>
+          <div className="section-title" style={{ marginTop: 12 }}>Insect Hatch Chart</div>
+          <div className="hatch-mini">
+            {data.hatch_chart.slice(0, 10).map((h: any, i: number) => (
+              <div key={i} className="hatch-row">
+                <span className="hatch-name">{h.common_name || h.taxon_name}</span>
+                <span className="hatch-month">{h.month_name}</span>
+                <span className="hatch-count">{h.count}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+
+/* ── Fish Passage Barriers Table ── */
+function BarriersTable({ watershed }: { watershed: string }) {
+  const [barriers, setBarriers] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/sites/${watershed}/fishing/barriers`)
+      .then(r => r.json()).then(d => setBarriers(d || [])).catch(console.error)
+  }, [watershed])
+
+  if (barriers.length === 0) return null
+
+  return (
+    <div className="section">
+      <div className="section-title">Fish Passage Barriers ({barriers.length})</div>
+      <table className="data-table">
+        <thead><tr><th>Stream</th><th>Type</th><th>Status</th></tr></thead>
+        <tbody>
+          {barriers.slice(0, 15).map((b: any, i: number) => (
+            <tr key={i}>
+              <td>{b.stream_name || b.barrier_name || '—'}</td>
+              <td>{b.barrier_type || '—'}</td>
+              <td><span className={`status-tag ${b.passage_status === 'Passable' ? 'detected' : b.passage_status === 'Blocked' ? 'invasive' : 'absent'}`}>
+                {b.passage_status || '—'}
+              </span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

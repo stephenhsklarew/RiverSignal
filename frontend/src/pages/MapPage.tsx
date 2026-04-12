@@ -34,6 +34,12 @@ export default function MapPage() {
   const [obsOverlay, setObsOverlay] = useState<any>(null)
   const [, setObsSearching] = useState(false)
 
+  // Alerts + barriers
+  const [alerts, setAlerts] = useState<any[]>([])
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set())
+  const [barrierOverlay, setBarrierOverlay] = useState<any>(null)
+  const [showBarriers, setShowBarriers] = useState(false)
+
   useEffect(() => {
     fetch(`${API_BASE}/sites`)
       .then(r => r.json())
@@ -41,24 +47,47 @@ export default function MapPage() {
       .catch(e => { console.error(e); setLoading(false) })
   }, [])
 
-  // Auto-select watershed from URL
   useEffect(() => {
-    if (urlWatershed && !selectedSite) {
-      setSelectedSite(urlWatershed)
-    }
+    if (urlWatershed && !selectedSite) setSelectedSite(urlWatershed)
   }, [urlWatershed])
 
   useEffect(() => {
     if (selectedSite) {
       setSiteDetail(null)
+      setAlerts([])
+      setDismissedAlerts(new Set())
       fetch(`${API_BASE}/sites/${selectedSite}`)
-        .then(r => r.json())
-        .then(setSiteDetail)
-        .catch(console.error)
+        .then(r => r.json()).then(setSiteDetail).catch(console.error)
+      // Fetch alerts
+      fetch(`${API_BASE}/sites/${selectedSite}/fishing/alerts`)
+        .then(r => r.json()).then(d => setAlerts(d.alerts || [])).catch(() => {})
+      // Fetch barriers for map overlay
+      if (showBarriers) loadBarriers(selectedSite)
     } else {
       setSiteDetail(null)
+      setAlerts([])
+      setBarrierOverlay(null)
     }
   }, [selectedSite])
+
+  useEffect(() => {
+    if (showBarriers && selectedSite) loadBarriers(selectedSite)
+    else setBarrierOverlay(null)
+  }, [showBarriers, selectedSite])
+
+  const loadBarriers = (ws: string) => {
+    fetch(`${API_BASE}/sites/${ws}/fishing/barriers`)
+      .then(r => r.json())
+      .then(barriers => {
+        const features = barriers.filter((b: any) => b.latitude && b.longitude).map((b: any) => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [b.longitude, b.latitude] },
+          properties: { name: b.barrier_name || b.stream_name, type: b.barrier_type, status: b.passage_status },
+        }))
+        setBarrierOverlay({ type: 'FeatureCollection', features })
+      })
+      .catch(() => {})
+  }
 
   const handleObsSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,17 +95,13 @@ export default function MapPage() {
     setObsSearching(true)
     fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(obsSearch.trim())}`)
       .then(r => r.json())
-      .then(data => {
-        setObsOverlay(data)
-        setObsSearching(false)
-      })
+      .then(data => { setObsOverlay(data); setObsSearching(false) })
       .catch(() => setObsSearching(false))
   }
 
-  const clearObsSearch = () => {
-    setObsSearch('')
-    setObsOverlay(null)
-  }
+  const clearObsSearch = () => { setObsSearch(''); setObsOverlay(null) }
+
+  const visibleAlerts = alerts.filter((_, i) => !dismissedAlerts.has(i))
 
   if (loading) return <div className="loading">Loading watersheds...</div>
 
@@ -111,10 +136,31 @@ export default function MapPage() {
           )}
         </form>
 
+        {/* Barrier toggle */}
+        {selectedSite && (
+          <label className="barrier-toggle">
+            <input type="checkbox" checked={showBarriers} onChange={e => setShowBarriers(e.target.checked)} />
+            <span className="barrier-toggle-label">Barriers</span>
+          </label>
+        )}
+
         <div className="topbar-status">
           <DataFreshness compact />
         </div>
       </div>
+
+      {/* Fishing alerts banner */}
+      {visibleAlerts.length > 0 && (
+        <div className="alerts-bar">
+          {visibleAlerts.map((a, i) => (
+            <div key={i} className={`alert-item ${a.severity}`}>
+              <span className="alert-icon">{a.severity === 'warning' ? '⚠' : 'ℹ'}</span>
+              <span>{a.message}</span>
+              <button className="alert-dismiss" onClick={() => setDismissedAlerts(prev => new Set(prev).add(alerts.indexOf(a)))}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className={`app-body${siteDetail ? '' : ' no-panel'}`}>
         <MapView
@@ -122,6 +168,7 @@ export default function MapPage() {
           selectedSite={selectedSite}
           onSelectSite={setSelectedSite}
           observationOverlay={obsOverlay}
+          barrierOverlay={showBarriers ? barrierOverlay : null}
         />
         {siteDetail && (
           <SitePanel
