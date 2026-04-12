@@ -76,6 +76,15 @@ def generate_ecological_summary(watershed: str, request: SummaryRequest = None):
         indicators = get_indicator_status(watershed)
         fire_recovery = get_post_fire_recovery(watershed)
 
+        # Sample recent observations for citations
+        recent_obs = conn.execute(text("""
+            SELECT source_type, source_id, taxon_name, observed_at::date,
+                   data_payload->>'common_name' as common_name
+            FROM observations
+            WHERE site_id = :sid
+            ORDER BY observed_at DESC LIMIT 10
+        """), {"sid": site[0]}).fetchall()
+
     # Build context for LLM
     context = {
         "watershed": watershed,
@@ -88,6 +97,10 @@ def generate_ecological_summary(watershed: str, request: SummaryRequest = None):
         "anomalies": [{"type": r[0], "count": r[1], "last": str(r[2])} for r in anomalies],
         "indicators": indicators[:10],
         "fire_recovery": fire_recovery[:10] if fire_recovery else [],
+        "recent_observations": [
+            {"source": r[0], "id": r[1], "taxon": r[2], "date": str(r[3]), "common_name": r[4]}
+            for r in recent_obs
+        ],
     }
 
     # Try LLM reasoning if API key available
@@ -99,7 +112,16 @@ def generate_ecological_summary(watershed: str, request: SummaryRequest = None):
             message = client.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=4096,
-                system="You are an ecological reasoning assistant for the RiverSignal watershed intelligence platform. Given pre-aggregated data about a watershed, produce a concise ecological summary. Include species richness trends, water quality status, invasive species alerts, indicator species presence, and any fire recovery context. Cite specific numbers. Be specific and actionable.",
+                system="""You are an ecological reasoning assistant for the RiverSignal watershed intelligence platform. Given pre-aggregated data about a watershed, produce a concise ecological summary.
+
+Include:
+1. Species richness trends with specific year-over-year numbers
+2. Water quality status (temperature, dissolved oxygen) with values
+3. Invasive species alerts with detection counts and dates
+4. Indicator species presence/absence with detection numbers
+5. Fire recovery context if applicable
+
+IMPORTANT: Cite specific data values (e.g., "Species richness increased from 2,100 to 2,400 species (2024→2025)"). Reference observation counts, detection dates, and measurement values. End with a confidence assessment: HIGH (strong data support), MEDIUM (some gaps), or LOW (limited data).""",
                 messages=[{"role": "user", "content": f"Generate an ecological summary for the {watershed} watershed based on this data:\n\n{json.dumps(context, indent=2, default=str)}"}],
             )
             narrative = message.content[0].text
@@ -187,7 +209,15 @@ def generate_restoration_forecast(watershed: str, request: ForecastRequest = Non
             message = client.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=4096,
-                system="You are an ecological forecasting assistant. Given restoration history, species trends, fire recovery data, and thermal conditions, predict what ecological changes to expect in the next 3-12 months. Be specific: name expected species returns, habitat improvements, and risk factors. Assign confidence (high/medium/low) to each prediction.",
+                system="""You are an ecological forecasting assistant for restoration professionals. Given restoration history, species trends, fire recovery data, and thermal conditions, predict what ecological changes to expect in the next 3-12 months.
+
+For each prediction, include:
+1. **Specific expected change** (name species, habitat metrics, water quality shifts)
+2. **Confidence level** (HIGH/MEDIUM/LOW) with brief justification
+3. **Evidence basis** — cite the specific data points that support this prediction
+4. **Risk factors** that could prevent the predicted outcome
+
+Format as a structured list of 3-5 predictions, each with the fields above. End with an overall forecast confidence assessment.""",
                 messages=[{"role": "user", "content": f"Generate a restoration forecast for the {watershed} watershed:\n\n{json.dumps(context, indent=2, default=str)}"}],
             )
             narrative = message.content[0].text
