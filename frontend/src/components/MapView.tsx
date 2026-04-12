@@ -1,26 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Site } from '../pages/MapPage'
-
-interface ObservationFeature {
-  type: 'Feature'
-  geometry: { type: 'Point'; coordinates: [number, number] }
-  properties: {
-    taxon_name: string
-    common_name: string | null
-    observed_at: string | null
-    photo_url: string | null
-    quality_grade: string | null
-    source: string | null
-  }
-}
 
 interface MapViewProps {
   sites: Site[]
   selectedSite: string | null
   onSelectSite: (watershed: string | null) => void
-  observationOverlay?: { type: 'FeatureCollection'; features: ObservationFeature[] } | null
+  observationOverlay?: any | null
 }
 
 const COLORS: Record<string, string> = {
@@ -39,7 +26,19 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
+  const mapLoadedRef = useRef(false)
 
+  // Stable callback to push overlay data into the map source
+  const pushOverlay = useCallback((data: any) => {
+    const map = mapRef.current
+    if (!map || !mapLoadedRef.current) return
+    const src = map.getSource(OBS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+    if (src) {
+      src.setData(data || { type: 'FeatureCollection', features: [] })
+    }
+  }, [])
+
+  // Initialise map once
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
@@ -53,7 +52,9 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
 
     map.on('load', () => {
-      // Add observation overlay source (empty initially)
+      mapLoadedRef.current = true
+
+      // Observation overlay source + layer
       map.addSource(OBS_SOURCE_ID, {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
@@ -63,34 +64,34 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
         type: 'circle',
         source: OBS_SOURCE_ID,
         paint: {
-          'circle-radius': 6,
+          'circle-radius': 7,
           'circle-color': '#e65100',
           'circle-stroke-color': '#fff',
-          'circle-stroke-width': 1.5,
-          'circle-opacity': 0.85,
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.9,
         },
       })
 
-      // Click handler for observation points
+      // Click popup for observation points
       map.on('click', OBS_LAYER_ID, (e) => {
-        if (!e.features || e.features.length === 0) return
+        if (!e.features?.length) return
         const props = e.features[0].properties as any
         const coords = (e.features[0].geometry as any).coordinates.slice() as [number, number]
 
         const photoHtml = props.photo_url
-          ? `<img src="${props.photo_url}" style="width:180px;border-radius:4px;margin-bottom:6px;" /><br/>`
+          ? `<img src="${props.photo_url}" style="width:200px;border-radius:6px;margin-bottom:8px;display:block;" />`
           : ''
         const html = `
-          <div style="font-family:Outfit,sans-serif;font-size:12px;max-width:200px;">
+          <div style="font-family:Outfit,sans-serif;font-size:13px;max-width:220px;line-height:1.4;">
             ${photoHtml}
-            <strong style="font-style:italic;">${props.taxon_name || ''}</strong><br/>
+            <strong style="font-style:italic;">${props.taxon_name || 'Unknown'}</strong><br/>
             ${props.common_name ? `<span style="color:#666;">${props.common_name}</span><br/>` : ''}
-            ${props.observed_at ? `<span style="color:#999;font-size:11px;">${props.observed_at}</span>` : ''}
+            ${props.observed_at ? `<span style="color:#999;font-size:11px;">Observed: ${props.observed_at}</span>` : ''}
           </div>
         `
 
         if (popupRef.current) popupRef.current.remove()
-        popupRef.current = new maplibregl.Popup({ maxWidth: '220px' })
+        popupRef.current = new maplibregl.Popup({ maxWidth: '240px' })
           .setLngLat(coords)
           .setHTML(html)
           .addTo(map)
@@ -101,28 +102,15 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     })
 
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null }
+    return () => { map.remove(); mapRef.current = null; mapLoadedRef.current = false }
   }, [])
 
-  // Update observation overlay when data changes
+  // Push overlay data whenever it changes
   useEffect(() => {
-    const map = mapRef.current
-    if (!map) return
+    pushOverlay(observationOverlay)
+  }, [observationOverlay, pushOverlay])
 
-    const updateSource = () => {
-      const source = map.getSource(OBS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
-      if (source) {
-        source.setData(observationOverlay || { type: 'FeatureCollection', features: [] })
-      }
-    }
-
-    if (map.isStyleLoaded()) {
-      updateSource()
-    } else {
-      map.on('load', updateSource)
-    }
-  }, [observationOverlay])
-
+  // Watershed markers + bbox rectangles
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -155,8 +143,8 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
         onSelectSite(site.watershed === selectedSite ? null : site.watershed)
       })
 
-      // Bbox rectangle
-      map.on('load', () => {
+      // Bbox rectangle (only add once per load)
+      const addBbox = () => {
         const sourceId = `bbox-${site.watershed}`
         if (map.getSource(sourceId)) return
         map.addSource(sourceId, {
@@ -182,12 +170,19 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
           id: `bbox-line-${site.watershed}`, type: 'line', source: sourceId,
           paint: { 'line-color': color, 'line-width': isSelected ? 2 : 1, 'line-opacity': isSelected ? 0.6 : 0.2 },
         })
-      })
+      }
+
+      if (mapLoadedRef.current) {
+        addBbox()
+      } else {
+        map.on('load', addBbox)
+      }
 
       markersRef.current.push(marker)
     })
   }, [sites, selectedSite, onSelectSite])
 
+  // Fly to selected watershed
   useEffect(() => {
     const map = mapRef.current
     if (!map || !selectedSite) return
@@ -205,7 +200,6 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
 
   return (
     <div className="map-container">
-      {/* KPI chips */}
       <div className="map-kpis">
         <div className="kpi-chip">
           <span className="kpi-value">{totalObs.toLocaleString()}</span>
@@ -215,15 +209,14 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
           <span className="kpi-value">{sites.reduce((a, s) => a + s.interventions, 0).toLocaleString()}</span>
           <span className="kpi-label">interventions</span>
         </div>
-        {observationOverlay && observationOverlay.features.length > 0 && (
-          <div className="kpi-chip" style={{ background: 'rgba(230,81,0,0.1)', borderColor: '#e65100' }}>
+        {observationOverlay && observationOverlay.features?.length > 0 && (
+          <div className="kpi-chip" style={{ background: 'rgba(230,81,0,0.12)', borderColor: '#e65100' }}>
             <span className="kpi-value" style={{ color: '#e65100' }}>{observationOverlay.features.length}</span>
-            <span className="kpi-label">matching</span>
+            <span className="kpi-label">found on map</span>
           </div>
         )}
       </div>
 
-      {/* Watershed tabs */}
       <div className="watershed-tabs">
         {sites.map(s => (
           <button

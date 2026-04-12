@@ -94,16 +94,20 @@ export default function MapPage() {
 
         {/* Observation search */}
         <form onSubmit={handleObsSearch} className="obs-search-form">
+          <span className="obs-search-icon">&#x1F50D;</span>
           <input
             type="text"
             value={obsSearch}
             onChange={e => setObsSearch(e.target.value)}
-            placeholder={selectedSite ? "Search observations (e.g. mayfly, salmon, eagle)..." : "Select a watershed first"}
+            placeholder={selectedSite ? "Map observations: mayfly, salmon, eagle..." : "Select a watershed to search"}
             disabled={!selectedSite}
-            className="obs-search-input"
+            className={`obs-search-input${obsOverlay?.count > 0 ? ' has-results' : ''}`}
           />
           {obsOverlay && (
-            <button type="button" onClick={clearObsSearch} className="obs-search-clear" title="Clear search">&times;</button>
+            <>
+              <span className="obs-search-count">{obsOverlay.count} found</span>
+              <button type="button" onClick={clearObsSearch} className="obs-search-clear" title="Clear search">&times;</button>
+            </>
           )}
         </form>
 
