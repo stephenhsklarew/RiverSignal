@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import Markdown from 'react-markdown'
 import logo from '../assets/deeptrail-logo.svg'
 import './DeepTrailPage.css'
 
@@ -299,17 +300,15 @@ export default function DeepTrailPage() {
 
           {/* Deep Time Story */}
           <section className="dt-story-card">
+            <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory} disabled={audioLoading || storyLoading}>
+              {audioLoading ? '⏳ Loading audio...' : speaking ? '⏹ Stop' : '🔊 Listen to Story'}
+            </button>
             {storyLoading ? (
               <div className="dt-story-loading">Generating deep time narrative...</div>
             ) : (
-              <>
-                {storyNarrative.split('\n\n').map((para, i) => (
-                  <p key={i} className="dt-story-para">{para}</p>
-                ))}
-                <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory} disabled={audioLoading}>
-                  {audioLoading ? '⏳ Loading audio...' : speaking ? '⏹ Stop' : '🔊 Listen to Story'}
-                </button>
-              </>
+              <div className="dt-story-md">
+                <Markdown>{storyNarrative}</Markdown>
+              </div>
             )}
           </section>
 

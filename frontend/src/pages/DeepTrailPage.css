@@ -104,11 +104,19 @@
   border: 1px solid #3d3328; border-radius: 12px;
   padding: 20px 22px; margin-bottom: 20px;
 }
-.dt-story-para {
-  font-size: 0.92rem; color: #c4b8a4; line-height: 1.65;
-  margin: 0 0 12px;
+.dt-story-md { font-size: 0.92rem; color: #c4b8a4; line-height: 1.65; }
+.dt-story-md p { margin: 0 0 12px; }
+.dt-story-md p:last-child { margin-bottom: 0; }
+.dt-story-md strong { color: #e8e0d4; font-weight: 600; }
+.dt-story-md em { color: #d4a96a; font-style: italic; }
+.dt-story-md h1, .dt-story-md h2, .dt-story-md h3 {
+  font-family: 'Fraunces', serif; color: #f0e6d6; margin: 16px 0 8px; font-weight: 500;
 }
-.dt-story-para:last-child { margin-bottom: 0; }
+.dt-story-md h1 { font-size: 1.2rem; }
+.dt-story-md h2 { font-size: 1.1rem; }
+.dt-story-md h3 { font-size: 1rem; }
+.dt-story-md ul, .dt-story-md ol { padding-left: 20px; margin: 8px 0; }
+.dt-story-md li { margin-bottom: 4px; }
 .dt-story-loading {
   color: #8a7e6e; font-style: italic; font-size: 0.88rem;
   padding: 12px 0; text-align: center;
