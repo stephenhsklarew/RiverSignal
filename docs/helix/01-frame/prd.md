@@ -15,6 +15,61 @@ This project builds a shared data platform serving four products across two doma
 
 The data platform is operational with 15+ ingestion pipelines feeding 2.5M+ records across 5 Oregon watersheds from 15+ public data sources, a 27-view medallion architecture, and a FastAPI + React application with LLM reasoning. The geology/paleontology expansion adds 7+ new data sources (USGS NGMDB, Paleobiology Database, Macrostrat, BLM lands, DOGAMI, mineral deposits, volcanic features), 8 new bronze tables, 3 silver views, and 10 gold views. The key integration insight: geology IS the foundation of watershed ecology — every river, species habitat, and water quality reading is shaped by the rocks beneath.
 
+## Product-Specific Context
+
+### RiverPath — B2C River Field Companion
+
+**Mission**: Help families, anglers, and educators understand the living ecological story of every Oregon river they visit.
+
+**Target users**: Families visiting Oregon rivers 3-10 times/year, fly fishing guides running 150+ trips/year, teachers running field trips, citizen scientists.
+
+**Core experience**: A parent opens RiverPath at the McKenzie River. They see that salmon are spawning upstream right now, the forest burned in 2020 and is recovering (species richness up 180%), the cold water comes from Cascade snowmelt, and a watershed council is planting native trees this Saturday. The kids identify caddisfly larvae. The family returns in September for the salmon migration.
+
+**Key differentiators from RiverSignal**:
+- Mobile-first responsive design (not desktop dashboard)
+- Story-driven narrative tone (not data-dense professional)
+- Location-aware: "What's happening at THIS river RIGHT NOW?"
+- Species photo gallery by river mile for field identification
+- Seasonal trip optimization (when to visit for salmon, hatches, wildflowers)
+- Stewardship connection (volunteer events, how to help)
+
+**Success metrics**:
+
+| Metric | Target |
+|--------|--------|
+| Families using monthly during season (May-Oct) | 10,000 within 18 months |
+| Fishing guide daily active users | 500 within 12 months |
+| Return visits to same river | 3+ per season per active user |
+| NPS among active families | > 60 |
+
+### DeepTrail — B2C Ancient World Explorer
+
+**Mission**: Help families, travelers, and rockhounds discover what ancient world they're standing in, find legal places to explore, and turn geology into adventure.
+
+**Target users**: Road trip families visiting Painted Hills/John Day Fossil Beds, rockhounds looking for legal collecting sites, educators planning geology field trips, curious travelers at Oregon's geologic landmarks.
+
+**Core experience**: A family at the Painted Hills asks "What was this place like 33 million years ago?" and gets: "You're standing in a subtropical forest with towering redwoods and palms. Rhinoceros-like brontotheres browsed nearby, and early horses the size of dogs ran through the underbrush. The colorful clay layers formed from volcanic ash that blanketed the forest floor." They check collecting legality (NPS — prohibited here), find a nearby BLM site where collecting is legal, and discover what minerals and fossils others have found.
+
+**Key differentiators from DeepSignal**:
+- Mobile-first dark-themed adventure UI (not desktop data tables)
+- Deep time narrative stories (not raw geologic unit data)
+- Legal collecting status with green/yellow/red badges
+- Fossil gallery with photo cards
+- Geologic time slider for visualizing ancient worlds
+- Kid-friendly reading level option
+- Offline support for remote areas (PWA)
+
+**Success metrics**:
+
+| Metric | Target |
+|--------|--------|
+| DeepTrail monthly active families (May-Oct) | 5,000 within 18 months |
+| Legal collecting confidence score | 90% of users feel confident about rules |
+| Cross-product users (River + Deep) | 30% of active users engage both |
+| NPS among active families | > 55 |
+
+---
+
 ## Problem and Goals
 
 ### Problem
@@ -77,13 +132,28 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 **Goals**: Know which reaches have active fish, when stocking happens, water conditions, species distribution by stream segment
 **Pain Points**: Checks 5+ websites daily for stocking schedules, water flows, fishing reports; clients ask "what's biting where?" and he relies on word-of-mouth; no single source combines water conditions + species data + harvest trends
 
-### Quinary Persona: Rachel -- Road Trip Family (DeepTrail)
+### Quinary Persona: Sarah -- River-Visiting Family (RiverPath)
 
-**Role**: Parent of two kids (ages 8 and 12) planning an Oregon road trip through the John Day Fossil Beds
+**Role**: Parent of two kids (ages 6 and 10) who camps and hikes along Oregon rivers 5-8 times per summer
+**Goals**: Turn river visits from "pretty scenery" into engaging, educational family experiences; answer kids' questions ("Is this river healthy?" "What fish live here?"); find the best time to see salmon; discover volunteer opportunities
+**Pain Points**: River visits feel shallow — "it's pretty but we don't understand what we're looking at"; kids lose interest after 10 minutes; no app combines species photos + conditions + stories + stewardship for a specific river; occasionally reads an interpretive sign but wants more depth
+**Why she switches**: Kids engage with species photos and river stories; family develops annual river traditions (salmon migration trips, summer hatch adventures); parents feel like better outdoor educators
+
+### Senary Persona: Rachel -- Road Trip Family (DeepTrail)
+
+**Role**: Parent of two kids (ages 8 and 12) planning an Oregon road trip through the John Day Fossil Beds and Painted Hills
 **Goals**: Find kid-friendly fossil sites, know what's legal to collect, understand what ancient world existed at each stop, make the drive educational and exciting
-**Pain Points**: Googles "can I collect fossils in Oregon" and gets contradictory answers; park brochures are generic; no single app combines geologic history + fossil sites + legal collecting rules + kid-friendly trails; doesn't know which museums are worth stopping at
+**Pain Points**: Googles "can I collect fossils in Oregon" and gets contradictory answers; park brochures are generic; no single app combines geologic history + fossil sites + legal collecting rules + kid-friendly content; doesn't know which museums are worth stopping at
+**Why she switches**: DeepTrail turns a normal Oregon road trip into a prehistoric adventure; kids are engaged for hours; she feels confident about where collecting is legal; discovers sites she never would have found
 
-### Senary Persona: Dr. Torres -- Geologic Researcher (DeepSignal)
+### Septenary Persona: Mike -- Rockhound / Mineral Collector (DeepTrail)
+
+**Role**: Amateur mineral collector who explores BLM land in central Oregon 15-20 times/year looking for thundereggs, agates, and obsidian
+**Goals**: Find new legal collecting sites on public land, know exactly what agency manages a parcel, learn what minerals have been found at specific locations, plan weekend field trips
+**Pain Points**: Legal status of collecting sites is confusing (BLM vs USFS vs NPS vs state rules differ); uses paper BLM maps and word-of-mouth from rockhound clubs; USGS mineral data exists but is designed for economic geologists, not hobbyists; no mobile app combines land ownership + mineral data + directions
+**Why he switches**: DeepTrail shows legal collecting sites with green/yellow/red badges, tells him what others have found at each site, and gives him access info — replaces paper maps and club forums
+
+### Octonary Persona: Dr. Torres -- Geologic Researcher (DeepSignal)
 
 **Role**: University geologist studying volcanic influences on watershed hydrology in the Oregon Cascades
 **Goals**: Correlate geologic unit maps with water chemistry data, understand how basalt aquifers create spring-fed systems, identify geologic controls on fish habitat distribution
@@ -172,6 +242,27 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 | P0-5 (Map workspace) | Manager opens dashboard Monday morning | 4 configured sites in Upper Klamath basin, weekend iNaturalist observations ingested | Map shows 4 site polygons, 1 amber alert on site with new invasive detection, click reveals detail panel with observation list, ecological summary, and chat pane |
 | P0-6 (Data ingestion) | System completes daily iNaturalist sync | Configured HUC12 boundary for Upper Klamath Lake | New observations since last sync are ingested, normalized, and appear on map within 15 minutes of sync completion |
 
+### RiverPath Acceptance Test Sketches
+
+| Requirement | Scenario | Input | Expected Output |
+|-------------|----------|-------|-----------------|
+| River story at location | Family opens RiverPath at McKenzie River | GPS location near McKenzie, or watershed selected | Story-driven narrative: what's happening now (spawning, fire recovery, water conditions), species gallery with photos, seasonal tips, nearby stewardship events |
+| Species photo gallery | Parent wants to identify what they see | Watershed = deschutes, river mile range 40-50 | Grid of species photo cards with common name, scientific name, last observed date; sorted by observation frequency; filterable by taxonomic group |
+| Fishing morning brief | Guide checks conditions before Deschutes trip | Watershed = deschutes, month = July | Natural-language brief: water temp 15°C, flow 4,200 cfs; steelhead active in canyon reach; recent stocking at Lake Billy Chinook; harvest down 12% vs last year |
+| Observation map search | Angler asks "show me all salmon observations" | Watershed = deschutes, search = "salmon" | Map pins at every salmon observation location with photo popups; count badge showing total matches |
+| Offline access | Family at river with no cell signal | Previously viewed McKenzie data cached via service worker | Cached river story, species gallery, and conditions display with "Last updated X ago" banner; chat disabled with explanation |
+
+### DeepTrail Acceptance Test Sketches
+
+| Requirement | Scenario | Input | Expected Output |
+|-------------|----------|-------|-----------------|
+| Deep time story | Family at Painted Hills asks "What was this place like?" | lat=44.66, lon=-120.23 | Narrative describing Oligocene subtropical forest (33 Ma) with redwoods, brontotheres, and early horses; clay layers from volcanic ash; cited fossil evidence from PBDB |
+| Legal collecting status | Rockhound checks if BLM land allows collecting | lat=44.5, lon=-120.8 (BLM land near Fossil, OR) | Green badge: "Collecting: permitted — BLM land, casual collecting of common fossils for personal use"; disclaimer to verify on-site |
+| Fossil gallery | Family wants to know what fossils exist nearby | lat=44.66, lon=-120.23, radius=50km | Cards showing nearby fossil taxa (Mesohippus, Archaeotherium, etc.) with phylum, period, age, distance; sorted by proximity |
+| Deep time timeline | Educator shows geologic history at a site | lat=44.66, lon=-120.23 | Chronological timeline: oldest geologic unit at top, fossil occurrences interspersed, each with age (Ma) and description |
+| Mineral site search | Rockhound looks for thunderegg sites | Search for mineral deposits near Madras, OR | MRDS mineral deposit locations with commodity names, development status, and coordinates |
+| Kid-friendly narrative | Family mode activated | Same location, reading_level = kid_friendly | Same deep time story rewritten at 5th-grade reading level; simpler vocabulary, shorter sentences, "imagine you're standing in..." framing |
+
 ## Technical Context
 
 - **Language/Runtime**: Python 3.12+, TypeScript 5.x
@@ -180,8 +271,10 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 - **LLM Integration**: Claude API (Anthropic) for ecological reasoning and report generation; tool-using agent architecture with geospatial and data-query tools
 - **Data/Storage**: PostgreSQL 17 with PostGIS 3.6.2 on port 5433; S3-compatible object store for media (photos, audio, PDFs)
 - **Data Sources (15 operational pipelines)**: iNaturalist API v1, USGS NWIS (stream gauges), Water Quality Portal (WQP), EPA ATTAINS (impaired waters), NHDPlus HR (stream flowlines), National Wetlands Inventory (NWI), NIFC/MTBS (fire perimeters and burn severity), USGS WBD (watershed boundaries), Oregon Dept of Forestry (ODF), Oregon Dept of Fish & Wildlife (ODFW sport catch/stocking), Oregon Watershed Restoration Inventory (OWRI), PRISM (climate), Oregon DEQ (water quality), USFS (land management)
-- **Database Tables (8)**: observations, time_series, interventions, fire_perimeters, stream_flowlines, impaired_waters, wetlands, watershed_boundaries
-- **Data Volume**: 2.2M records loaded across 4 watersheds (Klamath, McKenzie, Deschutes, Metolius)
+- **Database Tables (13)**: observations, time_series, interventions, fire_perimeters, stream_flowlines, impaired_waters, wetlands, watershed_boundaries, geologic_units, fossil_occurrences, mineral_deposits, land_ownership, deep_time_stories
+- **Data Volume**: 2.5M+ records loaded across 5 watersheds (Klamath, McKenzie, Deschutes, Metolius, John Day); 17,288 geologic units, 1,959 fossil occurrences, 1,980 mineral deposits
+- **Medallion Architecture**: 7 silver views + 31 gold views = 38 materialized views
+- **Geology Data Sources (6)**: Macrostrat, USGS NGMDB via DOGAMI OGDC v6, Paleobiology Database (PBDB), iDigBio museum specimens, USGS MRDS mineral deposits, BLM Surface Management Agency
 - **GIS**: HUC12 watershed boundaries from USGS WBD, wetland layers from NWI, burn severity from MTBS, stream flowlines from NHDPlus HR
 - **Platform Targets**: Web application; Chrome, Firefox, Safari latest; responsive but desktop-primary (field tablet secondary)
 
@@ -231,11 +324,26 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 
 ## Success Criteria
 
+### RiverSignal (B2B Watershed)
 - Pilot watershed staff report that RiverSignal reduces their monitoring interpretation time by at least 40% (validated via pre/post time tracking)
 - At least one quarterly funder report is generated and submitted using RiverSignal output during the pilot period
 - Restoration forecasts achieve 70%+ confirmation rate in the monitoring cycle following the prediction
 - Pilot organization agrees to continue using RiverSignal after the evaluation period (renewal or paid contract)
 - System maintains ecological reasoning quality as judged by domain advisor review: fewer than 20% of outputs require substantive correction
+
+### RiverPath (B2C Watershed)
+- 10,000 monthly active families during season (May-Oct) within 18 months of launch
+- 500 daily active fishing guide users within 12 months
+- Active users return to same river 3+ times per season
+- NPS > 60 among active families (quarterly survey)
+- B2C mobile Lighthouse performance score > 80
+
+### DeepTrail (B2C Geology)
+- 5,000 monthly active families during season (May-Oct) within 18 months of launch
+- 90% of users report feeling confident about collecting legality after checking DeepTrail
+- 30% of active users engage with both river (RiverPath) and geology (DeepTrail) products
+- Deep time narratives cite specific fossil evidence in 80%+ of Oregon locations with PBDB data
+- NPS > 55 among active families
 
 ## Review Checklist
 
