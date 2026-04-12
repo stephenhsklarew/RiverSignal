@@ -136,6 +136,7 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(25, le=100
             "latitude": r[10], "longitude": r[11],
             "collector": r[12], "reference": r[13], "museum": r[14],
             "distance_km": round(r[15], 1) if r[15] else None,
+            "image_url": r[13] if r[13] and (r[13].startswith('https://images.') or r[13].startswith('https://www.') or r[13].startswith('https://collections.') or '.jpg' in r[13] or '.jpeg' in r[13]) else None,
         })
 
     return {"fossils": fossils, "count": len(fossils), "radius_km": radius_km}

@@ -17,6 +17,13 @@ const LOCATIONS = [
 interface Fossil {
   taxon_name: string; phylum: string; class_name: string; period: string;
   age_max_ma: number | null; distance_km: number | null; source_id: string | null;
+  image_url: string | null; museum: string | null;
+}
+
+const PHYLUM_ICONS: Record<string, string> = {
+  'Mollusca': '🐚', 'Chordata': '🦴', 'Arthropoda': '🦐', 'Plantae': '🌿',
+  'Tracheophyta': '🌿', 'Bryophyta': '🌱', 'Cnidaria': '🪸', 'Echinodermata': '⭐',
+  'Brachiopoda': '🐚', 'Foraminifera': '🔬', 'Radiolaria': '🔬',
 }
 
 interface TimelineItem {
@@ -243,9 +250,15 @@ export default function DeepTrailPage() {
             <div className="dt-fossil-grid">
               {filteredFossils.slice(0, 30).map((f, i) => (
                 <div key={i} className="dt-fossil-card">
+                  {f.image_url ? (
+                    <img src={f.image_url} alt={f.taxon_name} className="dt-fossil-img" loading="lazy" />
+                  ) : (
+                    <div className="dt-fossil-icon">{PHYLUM_ICONS[f.phylum] || '🪨'}</div>
+                  )}
                   <div className="dt-fossil-name">{f.taxon_name}</div>
                   <div className="dt-fossil-meta">
                     {f.phylum}{f.class_name ? ` · ${f.class_name}` : ''}
+                    {f.museum ? ` · ${f.museum}` : ''}
                   </div>
                   <div className="dt-fossil-age">
                     {f.period} — {f.age_max_ma ? `${f.age_max_ma} Ma` : '?'}
@@ -276,8 +289,14 @@ export default function DeepTrailPage() {
                 </select>
               </div>
               <div className="dt-fossil-grid">
-                {filteredMinerals.slice(0, 20).map((m, i) => (
+                {filteredMinerals.slice(0, 20).map((m, i) => {
+                  const comLower = (m.commodity || '').toLowerCase()
+                  const icon = comLower.includes('gold') ? '🥇' : comLower.includes('silver') ? '🥈'
+                    : comLower.includes('copper') ? '🟤' : comLower.includes('mercury') ? '💧'
+                    : comLower.includes('pumice') || comLower.includes('stone') ? '🪨' : '💎'
+                  return (
                   <div key={i} className="dt-fossil-card">
+                    <div className="dt-fossil-icon">{icon}</div>
                     <div className="dt-fossil-name">{m.site_name}</div>
                     <div className="dt-fossil-meta">{m.commodity}</div>
                     <div className="dt-fossil-age">{m.dev_status}</div>
@@ -285,7 +304,8 @@ export default function DeepTrailPage() {
                       <div className="dt-fossil-dist">{m.distance_km} km away</div>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </section>
           )}
