@@ -149,6 +149,12 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 </tbody>
               </table>
             </div>
+
+            {/* What's Here Now */}
+            <WhatsHereNow watershed={watershed} />
+
+            {/* Stewardship Opportunities */}
+            <StewardshipSection watershed={watershed} />
           </>
         )}
 
@@ -376,6 +382,78 @@ function AskTab({ site, chatMessages, chatLoading, onSuggestionClick }: {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+
+/* ── What's Here Now ── */
+function WhatsHereNow({ watershed }: { watershed: string }) {
+  const [species, setSpecies] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/sites/${watershed}/species?limit=12`)
+      .then(r => r.json())
+      .then(data => setSpecies(data.filter((s: any) => s.photo_url).slice(0, 8)))
+      .catch(console.error)
+  }, [watershed])
+
+  if (species.length === 0) return null
+
+  return (
+    <div className="section">
+      <div className="section-title">What's Here Now</div>
+      <div className="whats-here-grid">
+        {species.map((s: any, i: number) => (
+          <div key={i} className="whats-here-item">
+            <img src={s.photo_url} alt={s.common_name} className="whats-here-photo" loading="lazy" />
+            <div className="whats-here-name">{s.common_name || s.taxon_name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+/* ── Stewardship Opportunities ── */
+function StewardshipSection({ watershed }: { watershed: string }) {
+  const [opps, setOpps] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/sites/${watershed}/story`)
+      .then(r => r.json())
+      .then(data => {
+        // Extract stewardship-relevant info from story data
+        const items: any[] = []
+        if (data.timeline) {
+          data.timeline
+            .filter((e: any) => e.type === 'restoration' || e.type === 'intervention')
+            .slice(0, 5)
+            .forEach((e: any) => items.push({ type: 'project', name: e.name, year: e.year, desc: e.description }))
+        }
+        setOpps(items)
+      })
+      .catch(console.error)
+  }, [watershed])
+
+  return (
+    <div className="section">
+      <div className="section-title">Stewardship & Restoration</div>
+      {opps.length > 0 ? (
+        <div className="stewardship-list">
+          {opps.map((o, i) => (
+            <div key={i} className="stewardship-item">
+              <span className="stewardship-year">{o.year}</span>
+              <span className="stewardship-name">{o.name}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: '#888', padding: '8px 0' }}>
+          Contact your local watershed council for volunteer opportunities.
+        </div>
+      )}
     </div>
   )
 }

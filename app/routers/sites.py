@@ -173,6 +173,52 @@ def search_observations(
     }
 
 
+@router.get("/sites/{watershed}/seasonal")
+def get_seasonal_planner(watershed: str):
+    """Seasonal trip planner: peak activity windows by species group and month."""
+    with engine.connect() as conn:
+        site = conn.execute(text(
+            "SELECT id FROM sites WHERE watershed = :ws"
+        ), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        # Seasonal observation patterns
+        patterns = conn.execute(text("""
+            SELECT taxon_group, peak_month, avg_observations
+            FROM gold.seasonal_observation_patterns
+            WHERE watershed = :ws
+            ORDER BY peak_month, avg_observations DESC
+        """), {"ws": watershed}).fetchall()
+
+        # Hatch chart for insects
+        hatches = conn.execute(text("""
+            SELECT taxon_name, common_name, month, observation_count
+            FROM gold.hatch_chart
+            WHERE watershed = :ws
+            ORDER BY month, observation_count DESC
+        """), {"ws": watershed}).fetchall()
+
+    month_names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    return {
+        "watershed": watershed,
+        "seasonal_patterns": [
+            {"taxon_group": r[0], "peak_month": r[1],
+             "peak_month_name": month_names[r[1]] if r[1] and 1 <= r[1] <= 12 else '?',
+             "avg_observations": r[2]}
+            for r in patterns
+        ],
+        "hatch_chart": [
+            {"taxon_name": r[0], "common_name": r[1], "month": r[2],
+             "month_name": month_names[r[2]] if r[2] and 1 <= r[2] <= 12 else '?',
+             "count": r[3]}
+            for r in hatches[:30]
+        ],
+    }
+
+
 @router.get("/sites/{watershed}/story")
 def get_site_story(watershed: str):
     """Get the river story timeline for a watershed."""
