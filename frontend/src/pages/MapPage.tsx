@@ -149,16 +149,18 @@ export default function MapPage() {
         </div>
       </div>
 
-      {/* Fishing alerts banner */}
+      {/* Fishing alerts — minimal inline ticker */}
       {visibleAlerts.length > 0 && (
-        <div className="alerts-bar">
+        <div className="alerts-ticker">
           {visibleAlerts.map((a, i) => (
-            <div key={i} className={`alert-item ${a.severity}`}>
-              <span className="alert-icon">{a.severity === 'warning' ? '⚠' : 'ℹ'}</span>
-              <span>{a.message}</span>
-              <button className="alert-dismiss" onClick={() => setDismissedAlerts(prev => new Set(prev).add(alerts.indexOf(a)))}>×</button>
-            </div>
+            <span key={i} className={`alert-chip ${a.severity}`}>
+              {i > 0 && <span className="alert-sep"></span>}
+              <span className="alert-dot"></span>
+              <span className="alert-val">{a.message.match(/\d+/)?.[0]}</span>
+              <span className="alert-txt">{a.message.replace(/^\d+\s*/, '')}</span>
+            </span>
           ))}
+          <button className="alert-dismiss-all" onClick={() => setDismissedAlerts(new Set(alerts.map((_, i) => i)))}>×</button>
         </div>
       )}
 

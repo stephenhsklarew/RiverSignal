@@ -419,23 +419,58 @@
 .stewardship-year { font-family: var(--mono); font-size: 11px; color: var(--text-muted); min-width: 36px; }
 .stewardship-name { color: var(--text-secondary); }
 
-/* Fishing alerts banner */
-.alerts-bar {
-  display: flex; flex-direction: column; gap: 0;
-  border-bottom: 1px solid var(--border); flex-shrink: 0;
+/* Fishing alerts — minimal inline ticker */
+.alerts-ticker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  height: 30px;
+  background: var(--bg, #fafaf8);
+  border-bottom: 1px solid var(--border, #e8e5de);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
 }
-.alert-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 16px; font-size: 12px;
+.alerts-ticker::-webkit-scrollbar { display: none; }
+
+.alert-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 11px;
 }
-.alert-item.warning { background: #fff8e1; color: #e65100; }
-.alert-item.info { background: #e3f2fd; color: #1565c0; }
-.alert-icon { font-size: 14px; }
-.alert-dismiss {
-  margin-left: auto; background: none; border: none;
-  font-size: 16px; cursor: pointer; color: inherit; opacity: 0.5; padding: 0 4px;
+.alert-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
-.alert-dismiss:hover { opacity: 1; }
+.alert-chip.warning .alert-dot { background: #e65100; }
+.alert-chip.info .alert-dot { background: #1565c0; }
+.alert-chip.warning { color: #bf360c; }
+.alert-chip.info { color: #0d47a1; }
+
+.alert-val {
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-weight: 500;
+  font-size: 11px;
+}
+.alert-txt { color: #999; }
+
+.alert-sep {
+  display: inline-block;
+  width: 1px; height: 14px;
+  background: var(--border, #e0dcd4);
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.alert-dismiss-all {
+  margin-left: auto;
+  background: none; border: none;
+  font-size: 14px; color: #ccc; cursor: pointer;
+  padding: 0 4px; flex-shrink: 0;
+}
+.alert-dismiss-all:hover { color: #888; }
 
 /* Barrier toggle */
 .barrier-toggle {
