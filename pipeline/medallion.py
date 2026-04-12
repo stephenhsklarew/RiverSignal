@@ -70,6 +70,7 @@ VIEWS = [
     "gold.formation_species_history",
     "gold.geology_watershed_link",
     "gold.mineral_sites_nearby",
+    "gold.hatch_fly_recommendations",
 ]
 
 

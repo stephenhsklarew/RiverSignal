@@ -61,6 +61,7 @@ VIEW_ORDER = [
     "gold.formation_species_history", # depends on silver.geologic_context + silver.fossil_records
     "gold.geology_watershed_link",    # depends on silver.geologic_context + sites
     "gold.mineral_sites_nearby",      # depends on silver.mineral_sites
+    "gold.hatch_fly_recommendations", # depends on silver.insect_fly_patterns + observations
 ]
 
 

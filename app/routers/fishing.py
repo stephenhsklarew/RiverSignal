@@ -229,6 +229,43 @@ def fishing_alerts(watershed: str):
     return {"watershed": watershed, "alerts": alerts}
 
 
+@router.get("/sites/{watershed}/fishing/fly-recommendations")
+def fly_recommendations(watershed: str, month: int = None):
+    """Get fly pattern recommendations based on current insect activity."""
+    from datetime import datetime
+    if month is None:
+        month = datetime.now().month
+
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT pattern_insect_name, insect_taxon, insect_common_name,
+                   fly_pattern_name, fly_size, fly_type, fly_image_url,
+                   life_stage, time_of_day, water_type, fly_notes,
+                   observation_count, insect_photo_url
+            FROM gold.hatch_fly_recommendations
+            WHERE watershed = :ws AND obs_month = :month
+            ORDER BY observation_count DESC
+        """), {"ws": watershed, "month": month}).fetchall()
+
+    return [
+        {
+            "insect": r[0] or r[2] or r[1],
+            "insect_taxon": r[1],
+            "fly_pattern": r[3],
+            "fly_size": r[4],
+            "fly_type": r[5],
+            "fly_image_url": r[6],
+            "life_stage": r[7],
+            "time_of_day": r[8],
+            "water_type": r[9],
+            "notes": r[10],
+            "observations": r[11],
+            "insect_photo_url": r[12],
+        }
+        for r in rows
+    ]
+
+
 @router.get("/river/{river_name}/species")
 def river_species_by_mile(river_name: str, mile_start: float = 0, mile_end: float = 999, taxonomic_group: str = None):
     """Get species with photos for a river section by mile range."""
