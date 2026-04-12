@@ -310,7 +310,8 @@ export default function DeepTrailPage() {
         <span className="dt-badge-sm">Fossils ({filteredFossils.length})</span>
       </header>
 
-      <MiniMap items={filteredFossils} center={loc!} color="#d4a96a" />
+      <MiniMap items={filteredFossils} center={loc!} color="#d4a96a"
+        labels={filteredFossils.map(f => f.common_name || f.taxon_name)} />
 
       <div className="dt-list-filters">
         <select value={periodFilter} onChange={e => setPeriodFilter(e.target.value)} className="dt-filter-select">
@@ -353,7 +354,8 @@ export default function DeepTrailPage() {
         <span className="dt-badge-sm">Minerals ({filteredMinerals.length})</span>
       </header>
 
-      <MiniMap items={filteredMinerals} center={loc!} color="#e65100" />
+      <MiniMap items={filteredMinerals} center={loc!} color="#e65100"
+        labels={filteredMinerals.map(m => m.site_name)} />
 
       <div className="dt-list-filters">
         <select value={mineralFilter} onChange={e => setMineralFilter(e.target.value)} className="dt-filter-select">
@@ -388,8 +390,14 @@ export default function DeepTrailPage() {
 // ═══════════════════════════════════════════════
 // Compact MapLibre map for fossil/mineral lists
 // ═══════════════════════════════════════════════
-function MiniMap({ items, center, color }: { items: { latitude: number; longitude: number }[]; center: { lat: number; lon: number }; color: string }) {
+function MiniMap({ items, center, color, labels }: {
+  items: { latitude: number; longitude: number }[];
+  center: { lat: number; lon: number };
+  color: string;
+  labels?: string[];
+}) {
   const ref = useRef<HTMLDivElement>(null)
+  const popupRef = useRef<maplibregl.Popup | null>(null)
 
   useEffect(() => {
     if (!ref.current) return
@@ -401,25 +409,52 @@ function MiniMap({ items, center, color }: { items: { latitude: number; longitud
       interactive: true,
     })
 
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+
     map.on('load', () => {
-      const features = items.filter(i => i.latitude && i.longitude).map(i => ({
+      const features = items.filter(i => i.latitude && i.longitude).map((item, idx) => ({
         type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [i.longitude, i.latitude] },
-        properties: {},
+        geometry: { type: 'Point' as const, coordinates: [item.longitude, item.latitude] },
+        properties: { idx, label: labels?.[idx] || `Item ${idx + 1}` },
       }))
 
       map.addSource('items', { type: 'geojson', data: { type: 'FeatureCollection', features } })
       map.addLayer({
         id: 'item-points', type: 'circle', source: 'items',
-        paint: { 'circle-radius': 5, 'circle-color': color, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1 },
+        paint: { 'circle-radius': 7, 'circle-color': color, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 },
       })
+
+      // Click → popup + scroll to card
+      map.on('click', 'item-points', (e) => {
+        if (!e.features?.length) return
+        const props = e.features[0].properties as any
+        const coords = (e.features[0].geometry as any).coordinates.slice() as [number, number]
+
+        if (popupRef.current) popupRef.current.remove()
+        popupRef.current = new maplibregl.Popup({ maxWidth: '200px', closeButton: false })
+          .setLngLat(coords)
+          .setHTML(`<div style="font-family:Outfit,sans-serif;font-size:12px;color:#1a1612;padding:2px 0;"><strong>${props.label}</strong></div>`)
+          .addTo(map)
+
+        // Scroll the list to the matching card
+        const idx = props.idx
+        const card = document.querySelectorAll('.dt-list-item')[idx]
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          card.classList.add('dt-list-highlight')
+          setTimeout(() => card.classList.remove('dt-list-highlight'), 2000)
+        }
+      })
+
+      map.on('mouseenter', 'item-points', () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', 'item-points', () => { map.getCanvas().style.cursor = '' })
 
       // Center marker
       new maplibregl.Marker({ color: '#fff' }).setLngLat([center.lon, center.lat]).addTo(map)
     })
 
-    return () => map.remove()
-  }, [items, center, color])
+    return () => { map.remove() }
+  }, [items, center, color, labels])
 
   return <div ref={ref} className="dt-mini-map" />
 }
