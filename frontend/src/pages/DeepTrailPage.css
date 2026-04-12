@@ -50,7 +50,7 @@
 
 .dt-coord-form { display: flex; gap: 8px; }
 .dt-coord-input {
-  flex: 1; background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
+  width: 90px; flex: none; background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
   padding: 12px; font-size: 0.88rem; color: #e8e0d4; font-family: inherit;
   min-height: 48px;
 }
