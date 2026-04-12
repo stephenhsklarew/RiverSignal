@@ -390,13 +390,28 @@ def text_to_speech(body: dict):
     """Convert text to natural speech using OpenAI TTS.
 
     Request body: {"text": "...", "voice": "nova"}
-    Returns: audio/mpeg binary
+    Returns: audio/mpeg binary. Cached on disk by content hash.
     """
+    import hashlib
+    import pathlib
+
     text_input = body.get("text", "")
     voice = body.get("voice", "nova")
 
     if not text_input:
         return Response(content=b"", media_type="audio/mpeg", status_code=400)
+
+    # Cache directory
+    cache_dir = pathlib.Path(__file__).resolve().parent.parent.parent / ".tts_cache"
+    cache_dir.mkdir(exist_ok=True)
+
+    # Cache key = hash of text + voice
+    cache_key = hashlib.sha256(f"{voice}:{text_input}".encode()).hexdigest()[:24]
+    cache_file = cache_dir / f"{cache_key}.mp3"
+
+    # Return cached audio if it exists
+    if cache_file.exists():
+        return Response(content=cache_file.read_bytes(), media_type="audio/mpeg")
 
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
@@ -412,5 +427,8 @@ def text_to_speech(body: dict):
 
     if resp.status_code != 200:
         return Response(content=b"", media_type="audio/mpeg", status_code=502)
+
+    # Save to cache
+    cache_file.write_bytes(resp.content)
 
     return Response(content=resp.content, media_type="audio/mpeg")
