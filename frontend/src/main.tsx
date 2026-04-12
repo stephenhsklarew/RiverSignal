@@ -40,7 +40,9 @@ createRoot(document.getElementById('root')!).render(
 
           {/* DeepTrail — B2C geology adventure (mobile-first) */}
           <Route path="/trail" element={<DeepTrailPage />} />
-          <Route path="/trail/:location" element={<DeepTrailPage />} />
+          <Route path="/trail/location" element={<DeepTrailPage />} />
+          <Route path="/trail/fossils" element={<DeepTrailPage />} />
+          <Route path="/trail/minerals" element={<DeepTrailPage />} />
 
           {/* Legacy routes — redirect to new product routes */}
           <Route path="/map" element={<MapPage />} />
