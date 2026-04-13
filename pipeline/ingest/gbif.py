@@ -135,6 +135,13 @@ class GBIFFossilAdapter(IngestionAdapter):
                     collection = rec.get("collectionCode", "")
                     museum = f"{inst} — {collection}" if collection else inst
 
+                    # Extract image URL from media array
+                    image_url = None
+                    for media in (rec.get("media") or []):
+                        if media.get("type") == "StillImage" and media.get("identifier"):
+                            image_url = media["identifier"]
+                            break
+
                     try:
                         conn.execute(UPSERT_SQL, {
                             "source_id": gbif_key,
@@ -164,6 +171,7 @@ class GBIFFossilAdapter(IngestionAdapter):
                                 "year": rec.get("year"),
                                 "typeStatus": rec.get("typeStatus"),
                                 "basisOfRecord": rec.get("basisOfRecord"),
+                                "image_url": image_url,
                             }),
                         })
                         created += 1
@@ -177,7 +185,9 @@ class GBIFFossilAdapter(IngestionAdapter):
 
                 conn.commit()
 
-            console.print(f"    [green]GBIF: {created} created for {site.watershed}[/green]")
+            # Second pass: fetch records with images to backfill image_url
+            img_count = self._backfill_images(client, bbox)
+            console.print(f"    [green]GBIF: {created} created, {img_count} images for {site.watershed}[/green]")
             self.complete_job(job, created, updated)
 
         except Exception as e:
@@ -188,3 +198,48 @@ class GBIFFossilAdapter(IngestionAdapter):
             console.print(f"    [red]GBIF ingestion failed: {e}[/red]")
 
         return created, updated
+
+    def _backfill_images(self, client, bbox) -> int:
+        """Fetch GBIF records that have images and update data_payload."""
+        params = {
+            "decimalLatitude": f"{bbox['south']},{bbox['north']}",
+            "decimalLongitude": f"{bbox['west']},{bbox['east']}",
+            "basisOfRecord": "FOSSIL_SPECIMEN",
+            "mediaType": "StillImage",
+            "limit": 300,
+        }
+        try:
+            resp = client.get(GBIF_URL, params=params)
+            resp.raise_for_status()
+            records = resp.json().get("results", [])
+        except Exception:
+            return 0
+
+        updated = 0
+        with engine.connect() as conn:
+            for rec in records:
+                gbif_key = str(rec.get("key", ""))
+                media = rec.get("media", [])
+                image_url = None
+                for m in media:
+                    if m.get("type") == "StillImage" and m.get("identifier"):
+                        image_url = m["identifier"]
+                        break
+                if not image_url:
+                    continue
+
+                try:
+                    conn.execute(text("""
+                        UPDATE fossil_occurrences
+                        SET data_payload = jsonb_set(
+                            COALESCE(data_payload, '{}'),
+                            '{image_url}',
+                            to_jsonb(CAST(:img AS text))
+                        )
+                        WHERE source = 'gbif' AND source_id = :sid
+                    """), {"img": image_url, "sid": gbif_key})
+                    updated += 1
+                except Exception:
+                    continue
+            conn.commit()
+        return updated

@@ -110,17 +110,22 @@ def get_geology_watershed_link(watershed: str):
 
 
 @router.get("/fossils/near/{lat}/{lon}")
-def get_fossils_near(lat: float, lon: float, radius_km: float = Query(25, le=100)):
+def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200)):
     """Return fossil occurrences within radius of a point."""
     sql = text("""
         SELECT source_id, taxon_name, phylum, class_name, order_name, family,
                age_min_ma, age_max_ma, period, formation,
                latitude, longitude, collector, reference, museum,
-               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km
+               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km,
+               data_payload->>'image_url' as image_url
         FROM fossil_occurrences
         WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
-        ORDER BY distance_km
-        LIMIT 100
+        ORDER BY
+            CASE WHEN data_payload->>'image_url' IS NOT NULL
+                      AND data_payload->>'image_url' NOT IN ('null', '')
+                 THEN 0 ELSE 1 END,
+            distance_km
+        LIMIT 200
     """)
     with engine.connect() as conn:
         rows = conn.execute(sql, {
@@ -129,6 +134,11 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(25, le=100
 
     fossils = []
     for r in rows:
+        img = r[16]
+        if img and img != "null":
+            image_url = img
+        else:
+            image_url = None
         fossils.append({
             "source_id": r[0], "taxon_name": r[1],
             "phylum": r[2], "class_name": r[3],
@@ -138,7 +148,7 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(25, le=100
             "latitude": r[10], "longitude": r[11],
             "collector": r[12], "reference": r[13], "museum": r[14],
             "distance_km": round(r[15], 1) if r[15] else None,
-            "image_url": r[13] if r[13] and (r[13].startswith('https://images.') or r[13].startswith('https://www.') or r[13].startswith('https://collections.') or '.jpg' in r[13] or '.jpeg' in r[13]) else None,
+            "image_url": image_url,
         })
 
     return {"fossils": fossils, "count": len(fossils), "radius_km": radius_km}
