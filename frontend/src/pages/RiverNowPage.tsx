@@ -173,6 +173,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [whatsAlive, setWhatsAlive] = useState<any[]>([])
   const [geology, setGeology] = useState<any[]>([])
   const [fossils, setFossils] = useState<any[]>([])
+  const [weather, setWeather] = useState<any>(null)
+  const [liveConditions, setLiveConditions] = useState<any>(null)
+  const [stocking, setStocking] = useState<any[]>([])
 
   // Inline chat state
   const [askInput, setAskInput] = useState('')
@@ -190,6 +193,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/species?taxonomic_group=Actinopterygii&limit=5`).then(r => r.json()).then(setFishSpecies)
     fetch(`${API}/sites/${watershed}/recreation`).then(r => r.json()).then(d => setAccessPoints((d || []).slice(0, 8)))
     fetch(`${API}/sites/${watershed}/species?limit=6`).then(r => r.json()).then(setWhatsAlive)
+    // Live conditions + weather + stocking
+    fetch(`${API}/sites/${watershed}/weather`).then(r => r.json()).then(setWeather).catch(() => {})
+    fetch(`${API}/sites/${watershed}/conditions/live`).then(r => r.json()).then(setLiveConditions).catch(() => {})
+    fetch(`${API}/sites/${watershed}/fishing/stocking`).then(r => r.json()).then(setStocking).catch(() => {})
     // Geology + fossils for Deep Time card
     const center = WS_CENTERS[watershed]
     if (center) {
@@ -231,10 +238,23 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const topInsects = (hatch?.insects || []).filter((i: any) => i.month === hatch?.current_month).slice(0, 3)
   const coldRefuges = refuges.filter((r: any) => r.thermal_class === 'cold_water_refuge' || r.thermal_class === 'cool_water')
   const fishActive = fishSpecies.filter((s: any) => s.photo_url).slice(0, 3)
-  const flowTrend = conditions.length >= 2
-    ? (conditions[0]?.discharge_cfs > conditions[1]?.discharge_cfs ? 'Rising ↑' : conditions[0]?.discharge_cfs < conditions[1]?.discharge_cfs ? 'Falling ↓' : 'Stable →')
-    : null
   const hatchConfidence = topInsects[0]?.confidence || null
+
+  // Prefer live USGS readings over monthly averages
+  const liveTemp = liveConditions?.readings?.find((r: any) => r.parameter === 'water_temp_c')
+  const liveFlow = liveConditions?.readings?.find((r: any) => r.parameter === 'discharge_cfs')
+  const liveDO = liveConditions?.readings?.find((r: any) => r.parameter === 'dissolved_oxygen_mg_l')
+  const displayTemp = liveTemp ? `${liveTemp.display_value}°F` : health.water_temp_c != null ? tempF(health.water_temp_c) : null
+  const displayFlow = liveFlow ? Math.round(liveFlow.value).toLocaleString() : latest?.discharge_cfs != null ? Math.round(latest.discharge_cfs).toLocaleString() : null
+  const displayDO = liveDO ? liveDO.value.toFixed(1) : health.dissolved_oxygen_mg_l
+  const isLive = !!(liveTemp || liveFlow)
+
+  // Upcoming stocking
+  const upcomingStocking = stocking.filter((s: any) => new Date(s.date) > new Date()).slice(0, 3)
+  const recentStocking = stocking.filter((s: any) => new Date(s.date) <= new Date()).slice(0, 3)
+
+  // Weather
+  const todayWeather = weather?.periods?.[0]
 
   return (
     <div className="rnow">
@@ -248,29 +268,26 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
         <>
           {/* ── Hero Card ── */}
           <div className="rnow-hero">
-            <h2 className="rnow-hero-title">{site.name}</h2>
+            <div className="rnow-hero-top">
+              <h2 className="rnow-hero-title">{site.name}</h2>
+              {isLive && <span className="rnow-live-badge">LIVE</span>}
+            </div>
             <div className="rnow-hero-metrics">
-              {health.water_temp_c != null && (
+              {displayTemp && (
                 <div className="rnow-metric">
-                  <span className="rnow-metric-value">{tempF(health.water_temp_c)}</span>
+                  <span className="rnow-metric-value">{displayTemp}</span>
                   <span className="rnow-metric-label">Water Temp</span>
                 </div>
               )}
-              {latest?.discharge_cfs != null && (
+              {displayFlow && (
                 <div className="rnow-metric">
-                  <span className="rnow-metric-value">{Math.round(latest.discharge_cfs).toLocaleString()}</span>
+                  <span className="rnow-metric-value">{displayFlow}</span>
                   <span className="rnow-metric-label">Flow (cfs)</span>
                 </div>
               )}
-              {flowTrend && (
+              {displayDO != null && (
                 <div className="rnow-metric">
-                  <span className="rnow-metric-value">{flowTrend}</span>
-                  <span className="rnow-metric-label">Trend</span>
-                </div>
-              )}
-              {health.dissolved_oxygen_mg_l != null && (
-                <div className="rnow-metric">
-                  <span className="rnow-metric-value">{health.dissolved_oxygen_mg_l}</span>
+                  <span className="rnow-metric-value">{displayDO}</span>
                   <span className="rnow-metric-label">DO (mg/L)</span>
                 </div>
               )}
@@ -282,9 +299,18 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   <span className="rnow-metric-label">Hatch</span>
                 </div>
               )}
+              {todayWeather && (
+                <div className="rnow-metric">
+                  <span className="rnow-metric-value">{todayWeather.temperature}°F</span>
+                  <span className="rnow-metric-label">{todayWeather.forecast}</span>
+                </div>
+              )}
             </div>
             {health.score != null && (
               <div className="rnow-hero-score">Health Score: <strong>{health.score}</strong>/100</div>
+            )}
+            {liveTemp && (
+              <div className="rnow-hero-station">{liveTemp.station} · {new Date(liveTemp.timestamp).toLocaleTimeString()}</div>
             )}
           </div>
 
@@ -391,6 +417,57 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <DeepTimeCard geology={geology} fossils={fossils} watershed={watershed} />
             )}
           </div>
+
+          {/* ── Weather Forecast ── */}
+          {weather?.periods?.length > 0 && (
+            <section className="rnow-section">
+              <div className="rnow-section-title">Weather Forecast</div>
+              <div className="rnow-weather-grid">
+                {weather.periods.slice(0, 6).map((p: any, i: number) => (
+                  <div key={i} className={`rnow-weather-item${p.is_daytime ? '' : ' night'}`}>
+                    <div className="rnow-weather-name">{p.name}</div>
+                    <div className="rnow-weather-temp">{p.temperature}°{p.unit}</div>
+                    <div className="rnow-weather-desc">{p.forecast}</div>
+                    <div className="rnow-weather-wind">{p.wind_speed} {p.wind_direction}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Stocking Alerts ── */}
+          {(upcomingStocking.length > 0 || recentStocking.length > 0) && (
+            <section className="rnow-section">
+              <div className="rnow-section-title">Fish Stocking</div>
+              {upcomingStocking.length > 0 && (
+                <div className="rnow-stocking-upcoming">
+                  {upcomingStocking.map((s: any, i: number) => (
+                    <div key={i} className="rnow-stocking-item upcoming">
+                      <span className="rnow-stocking-icon">🐟</span>
+                      <div className="rnow-stocking-info">
+                        <div className="rnow-stocking-name">{s.waterbody}</div>
+                        <div className="rnow-stocking-detail">{s.fish?.toLocaleString()} fish · {s.date}</div>
+                      </div>
+                      <span className="rnow-stocking-badge">Upcoming</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {recentStocking.length > 0 && (
+                <div className="rnow-stocking-recent">
+                  {recentStocking.map((s: any, i: number) => (
+                    <div key={i} className="rnow-stocking-item">
+                      <span className="rnow-stocking-icon">🐟</span>
+                      <div className="rnow-stocking-info">
+                        <div className="rnow-stocking-name">{s.waterbody}</div>
+                        <div className="rnow-stocking-detail">{s.fish?.toLocaleString()} fish · {s.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* ── What's Here Now ── */}
           {whatsAlive.length > 0 && (

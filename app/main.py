@@ -8,7 +8,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import sites, reasoning, fishing, reports, health, data_status, geology
+from app.routers import sites, reasoning, fishing, reports, health, data_status, geology, weather
 
 
 @asynccontextmanager
@@ -38,3 +38,4 @@ app.include_router(fishing.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(data_status.router, prefix="/api/v1")
 app.include_router(geology.router, prefix="/api/v1")
+app.include_router(weather.router, prefix="/api/v1")
