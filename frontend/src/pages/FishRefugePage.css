@@ -1,14 +1,14 @@
 .fish-page { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
+
+.fish-back-row { margin-bottom: 8px; }
+.fish-back-btn {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font-family: inherit; font-size: 13px; padding: 4px 0; font-weight: 500;
+}
+.fish-back-btn:hover { text-decoration: underline; }
+
 .fish-title { font-family: 'Fraunces', serif; font-size: 22px; margin: 0 0 4px; }
 .fish-current-temp { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; font-family: var(--mono); }
-
-.fish-ws-bar { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 16px; }
-.fish-ws-btn {
-  padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);
-  background: var(--surface); font-family: inherit; font-size: 12px;
-  cursor: pointer; white-space: nowrap; min-height: 32px;
-}
-.fish-ws-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
 .fish-section { margin-bottom: 24px; }
 .fish-section-title { font-size: 14px; font-weight: 600; margin: 0 0 10px; color: var(--text-secondary); }

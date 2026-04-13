@@ -35,6 +35,7 @@ const HatchPage = lazy(() => import('./pages/HatchPage'))
 const FishRefugePage = lazy(() => import('./pages/FishRefugePage'))
 const StewardPage = lazy(() => import('./pages/StewardPage'))
 const SavedPage = lazy(() => import('./pages/SavedPage'))
+const SpeciesMapPage = lazy(() => import('./pages/SpeciesMapPage'))
 
 // Bottom nav (only on /path/* routes)
 const BottomNav = lazy(() => import('./components/BottomNav'))
@@ -48,7 +49,7 @@ const Loading = () => (
 function ConditionalBottomNav() {
   const { pathname } = useLocation()
   // Show bottom nav on /path/* routes except the homepage (/path, /path/:watershed)
-  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish)/.test(pathname)
+  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map)/.test(pathname)
   if (!isTabRoute) return null
   return <BottomNav />
 }
@@ -82,6 +83,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/path/steward" element={<StewardPage />} />
             <Route path="/path/steward/:watershed" element={<StewardPage />} />
             <Route path="/path/saved" element={<SavedPage />} />
+            <Route path="/path/map/:watershed" element={<SpeciesMapPage />} />
             <Route path="/path/fish/:watershed" element={<FishRefugePage />} />
 
             {/* DeepSignal — B2B geologic intelligence (desktop-first) */}

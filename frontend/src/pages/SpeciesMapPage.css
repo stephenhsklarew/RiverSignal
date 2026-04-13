@@ -1,0 +1,51 @@
+.species-map-page {
+  display: flex; flex-direction: column; height: 100vh;
+  padding-bottom: 56px; /* bottom nav */
+}
+
+.species-map-top { padding: 12px 16px 0; }
+.species-map-back {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font-family: inherit; font-size: 13px; padding: 4px 0; font-weight: 500;
+}
+.species-map-back:hover { text-decoration: underline; }
+
+.species-map-page .ws-header { padding: 8px 16px 8px; }
+
+.species-map-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 8px 16px 10px;
+}
+.species-map-cat {
+  padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface); font-family: inherit; font-size: 13px;
+  cursor: pointer; font-weight: 500; min-height: 34px;
+}
+.species-map-cat.active { background: var(--accent); color: white; border-color: var(--accent); }
+.species-map-count { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+
+.species-map-container {
+  flex: 1; min-height: 0;
+}
+
+/* Map pins */
+.species-map-pin {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid white; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.species-map-pin.fish { background: #2563eb; }
+.species-map-pin.insect { background: #d97706; }
+
+/* Popup styles — injected via setHTML into MapLibre popup */
+.species-popup { font-family: 'Outfit', sans-serif; }
+.species-popup-img {
+  width: 100%; height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;
+}
+.species-popup-no-img {
+  width: 100%; height: 60px; background: #f5f5f0; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; color: #999;
+  font-size: 12px; margin-bottom: 6px;
+}
+.species-popup-name { font-size: 14px; font-weight: 600; }
+.species-popup-sci { font-size: 11px; color: #888; font-style: italic; }
+.species-popup-date { font-size: 11px; color: #888; margin-top: 4px; }

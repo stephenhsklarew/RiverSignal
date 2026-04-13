@@ -19,7 +19,7 @@ const products = [
     tagline: 'River Field Companion',
     description: 'Story-driven mobile guide for families, anglers, and educators exploring Oregon\'s living rivers.',
     audience: 'B2C — Mobile-first',
-    path: '/path',
+    path: '/path/now',
     icon: '🏞️',
     color: '#2d7a9c',
   },

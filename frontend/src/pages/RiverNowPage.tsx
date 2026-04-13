@@ -344,7 +344,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <div className="rnow-card-action">View Hatch Chart →</div>
             </div>
 
-            <div className="rnow-card" onClick={() => navigate(`/path/fish/${watershed}`)}>
+            <div className="rnow-card" onClick={() => navigate(`/path/fish/${watershed}?section=refuges`)}>
               <div className="rnow-card-header">
                 <span className="rnow-card-icon">❄</span>
                 <span className="rnow-card-title">Cold-Water Refuges</span>
@@ -373,7 +373,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── What's Here Now ── */}
           {whatsAlive.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">What's Here Now</div>
+              <div className="rnow-section-title-row">
+                <span className="rnow-section-title">What's Here Now</span>
+                <button className="rnow-view-map-btn" onClick={() => navigate(`/path/map/${watershed}`)}>View Map</button>
+              </div>
               <div className="rnow-alive-grid">
                 {whatsAlive.map((s: any, i: number) => (
                   <div key={i} className="rnow-alive-item">
