@@ -207,12 +207,15 @@
 
 /* Deep Time Card */
 .rnow-card-deeptime {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border-color: #2a2a4a;
-  color: #e0ddd5;
+  background: linear-gradient(135deg, #2a2318 0%, #1a1612 100%);
+  border-color: #3d3328;
+  color: #e8e0d4;
 }
-.rnow-card-deeptime .rnow-card-title { color: #d4a96a; }
-.rnow-card-deeptime .rnow-card-body { color: #c0bdb5; }
+.rnow-card-deeptime .rnow-card-body { color: #c8c0b4; }
+
+.deeptime-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.deeptime-logo { height: 22px; width: auto; }
+.deeptime-label { font-size: 13px; font-weight: 600; color: #d4a96a; }
 
 .deeptime-age { margin-bottom: 6px; }
 .deeptime-age-number { font-size: 20px; font-weight: 700; font-family: var(--mono); color: #d4a96a; }
