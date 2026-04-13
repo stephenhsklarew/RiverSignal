@@ -35,6 +35,40 @@ interface ObsFeature {
   }
 }
 
+/** Match an insect observation to a fly recommendation by taxon or common name. */
+function matchFly(taxonName: string, commonName: string | null, recs: any[]): any | null {
+  const taxon = taxonName.toLowerCase()
+  const common = (commonName || '').toLowerCase()
+
+  // Keywords from common insect group names to fly rec insect names
+  const KEYWORD_MAP: Record<string, string[]> = {
+    'midge': ['midge', 'cecidom', 'chironom'],
+    'caddis': ['caddis', 'trichoptera'],
+    'mayfly': ['mayfly', 'ephemeroptera', 'baetis', 'ephemerella'],
+    'stonefly': ['stonefly', 'plecoptera', 'pteronarcys', 'salmonfly'],
+    'moth': ['moth', 'lepidoptera'],
+    'dragonfly': ['dragonfly', 'odonata', 'libellul'],
+    'damselfly': ['damselfly', 'zygoptera'],
+    'crane fly': ['crane', 'tipul'],
+  }
+
+  for (const rec of recs) {
+    const recTaxon = (rec.insect_taxon || '').toLowerCase()
+    const recInsect = (rec.insect || '').toLowerCase()
+
+    // Direct taxon substring match (e.g., observation "Cecidomyiinae sp." contains fly's "Cecidomyiinae")
+    if (recTaxon && (taxon.includes(recTaxon) || recTaxon.includes(taxon))) return rec
+
+    // Common name keyword match
+    for (const [keyword, variants] of Object.entries(KEYWORD_MAP)) {
+      const obsMatches = common.includes(keyword) || variants.some(v => taxon.includes(v) || common.includes(v))
+      const recMatches = recInsect.includes(keyword) || variants.some(v => recTaxon.includes(v) || recInsect.includes(v))
+      if (obsMatches && recMatches) return rec
+    }
+  }
+  return null
+}
+
 export default function SpeciesMapPage() {
   const navigate = useNavigate()
   const { watershed: paramWs } = useParams<{ watershed?: string }>()
@@ -43,13 +77,14 @@ export default function SpeciesMapPage() {
   const [category, setCategory] = useState('Actinopterygii')
   const [features, setFeatures] = useState<ObsFeature[]>([])
   const [loading, setLoading] = useState(true)
+  const [flyRecs, setFlyRecs] = useState<any[]>([])
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
 
-  // Fetch observations
+  // Fetch observations + fly recs (for insects)
   useEffect(() => {
     setLoading(true)
     fetch(`${API}/sites/${ws}/observations/search?q=${category}&limit=500`)
@@ -59,6 +94,12 @@ export default function SpeciesMapPage() {
         setLoading(false)
       })
       .catch(() => { setFeatures([]); setLoading(false) })
+
+    // Load fly recommendations for insect matching
+    fetch(`${API}/sites/${ws}/fishing/fly-recommendations`)
+      .then(r => r.json())
+      .then(setFlyRecs)
+      .catch(() => setFlyRecs([]))
   }, [ws, category])
 
   // Initialize map
@@ -114,7 +155,28 @@ export default function SpeciesMapPage() {
         const name = p.common_name || p.taxon_name
         const date = p.observed_at || 'Unknown date'
 
-        const popup = new maplibregl.Popup({ offset: 12, maxWidth: '220px' })
+        // Match a fly recommendation for insect observations
+        let flyHtml = ''
+        if (category === 'Insecta' && flyRecs.length > 0) {
+          const match = matchFly(p.taxon_name, p.common_name, flyRecs)
+          if (match) {
+            const flyImg = match.fly_image_url
+              ? `<img src="${match.fly_image_url}" class="species-popup-fly-img" />`
+              : ''
+            flyHtml = `
+              <div class="species-popup-fly">
+                ${flyImg}
+                <div class="species-popup-fly-info">
+                  <div class="species-popup-fly-label">Match the hatch</div>
+                  <div class="species-popup-fly-name">${match.fly_pattern}</div>
+                  ${match.fly_size ? `<div class="species-popup-fly-size">#${match.fly_size} ${match.fly_type || ''}</div>` : ''}
+                </div>
+              </div>
+            `
+          }
+        }
+
+        const popup = new maplibregl.Popup({ offset: 12, maxWidth: '240px' })
           .setLngLat(f.geometry.coordinates as [number, number])
           .setHTML(`
             <div class="species-popup">
@@ -122,6 +184,7 @@ export default function SpeciesMapPage() {
               <div class="species-popup-name">${name}</div>
               <div class="species-popup-sci">${p.taxon_name}</div>
               <div class="species-popup-date">${date}</div>
+              ${flyHtml}
             </div>
           `)
           .addTo(map)
@@ -131,7 +194,7 @@ export default function SpeciesMapPage() {
 
       markersRef.current.push(marker)
     })
-  }, [features, category])
+  }, [features, category, flyRecs])
 
   return (
     <div className="species-map-page">

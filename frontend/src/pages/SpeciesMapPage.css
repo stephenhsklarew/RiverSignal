@@ -49,3 +49,17 @@
 .species-popup-name { font-size: 14px; font-weight: 600; }
 .species-popup-sci { font-size: 11px; color: #888; font-style: italic; }
 .species-popup-date { font-size: 11px; color: #888; margin-top: 4px; }
+
+/* Fly match in popup */
+.species-popup-fly {
+  display: flex; gap: 8px; align-items: center;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid #e8e2d8;
+}
+.species-popup-fly-img {
+  width: 40px; height: 40px; object-fit: cover; border-radius: 4px; flex-shrink: 0;
+}
+.species-popup-fly-info { flex: 1; min-width: 0; }
+.species-popup-fly-label { font-size: 9px; color: #1a6b4a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.species-popup-fly-name { font-size: 12px; font-weight: 600; }
+.species-popup-fly-size { font-size: 10px; color: #888; }
