@@ -1,3 +1,52 @@
+/* ── Default view (all rivers) ── */
+.rnow-default { padding: 0 0 72px; }
+.rnow-default-nav { display: flex; justify-content: center; padding: 14px 16px 6px; }
+.rnow-default-logo { height: 40px; width: auto; }
+.rnow-default-links {
+  display: flex; gap: 18px; justify-content: center; padding: 0 16px 14px;
+  white-space: nowrap; font-size: 13px;
+}
+.rnow-default-link { text-decoration: none; color: var(--text-secondary); font-weight: 400; }
+.rnow-default-link:hover { color: var(--text); }
+.rnow-default-list { padding: 0 16px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.rnow-loading { text-align: center; color: var(--text-muted); padding: 40px 0; }
+
+/* River card (default view) */
+.river-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.river-card-image { position: relative; cursor: pointer; }
+.river-card-image img { width: 100%; height: 180px; object-fit: cover; display: block; }
+.river-card-score-orb {
+  position: absolute; top: 12px; right: 12px; background: rgba(255,253,247,0.92);
+  border-radius: 50%; width: 52px; height: 52px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.river-card-score { font-size: 18px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+.river-card-score.good { color: var(--accent); }
+.river-card-score.moderate { color: var(--warm); }
+.river-card-score.poor { color: var(--alert); }
+.river-card-score-label { font-size: 8px; color: var(--text-muted); text-transform: uppercase; }
+
+.river-card-body { padding: 14px 16px; }
+.river-card-name { font-family: 'Fraunces', serif; font-size: 20px; margin: 0 0 4px; cursor: pointer; }
+.river-card-name:hover { color: var(--accent); }
+.river-card-tagline { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+.river-card-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.river-pill {
+  padding: 3px 8px; border-radius: 12px; font-size: 11px;
+  background: var(--bg); color: var(--text-secondary); font-weight: 500;
+}
+.river-card-ask { display: flex; gap: 6px; }
+.river-card-ask input {
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+  font-family: inherit; font-size: 13px; min-height: 36px; background: var(--bg);
+}
+.river-card-ask input:focus { border-color: var(--accent); outline: none; }
+.river-card-ask button {
+  padding: 8px 14px; background: var(--accent); color: white; border: none;
+  border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+}
+
+/* ── Detail view ── */
 .rnow { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
 
 .rnow-header { margin-bottom: 16px; }
@@ -27,6 +76,69 @@
 .confidence-high { color: var(--accent); }
 .confidence-medium { color: var(--warm); }
 .confidence-low { color: var(--text-muted); }
+
+/* Loading state */
+.rnow .rnow-loading { text-align: center; color: var(--text-muted); font-style: italic; padding: 40px 16px; }
+
+/* Watershed picker modal */
+.rnow-modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4); z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.rnow-modal {
+  background: var(--surface); border-radius: 16px 16px 0 0;
+  width: 100%; max-width: 600px; padding: 20px 16px 32px;
+  animation: rnow-slide-up 0.2s ease-out;
+}
+@keyframes rnow-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.rnow-modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 16px; font-weight: 600; margin-bottom: 16px;
+}
+.rnow-modal-close {
+  background: none; border: none; font-size: 18px; cursor: pointer;
+  color: var(--text-muted); padding: 4px 8px;
+}
+.rnow-modal-list { display: flex; flex-direction: column; gap: 4px; }
+.rnow-modal-item {
+  display: block; width: 100%; text-align: left; padding: 14px 16px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--bg);
+  font-family: inherit; font-size: 15px; cursor: pointer;
+}
+.rnow-modal-item:hover { border-color: var(--accent); }
+.rnow-modal-item.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
+.rnow-modal-all {
+  display: block; width: 100%; margin-top: 12px; padding: 12px;
+  background: none; border: none; color: var(--accent); font-family: inherit;
+  font-size: 14px; font-weight: 500; cursor: pointer; text-align: center;
+}
+
+/* Ask section (below hero) */
+.rnow-ask-section { margin-bottom: 16px; }
+.rnow-ask-row { display: flex; gap: 6px; }
+.rnow-ask-input {
+  flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: inherit; font-size: 14px; background: var(--surface);
+  min-height: 42px; box-sizing: border-box;
+}
+.rnow-ask-input:focus { border-color: var(--accent); outline: none; }
+.rnow-ask-btn {
+  padding: 10px 16px; background: var(--accent); color: white; border: none;
+  border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.rnow-chat-response {
+  margin-top: 10px; padding: 12px 14px; background: #f8f6f1;
+  border-radius: 8px; border: 1px solid #e8e2d8;
+}
+.rnow-chat-question { font-weight: 600; font-size: 13px; color: var(--accent); margin-bottom: 6px; }
+.rnow-chat-loading { font-size: 13px; color: var(--text-muted); font-style: italic; }
+.rnow-chat-answer { font-size: 13px; line-height: 1.6; color: #3d3527; }
+.rnow-chat-answer p { margin: 0 0 8px; }
+.rnow-chat-answer p:last-child { margin-bottom: 0; }
 
 /* Swipeable Condition Cards */
 .rnow-cards-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }

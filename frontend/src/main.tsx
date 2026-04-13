@@ -74,6 +74,7 @@ createRoot(document.getElementById('root')!).render(
 
             {/* RiverPath — mobile tab screens (FEAT-014) */}
             <Route path="/path/now" element={<RiverNowPage />} />
+            <Route path="/path/now/:watershed" element={<RiverNowPage />} />
             <Route path="/path/explore" element={<ExplorePage />} />
             <Route path="/path/hatch" element={<HatchPage />} />
             <Route path="/path/steward" element={<StewardPage />} />

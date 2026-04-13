@@ -76,7 +76,7 @@ export default function HomePage() {
 
   const handleAsk = (watershed: string, question: string) => {
     if (question.trim()) {
-      navigate(`/path/${watershed}?q=${encodeURIComponent(question.trim())}`)
+      navigate(`/path/now/${watershed}?q=${encodeURIComponent(question.trim())}`)
     }
   }
 
@@ -93,16 +93,15 @@ export default function HomePage() {
 
       {/* Navigation */}
       <nav className="home-nav">
-        <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverSignal" className="home-logo" /></Link>
-        <div className="home-nav-links">
-          {WATERSHED_ORDER.map(ws => (
-            <Link key={ws} to={`/path/${ws}`} className="home-nav-link">
-              {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[ws]}
-            </Link>
-          ))}
-          <Link to="/path" className="home-nav-link home-nav-map">Map →</Link>
-        </div>
+        <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverPath" className="home-logo" /></Link>
       </nav>
+      <div className="home-nav-links">
+        {WATERSHED_ORDER.map(ws => (
+          <Link key={ws} to={`/path/now/${ws}`} className="home-nav-link">
+            {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[ws]}
+          </Link>
+        ))}
+      </div>
 
       {/* Hero */}
       <section className="home-hero">
@@ -125,7 +124,7 @@ export default function HomePage() {
             photo={PHOTOS[ws.watershed]}
             reversed={idx % 2 === 1}
             onAsk={(q) => handleAsk(ws.watershed, q)}
-            onNavigate={() => navigate(`/path/${ws.watershed}`)}
+            onNavigate={() => navigate(`/path/now/${ws.watershed}`)}
             initialQuestion={ws.watershed === activeWatershed ? pendingQuestion : null}
             onQuestionConsumed={handleQuestionConsumed}
           />
