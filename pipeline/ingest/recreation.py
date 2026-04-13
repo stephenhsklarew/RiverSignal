@@ -28,8 +28,8 @@ console = Console()
 # ── Tier 1: ArcGIS FeatureServer / REST endpoints (no key) ──
 
 OSMB_BOATING_URL = (
-    "https://maps.prd.state.or.us/arcgis/rest/services/Framework/"
-    "Boat_Access_Sites_Oregon/FeatureServer/0/query"
+    "https://services.arcgis.com/uUvqNMGPm7axC2dD/arcgis/rest/services/"
+    "Boating_Access_Sites_OA/FeatureServer/0/query"
 )
 
 USFS_REC_URL = (
@@ -148,7 +148,7 @@ class RecreationAdapter(IngestionAdapter):
     # ── Tier 1 sources ──
 
     def _ingest_osmb(self, client, site, bbox) -> tuple[int, int]:
-        """Oregon State Marine Board boating access sites."""
+        """Oregon State Marine Board boating access sites (1,815 statewide)."""
         features = _arcgis_bbox_query(client, OSMB_BOATING_URL, bbox)
         console.print(f"  OSMB boating: {len(features)} features")
         created = updated = 0
@@ -159,19 +159,30 @@ class RecreationAdapter(IngestionAdapter):
             lon = geom.get("x")
             if not lat or not lon:
                 continue
-            name = attr.get("Waterbody_Name", "") or attr.get("SITE_NAME", "") or "Unnamed"
-            site_name = attr.get("SITE_NAME", "")
-            if site_name and site_name != name:
-                name = f"{site_name} — {name}"
+            if attr.get("public_display") == "No":
+                continue
+            site_name = attr.get("name", "") or "Unnamed"
+            waterway = attr.get("waterway_name", "")
+            name = f"{site_name} — {waterway}" if waterway and waterway not in site_name else site_name
+            launch = attr.get("launch_type", "")
+            rec_type = "boat_ramp"
+            if "hand carry" in (launch or "").lower() or "kayak" in (launch or "").lower():
+                rec_type = "boat_ramp"  # still a boat ramp, just hand-carry
             amenities = {
-                "fee": bool(attr.get("Fee")),
-                "restrooms": bool(attr.get("Restroom")),
-                "parking": bool(attr.get("Parking")),
-                "accessible": bool(attr.get("ADA")),
-                "pets_allowed": True,  # most boat ramps allow dogs
+                "fee": attr.get("fees") == "Yes" or attr.get("USEFEE"),
+                "restrooms": bool(attr.get("SANITATION")),
+                "parking": bool(attr.get("PARKING")),
+                "ramp": bool(attr.get("RAMP")),
+                "hand_carry": bool(attr.get("HAND")),
+                "non_motorized": bool(attr.get("NONMOTOR")),
+                "fuel": bool(attr.get("FUEL")),
+                "marina": bool(attr.get("MARINA")),
+                "launch_type": launch,
+                "manager": attr.get("manager", ""),
+                "waterway": waterway,
             }
-            c, u = self._upsert(site, "osmb", str(attr.get("OBJECTID", "")),
-                                name, "boat_ramp", lat, lon, amenities, attr)
+            c, u = self._upsert(site, "osmb", str(attr.get("ObjectId", attr.get("globalid", ""))),
+                                name, rec_type, lat, lon, amenities, attr)
             created += c; updated += u
         return created, updated
 
