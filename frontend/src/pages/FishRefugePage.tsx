@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import SaveButton from '../components/SaveButton'
+import { cToF, tempF } from '../utils/temp'
 import './FishRefugePage.css'
 
 const API = 'http://localhost:8001/api/v1'
@@ -31,13 +32,13 @@ function getTempStatus(currentTemp: number | null, taxon: string): { label: stri
     if (key.includes(species) || species.includes(key)) {
       const label = currentTemp < lo ? 'Below range' : currentTemp > hi ? 'Above range' : 'In range'
       const cls = currentTemp >= lo && currentTemp <= hi ? 'good' : currentTemp <= hi + 2 && currentTemp >= lo - 2 ? 'marginal' : 'stress'
-      return { label, class: cls, range: `${lo}–${hi}°C` }
+      return { label, class: cls, range: `${cToF(lo)}–${cToF(hi)}°F` }
     }
   }
   // Default for salmonids
   const label = currentTemp < 18 ? 'Suitable' : 'Warm'
   const cls = currentTemp < 16 ? 'good' : currentTemp < 20 ? 'marginal' : 'stress'
-  return { label, class: cls, range: '<18°C preferred' }
+  return { label, class: cls, range: `<${cToF(18)}°F preferred` }
 }
 
 export default function FishRefugePage() {
@@ -70,7 +71,7 @@ export default function FishRefugePage() {
 
       <h1 className="fish-title">Fish + Cold-Water Refuges</h1>
       {currentTemp != null && (
-        <div className="fish-current-temp">Current water: <strong>{currentTemp}°C</strong></div>
+        <div className="fish-current-temp">Current water: <strong>{tempF(currentTemp)}</strong></div>
       )}
 
       {/* ── Fish Carousel ── */}
@@ -94,7 +95,7 @@ export default function FishRefugePage() {
                     {tempInfo && (
                       <div className="fish-temp-row">
                         <span className={`fish-temp-badge temp-${tempInfo.class}`}>
-                          {currentTemp}°C — {tempInfo.label}
+                          {tempF(currentTemp)} — {tempInfo.label}
                         </span>
                         <span className="fish-temp-range">Prefers {tempInfo.range}</span>
                       </div>
@@ -143,11 +144,11 @@ export default function FishRefugePage() {
                   </div>
                 </div>
                 <div className="refuge-details">
-                  <span className="refuge-temp">{r.avg_summer_temp_c?.toFixed(1)}°C avg summer</span>
+                  <span className="refuge-temp">{r.avg_summer_temp_c != null ? tempF(r.avg_summer_temp_c) : '—'} avg summer</span>
                   {r.years_of_data && <span className="refuge-years">{r.years_of_data} years data</span>}
                   {r.temp_trend_per_year != null && (
                     <span className={`refuge-trend ${r.temp_trend_per_year > 0 ? 'warming' : 'cooling'}`}>
-                      {r.temp_trend_per_year > 0 ? '↑' : '↓'} {Math.abs(r.temp_trend_per_year).toFixed(2)}°C/yr
+                      {r.temp_trend_per_year > 0 ? '↑' : '↓'} {(Math.abs(r.temp_trend_per_year) * 9 / 5).toFixed(2)}°F/yr
                     </span>
                   )}
                 </div>
@@ -161,7 +162,7 @@ export default function FishRefugePage() {
       <section className="fish-section">
         <div className="refuge-explain">
           <strong>Why cold-water refuges matter</strong>
-          <p>Salmonids — trout, salmon, and steelhead — require water below 18°C to thrive. During summer heat, cold-water refuges fed by springs, deep pools, and tributaries provide critical thermal habitat. Fish concentrate at these stations during heat events. Stations showing warming trends (↑) may lose refuge status in coming years.</p>
+          <p>Salmonids — trout, salmon, and steelhead — require water below 64°F to thrive. During summer heat, cold-water refuges fed by springs, deep pools, and tributaries provide critical thermal habitat. Fish concentrate at these stations during heat events. Stations showing warming trends (↑) may lose refuge status in coming years.</p>
           <p>Stations classified as <span style={{color: THERMAL_COLORS.cold_water_refuge, fontWeight: 600}}>cold-water refuge</span> or <span style={{color: THERMAL_COLORS.cool_water, fontWeight: 600}}>cool</span> are where to target for summer fishing. <span style={{color: THERMAL_COLORS.thermal_stress, fontWeight: 600}}>Thermal stress</span> zones should be avoided to reduce fish mortality.</p>
         </div>
       </section>

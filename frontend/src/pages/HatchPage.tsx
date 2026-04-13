@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react'
 import SaveButton from '../components/SaveButton'
+import WatershedHeader from '../components/WatershedHeader'
+import { useWatershed } from '../hooks/useWatershed'
+import { tempF } from '../utils/temp'
 import './HatchPage.css'
 
 const API = 'http://localhost:8001/api/v1'
-const WATERSHEDS = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
 const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const LIFECYCLE_STAGES = ['nymph', 'emerger', 'adult']
 const STAGE_ICONS: Record<string, string> = { nymph: '🐛', emerger: '🪶', adult: '🪰' }
 
 export default function HatchPage() {
-  const [ws, setWs] = useState('deschutes')
+  const ws = useWatershed('/path/hatch') || 'deschutes'
   const [hatch, setHatch] = useState<any>(null)
   const [flies, setFlies] = useState<any[]>([])
 
   useEffect(() => {
+    setHatch(null); setFlies([])
     fetch(`${API}/sites/${ws}/fishing/hatch-confidence`).then(r => r.json()).then(setHatch)
     fetch(`${API}/sites/${ws}/fishing/fly-recommendations`).then(r => r.json()).then(setFlies)
   }, [ws])
@@ -34,17 +37,10 @@ export default function HatchPage() {
 
   return (
     <div className="hatch-page">
-      <div className="hatch-ws-bar">
-        {WATERSHEDS.map(w => (
-          <button key={w} className={`hatch-ws-btn${ws === w ? ' active' : ''}`} onClick={() => setWs(w)}>
-            {w.charAt(0).toUpperCase() + w.slice(1)}
-          </button>
-        ))}
-      </div>
-
+      <WatershedHeader watershed={ws} basePath="/path/hatch" />
       <h1 className="hatch-title">Hatch Intelligence</h1>
       {hatch?.water_temp_c != null && (
-        <div className="hatch-temp">Current water: {hatch.water_temp_c}°C</div>
+        <div className="hatch-temp">Current water: {tempF(hatch.water_temp_c)}</div>
       )}
 
       {/* This Month */}

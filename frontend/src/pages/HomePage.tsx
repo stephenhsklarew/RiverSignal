@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
+import { tempF } from '../utils/temp'
 import logo from '../assets/riverpath-logo.svg'
 import './HomePage.css'
 
@@ -38,7 +39,7 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
   },
   metolius: {
     tagline: 'Spring-fed sanctuary — Oregon\'s purest river',
-    narrative: 'The Metolius emerges fully formed from the base of Black Butte, a constant 9.5°C year-round. This spring-fed system is one of the coldest, most stable rivers in Oregon — a refuge for bull trout, kokanee salmon, and the Oregon spotted frog. It is the benchmark against which other watersheds are measured.',
+    narrative: 'The Metolius emerges fully formed from the base of Black Butte, a constant 49°F year-round. This spring-fed system is one of the coldest, most stable rivers in Oregon — a refuge for bull trout, kokanee salmon, and the Oregon spotted frog. It is the benchmark against which other watersheds are measured.',
   },
   klamath: {
     tagline: 'The largest dam removal in American history',
@@ -203,7 +204,7 @@ function WatershedBlock({ data, photo, reversed, onAsk, onNavigate, initialQuest
 
         <div className="ws-pills">
           <span className="pill river">{sc.total_species?.toLocaleString() || '—'} species</span>
-          {health.water_temp_c != null && <span className="pill water">{health.water_temp_c}°C water</span>}
+          {health.water_temp_c != null && <span className="pill water">{tempF(health.water_temp_c)} water</span>}
           {health.dissolved_oxygen_mg_l != null && <span className="pill water">{health.dissolved_oxygen_mg_l} mg/L DO</span>}
           {sc.total_interventions > 0 && <span className="pill earth">{sc.total_interventions} restoration projects</span>}
         </div>

@@ -1,73 +1,68 @@
 import { useSaved, type SavedItem } from '../components/SavedContext'
+import './SavedPage.css'
 
-const TYPE_LABELS: Record<SavedItem['type'], string> = {
-  reach: 'Saved Reaches',
-  species: 'Saved Species',
-  fly: 'Saved Flies',
-  recreation: 'Saved Adventures',
-  restoration: 'Saved Projects',
+const TYPE_ICONS: Record<SavedItem['type'], string> = {
+  reach: '📍', species: '🐟', fly: '🪶', recreation: '⛺', restoration: '♻',
 }
 
-const TYPE_ORDER: SavedItem['type'][] = ['reach', 'species', 'fly', 'recreation', 'restoration']
+const WATERSHED_LABELS: Record<string, string> = {
+  mckenzie: 'McKenzie River', deschutes: 'Deschutes River', metolius: 'Metolius River',
+  klamath: 'Upper Klamath Basin', johnday: 'John Day River',
+}
 
 export default function SavedPage() {
   const { listSaved, unsave } = useSaved()
   const all = listSaved()
 
+  // Group by watershed
+  const byWatershed: Record<string, SavedItem[]> = {}
+  for (const item of all) {
+    const ws = item.watershed || 'other'
+    if (!byWatershed[ws]) byWatershed[ws] = []
+    byWatershed[ws].push(item)
+  }
+  const watershedKeys = Object.keys(byWatershed).sort()
+
   return (
-    <div style={{ padding: '24px 16px 72px', maxWidth: 600, margin: '0 auto' }}>
-      <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: 24, marginBottom: 8 }}>Saved</h1>
+    <div className="saved-page">
+      <h1 className="saved-title">Saved</h1>
 
       {all.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 32 }}>
+        <p className="saved-empty">
           Nothing saved yet — tap the heart icon on any card to save it here.
         </p>
       ) : (
-        TYPE_ORDER.map(type => {
-          const items = all.filter(i => i.type === type)
-          if (items.length === 0) return null
-          return (
-            <section key={type} style={{ marginBottom: 24 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                {TYPE_LABELS[type]}
-              </h2>
-              {items.map(item => (
-                <div key={`${item.type}-${item.id}`} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 12px', background: 'var(--surface, #fff)',
-                  borderRadius: 8, border: '1px solid var(--border)',
-                  marginBottom: 6,
-                }}>
-                  {item.thumbnail && (
-                    <img src={item.thumbnail} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.label}
-                    </div>
-                    {item.sublabel && (
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.sublabel}</div>
-                    )}
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                      {item.watershed} · saved {new Date(item.savedAt).toLocaleDateString()}
-                    </div>
+        watershedKeys.map(ws => (
+          <section key={ws} className="saved-group">
+            <h2 className="saved-group-title">
+              📍 {WATERSHED_LABELS[ws] || ws}
+              <span className="saved-group-count">{byWatershed[ws].length}</span>
+            </h2>
+            {byWatershed[ws].map(item => (
+              <div key={`${item.type}-${item.id}`} className="saved-item">
+                {item.thumbnail ? (
+                  <img src={item.thumbnail} alt="" className="saved-item-thumb" />
+                ) : (
+                  <span className="saved-item-icon">{TYPE_ICONS[item.type] || '📌'}</span>
+                )}
+                <div className="saved-item-info">
+                  <div className="saved-item-label">{item.label}</div>
+                  {item.sublabel && <div className="saved-item-sub">{item.sublabel}</div>}
+                  <div className="saved-item-meta">
+                    {item.type} · saved {new Date(item.savedAt).toLocaleDateString()}
                   </div>
-                  <button
-                    onClick={() => unsave(item.type, item.id)}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--text-muted)', fontSize: 16, padding: 8,
-                      minWidth: 36, minHeight: 36,
-                    }}
-                    aria-label={`Remove ${item.label} from saved`}
-                  >
-                    ✕
-                  </button>
                 </div>
-              ))}
-            </section>
-          )
-        })
+                <button
+                  onClick={() => unsave(item.type, item.id)}
+                  className="saved-item-delete"
+                  aria-label={`Remove ${item.label} from saved`}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </section>
+        ))
       )}
     </div>
   )

@@ -1,0 +1,37 @@
+.saved-page { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
+.saved-title { font-family: 'Fraunces', serif; font-size: 22px; margin: 0 0 16px; }
+.saved-empty { color: var(--text-muted); font-size: 14px; margin-top: 32px; }
+
+.saved-group { margin-bottom: 24px; }
+.saved-group-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 600; margin: 0 0 10px;
+  color: var(--text);
+}
+.saved-group-count {
+  background: var(--bg); color: var(--text-muted); font-size: 11px;
+  padding: 2px 8px; border-radius: 10px; font-weight: 500;
+}
+
+.saved-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; background: var(--surface);
+  border-radius: 8px; border: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.saved-item-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.saved-item-icon { font-size: 20px; width: 40px; text-align: center; flex-shrink: 0; }
+.saved-item-info { flex: 1; min-width: 0; }
+.saved-item-label {
+  font-size: 13px; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.saved-item-sub { font-size: 11px; color: var(--text-muted); }
+.saved-item-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; text-transform: capitalize; }
+.saved-item-delete {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 16px; padding: 8px;
+  min-width: 36px; min-height: 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+.saved-item-delete:hover { color: var(--alert); }

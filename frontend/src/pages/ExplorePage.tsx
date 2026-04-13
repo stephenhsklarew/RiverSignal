@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import SaveButton from '../components/SaveButton'
+import WatershedHeader from '../components/WatershedHeader'
+import { useWatershed } from '../hooks/useWatershed'
 import './ExplorePage.css'
 
 const API = 'http://localhost:8001/api/v1'
-const WATERSHEDS = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
 
 const FILTERS = [
   { key: 'campground', label: 'Camping', icon: '⛺' },
@@ -31,7 +32,7 @@ interface RecSite {
 }
 
 export default function ExplorePage() {
-  const [ws, setWs] = useState('deschutes')
+  const ws = useWatershed('/path/explore') || 'deschutes'
   const [sites, setSites] = useState<RecSite[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -87,15 +88,7 @@ export default function ExplorePage() {
 
   return (
     <div className="explore-page">
-      {/* Watershed selector */}
-      <div className="explore-ws-bar">
-        {WATERSHEDS.map(w => (
-          <button key={w} className={`explore-ws-btn${ws === w ? ' active' : ''}`} onClick={() => setWs(w)}>
-            {w.charAt(0).toUpperCase() + w.slice(1)}
-          </button>
-        ))}
-      </div>
-
+      <WatershedHeader watershed={ws} basePath="/path/explore" />
       <h1 className="explore-title">Explore</h1>
 
       {/* Search */}

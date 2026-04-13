@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import SaveButton from '../components/SaveButton'
+import WatershedHeader from '../components/WatershedHeader'
+import { useWatershed } from '../hooks/useWatershed'
 import './StewardPage.css'
 
 const API = 'http://localhost:8001/api/v1'
-const WATERSHEDS = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
 
 const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   mckenzie: { name: 'McKenzie Watershed Council', url: 'https://www.mckenziewc.org/' },
@@ -23,11 +24,12 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 export default function StewardPage() {
-  const [ws, setWs] = useState('mckenzie')
+  const ws = useWatershed('/path/steward') || 'mckenzie'
   const [data, setData] = useState<any>(null)
   const [story, setStory] = useState<any>(null)
 
   useEffect(() => {
+    setData(null); setStory(null)
     fetch(`${API}/sites/${ws}/stewardship`).then(r => r.json()).then(setData)
     fetch(`${API}/sites/${ws}/story`).then(r => r.json()).then(setStory)
   }, [ws])
@@ -48,14 +50,7 @@ export default function StewardPage() {
 
   return (
     <div className="steward-page">
-      <div className="steward-ws-bar">
-        {WATERSHEDS.map(w => (
-          <button key={w} className={`steward-ws-btn${ws === w ? ' active' : ''}`} onClick={() => setWs(w)}>
-            {w.charAt(0).toUpperCase() + w.slice(1)}
-          </button>
-        ))}
-      </div>
-
+      <WatershedHeader watershed={ws} basePath="/path/steward" />
       <h1 className="steward-title">Stewardship</h1>
 
       {/* ── Restoration Timeline ── */}

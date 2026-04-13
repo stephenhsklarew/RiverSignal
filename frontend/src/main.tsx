@@ -76,8 +76,11 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/path/now" element={<RiverNowPage />} />
             <Route path="/path/now/:watershed" element={<RiverNowPage />} />
             <Route path="/path/explore" element={<ExplorePage />} />
+            <Route path="/path/explore/:watershed" element={<ExplorePage />} />
             <Route path="/path/hatch" element={<HatchPage />} />
+            <Route path="/path/hatch/:watershed" element={<HatchPage />} />
             <Route path="/path/steward" element={<StewardPage />} />
+            <Route path="/path/steward/:watershed" element={<StewardPage />} />
             <Route path="/path/saved" element={<SavedPage />} />
             <Route path="/path/fish/:watershed" element={<FishRefugePage />} />
 

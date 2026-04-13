@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import SaveButton from '../components/SaveButton'
+import WatershedHeader from '../components/WatershedHeader'
+import { useWatershed } from '../hooks/useWatershed'
+import { tempF } from '../utils/temp'
 import './RiverNowPage.css'
 
 const API = 'http://localhost:8001/api/v1'
@@ -12,14 +15,12 @@ const TYPE_ICONS: Record<string, string> = {
 }
 
 export default function RiverNowPage() {
-  const { watershed } = useParams<{ watershed?: string }>()
+  const watershed = useWatershed('/path/now')
 
-  // No watershed selected → show the homepage content
   if (!watershed) {
     return <RiverNowDefault />
   }
 
-  // Watershed selected → show the detail view
   return <RiverNowDetail watershed={watershed} />
 }
 
@@ -126,7 +127,7 @@ function RiverCard({ site, photo, tagline, onNavigate, onAsk }: {
         <div className="river-card-tagline">{tagline}</div>
         <div className="river-card-pills">
           <span className="river-pill">{sc.total_species?.toLocaleString() || '—'} species</span>
-          {health.water_temp_c != null && <span className="river-pill">{health.water_temp_c}°C</span>}
+          {health.water_temp_c != null && <span className="river-pill">{tempF(health.water_temp_c)}</span>}
           {sc.total_interventions > 0 && <span className="river-pill">{sc.total_interventions} projects</span>}
         </div>
         <div className="river-card-ask">
@@ -161,7 +162,6 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [fishSpecies, setFishSpecies] = useState<any[]>([])
   const [accessPoints, setAccessPoints] = useState<any[]>([])
   const [whatsAlive, setWhatsAlive] = useState<any[]>([])
-  const [showPicker, setShowPicker] = useState(false)
 
   // Inline chat state
   const [askInput, setAskInput] = useState('')
@@ -221,38 +221,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
   return (
     <div className="rnow">
-      {/* Header */}
-      <div className="rnow-location">
-        <span className="rnow-location-icon">📍</span>
-        <span className="rnow-location-name">{site?.name || watershed}</span>
-        <button className="rnow-change" onClick={() => setShowPicker(true)}>Change</button>
-      </div>
-
-      {/* Watershed picker modal */}
-      {showPicker && (
-        <div className="rnow-modal-overlay" onClick={() => setShowPicker(false)}>
-          <div className="rnow-modal" onClick={e => e.stopPropagation()}>
-            <div className="rnow-modal-header">
-              <span>Choose a river</span>
-              <button className="rnow-modal-close" onClick={() => setShowPicker(false)}>✕</button>
-            </div>
-            <div className="rnow-modal-list">
-              {WATERSHED_ORDER.map(ws => (
-                <button
-                  key={ws}
-                  className={`rnow-modal-item${ws === watershed ? ' active' : ''}`}
-                  onClick={() => { setShowPicker(false); navigate(`/path/now/${ws}`) }}
-                >
-                  {WATERSHED_LABELS[ws]}
-                </button>
-              ))}
-            </div>
-            <button className="rnow-modal-all" onClick={() => { setShowPicker(false); navigate('/path/now') }}>
-              View all rivers
-            </button>
-          </div>
-        </div>
-      )}
+      <WatershedHeader watershed={watershed} basePath="/path/now" />
 
       {siteLoading && !site && (
         <div className="rnow-loading">Loading {watershed} river data...</div>
@@ -266,7 +235,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             <div className="rnow-hero-metrics">
               {health.water_temp_c != null && (
                 <div className="rnow-metric">
-                  <span className="rnow-metric-value">{health.water_temp_c}°C</span>
+                  <span className="rnow-metric-value">{tempF(health.water_temp_c)}</span>
                   <span className="rnow-metric-label">Water Temp</span>
                 </div>
               )}
@@ -388,7 +357,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                       {coldRefuges.slice(0, 2).map((r: any, i: number) => (
                         <div key={i} className="rnow-mini-refuge">
                           <span className="refuge-dot" style={{ background: r.thermal_class === 'cold_water_refuge' ? '#2563eb' : '#0d9488' }} />
-                          {r.station} — {r.avg_summer_temp_c?.toFixed(1)}°C
+                          {r.station} — {r.avg_summer_temp_c != null ? tempF(r.avg_summer_temp_c) : '—'}
                         </div>
                       ))}
                     </div>
