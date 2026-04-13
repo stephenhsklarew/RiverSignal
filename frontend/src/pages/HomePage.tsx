@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import Markdown from 'react-markdown'
 import logo from '../assets/riverpath-logo.svg'
 import './HomePage.css'
 
@@ -53,8 +54,11 @@ const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnda
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const { watershed: activeWatershed } = useParams<{ watershed?: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [watersheds, setWatersheds] = useState<WatershedData[]>([])
   const [loading, setLoading] = useState(true)
+  const pendingQuestion = searchParams.get('q')
 
   useEffect(() => {
     Promise.all(
@@ -72,8 +76,12 @@ export default function HomePage() {
 
   const handleAsk = (watershed: string, question: string) => {
     if (question.trim()) {
-      navigate(`/riversignal/${watershed}?q=${encodeURIComponent(question.trim())}`)
+      navigate(`/path/${watershed}?q=${encodeURIComponent(question.trim())}`)
     }
+  }
+
+  const handleQuestionConsumed = () => {
+    setSearchParams({}, { replace: true })
   }
 
   const totalSpecies = watersheds.reduce((a, w) => a + (w.scorecard?.total_species || 0), 0)
@@ -88,11 +96,11 @@ export default function HomePage() {
         <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverSignal" className="home-logo" /></Link>
         <div className="home-nav-links">
           {WATERSHED_ORDER.map(ws => (
-            <Link key={ws} to={`/riversignal/${ws}`} className="home-nav-link">
+            <Link key={ws} to={`/path/${ws}`} className="home-nav-link">
               {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[ws]}
             </Link>
           ))}
-          <Link to="/map" className="home-nav-link home-nav-map">Map →</Link>
+          <Link to="/path" className="home-nav-link home-nav-map">Map →</Link>
         </div>
       </nav>
 
@@ -117,7 +125,9 @@ export default function HomePage() {
             photo={PHOTOS[ws.watershed]}
             reversed={idx % 2 === 1}
             onAsk={(q) => handleAsk(ws.watershed, q)}
-            onNavigate={() => navigate(`/riversignal/${ws.watershed}`)}
+            onNavigate={() => navigate(`/path/${ws.watershed}`)}
+            initialQuestion={ws.watershed === activeWatershed ? pendingQuestion : null}
+            onQuestionConsumed={handleQuestionConsumed}
           />
         ))}
       </section>
@@ -136,13 +146,17 @@ export default function HomePage() {
 }
 
 /* ── Watershed Block ── */
-function WatershedBlock({ data, photo, reversed, onAsk, onNavigate }: {
+function WatershedBlock({ data, photo, reversed, onAsk, onNavigate, initialQuestion, onQuestionConsumed }: {
   data: WatershedData; photo: string; reversed: boolean;
-  onAsk: (q: string) => void; onNavigate: () => void
+  onAsk: (q: string) => void; onNavigate: () => void;
+  initialQuestion?: string | null; onQuestionConsumed?: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   const [askInput, setAskInput] = useState('')
+  const [chatQuestion, setChatQuestion] = useState<string | null>(null)
+  const [chatAnswer, setChatAnswer] = useState<string | null>(null)
+  const [chatLoading, setChatLoading] = useState(false)
 
   useEffect(() => {
     const el = ref.current
@@ -151,6 +165,22 @@ function WatershedBlock({ data, photo, reversed, onAsk, onNavigate }: {
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
+
+  // Handle incoming question from URL
+  useEffect(() => {
+    if (!initialQuestion || chatLoading || chatQuestion) return
+    setChatQuestion(initialQuestion)
+    setChatLoading(true)
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    fetch(`${API_BASE}/sites/${data.watershed}/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: initialQuestion }),
+    })
+      .then(r => r.json())
+      .then(res => setChatAnswer(res.answer || res.detail || 'Unable to answer.'))
+      .catch(() => setChatAnswer('Set ANTHROPIC_API_KEY to enable AI answers.'))
+      .finally(() => { setChatLoading(false); onQuestionConsumed?.() })
+  }, [initialQuestion])
 
   const health = data.health || {}
   const sc = data.scorecard || {}
@@ -188,11 +218,23 @@ function WatershedBlock({ data, photo, reversed, onAsk, onNavigate }: {
               value={askInput}
               onChange={e => setAskInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && askInput.trim()) onAsk(askInput) }}
-              placeholder={`Is the ${data.name.replace('Upper ', '')} healthy?`}
+              placeholder="How's the fly fishing today?"
             />
             <button onClick={() => { if (askInput.trim()) onAsk(askInput) }}>Ask</button>
           </div>
         </div>
+
+        {/* Inline chat response */}
+        {(chatQuestion || chatLoading) && (
+          <div className="ws-chat-response">
+            <div className="ws-chat-question">{chatQuestion}</div>
+            {chatLoading ? (
+              <div className="ws-chat-loading">Thinking about the {data.name.replace('Upper ', '')}...</div>
+            ) : chatAnswer ? (
+              <div className="ws-chat-answer"><Markdown>{chatAnswer}</Markdown></div>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   )
