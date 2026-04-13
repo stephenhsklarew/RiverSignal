@@ -50,7 +50,7 @@ export default function HatchPage() {
           <p className="hatch-empty">No hatch data for this month.</p>
         ) : (
           thisMonthInsects.slice(0, 5).map((insect: any, i: number) => (
-            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} />
+            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} allFlies={flies} />
           ))
         )}
       </section>
@@ -62,41 +62,30 @@ export default function HatchPage() {
           <p className="hatch-empty">No hatch data for next month.</p>
         ) : (
           nextMonthInsects.slice(0, 5).map((insect: any, i: number) => (
-            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} />
+            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} allFlies={flies} />
           ))
         )}
       </section>
 
-      {/* Additional Fly Patterns (deduplicated) */}
+      {/* All Fly Patterns (deduplicated by name) */}
       {flies.length > 0 && (() => {
-        // Collect all fly names already shown in curated insect cards
-        const curatedFlyNames = new Set<string>()
-        const allInsects = [...thisMonthInsects, ...nextMonthInsects]
-        for (const ins of allInsects) {
-          for (const fp of (ins.fly_patterns || [])) {
-            curatedFlyNames.add(fp.toLowerCase().replace(/#\d+.*/, '').trim())
-          }
-        }
-        // Deduplicate the fly list itself and exclude curated ones
         const seen = new Set<string>()
         const uniqueFlies = flies.filter((fly: any) => {
           const key = (fly.fly_pattern || '').toLowerCase().trim()
           if (seen.has(key)) return false
           seen.add(key)
-          // Check if this fly name (without size) matches a curated pattern
-          const nameOnly = key.replace(/#\d+.*/, '').trim()
-          return !curatedFlyNames.has(nameOnly)
+          return true
         })
-        return uniqueFlies.length > 0 ? (
+        return (
           <section className="hatch-section">
-            <h2 className="hatch-section-title">More Fly Patterns</h2>
+            <h2 className="hatch-section-title">All Recommended Flies</h2>
             <div className="hatch-flies">
               {uniqueFlies.slice(0, 12).map((fly: any, i: number) => (
                 <FlyCard key={i} fly={fly} ws={ws} />
               ))}
             </div>
           </section>
-        ) : null
+        )
       })()}
     </div>
   )
@@ -112,7 +101,7 @@ function findFlies(insect: any, flyByInsect: Record<string, any[]>): any[] {
   return []
 }
 
-function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: string; matchingFlies: any[] }) {
+function InsectCardWithFlies({ insect, ws, matchingFlies, allFlies }: { insect: any; ws: string; matchingFlies: any[]; allFlies: any[] }) {
   const [expanded, setExpanded] = useState(false)
   // Guess lifecycle stage from activity level and observations
   const stage = insect.activity === 'peak' ? 'adult' : insect.observations > 5 ? 'emerger' : 'nymph'
@@ -136,16 +125,26 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
         <span className="insect-expand">{expanded ? '▾' : '▸'}</span>
       </div>
 
-      {/* Curated fly patterns or matched flies */}
+      {/* Curated fly patterns with images from fly recs */}
       {expanded && insect.fly_patterns?.length > 0 && (
         <div className="insect-flies">
           <div className="insect-flies-label">Recommended flies:</div>
-          {insect.fly_patterns.map((fp: string, i: number) => (
-            <div key={i} className="curated-fly-item">
-              <span className="curated-fly-name">{fp}</span>
-              <SaveButton item={{ type: 'fly', id: `${ws}-${fp}`, watershed: ws, label: fp, sublabel: insect.common_name }} size={14} />
-            </div>
-          ))}
+          {insect.fly_patterns.map((fp: string, i: number) => {
+            // Try to find a matching fly rec to get the image
+            const fpLower = fp.toLowerCase().replace(/#\d+.*/, '').trim()
+            const flyMatch = allFlies.find((f: any) =>
+              (f.fly_pattern || '').toLowerCase().includes(fpLower) ||
+              fpLower.includes((f.fly_pattern || '').toLowerCase())
+            )
+            return flyMatch ? (
+              <FlyCard key={i} fly={flyMatch} ws={ws} compact />
+            ) : (
+              <div key={i} className="curated-fly-item">
+                <span className="curated-fly-name">{fp}</span>
+                <SaveButton item={{ type: 'fly', id: `${ws}-${fp}`, watershed: ws, label: fp, sublabel: insect.common_name }} size={14} />
+              </div>
+            )
+          })}
         </div>
       )}
       {expanded && (!insect.fly_patterns || insect.fly_patterns.length === 0) && matchingFlies.length > 0 && (
