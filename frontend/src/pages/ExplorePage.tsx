@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
@@ -32,12 +33,12 @@ interface RecSite {
 }
 
 export default function ExplorePage() {
+  const navigate = useNavigate()
   const ws = useWatershed('/path/explore') || 'deschutes'
   const [sites, setSites] = useState<RecSite[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [userLoc, setUserLoc] = useState<{ lat: number; lon: number } | null>(null)
 
   // Try GPS
@@ -115,13 +116,10 @@ export default function ExplorePage() {
         ))}
       </div>
 
-      {/* Map/List toggle + count */}
+      {/* Count + Map button */}
       <div className="explore-bar">
         <span className="explore-count">{filtered.length} sites</span>
-        <div className="explore-toggle">
-          <button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')}>List</button>
-          <button className={viewMode === 'map' ? 'active' : ''} onClick={() => setViewMode('map')}>Map</button>
-        </div>
+        <button className="explore-map-btn" onClick={() => navigate(`/path/explore-map/${ws}`)}>View Map</button>
       </div>
 
       {/* Content */}
@@ -134,20 +132,11 @@ export default function ExplorePage() {
             <button className="explore-reset" onClick={() => setActiveFilters(new Set())}>Reset filters</button>
           )}
         </div>
-      ) : viewMode === 'list' ? (
+      ) : (
         <div className="explore-list">
           {filtered.map(s => (
             <AdventureCard key={`${s.rec_type}-${s.id}`} site={s} ws={ws} />
           ))}
-        </div>
-      ) : (
-        <div className="explore-map-placeholder">
-          <p>Map view coming soon. Showing {filtered.length} sites as list below.</p>
-          <div className="explore-list">
-            {filtered.map(s => (
-              <AdventureCard key={`${s.rec_type}-${s.id}`} site={s} ws={ws} />
-            ))}
-          </div>
         </div>
       )}
     </div>

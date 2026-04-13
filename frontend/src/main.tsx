@@ -36,6 +36,7 @@ const FishRefugePage = lazy(() => import('./pages/FishRefugePage'))
 const StewardPage = lazy(() => import('./pages/StewardPage'))
 const SavedPage = lazy(() => import('./pages/SavedPage'))
 const SpeciesMapPage = lazy(() => import('./pages/SpeciesMapPage'))
+const ExploreMapPage = lazy(() => import('./pages/ExploreMapPage'))
 
 // Bottom nav (only on /path/* routes)
 const BottomNav = lazy(() => import('./components/BottomNav'))
@@ -49,7 +50,7 @@ const Loading = () => (
 function ConditionalBottomNav() {
   const { pathname } = useLocation()
   // Show bottom nav on /path/* routes except the homepage (/path, /path/:watershed)
-  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map)/.test(pathname)
+  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map)/.test(pathname)
   if (!isTabRoute) return null
   return <BottomNav />
 }
@@ -82,6 +83,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/path/hatch/:watershed" element={<HatchPage />} />
             <Route path="/path/steward" element={<StewardPage />} />
             <Route path="/path/steward/:watershed" element={<StewardPage />} />
+            <Route path="/path/explore-map/:watershed" element={<ExploreMapPage />} />
             <Route path="/path/saved" element={<SavedPage />} />
             <Route path="/path/map/:watershed" element={<SpeciesMapPage />} />
             <Route path="/path/fish/:watershed" element={<FishRefugePage />} />
