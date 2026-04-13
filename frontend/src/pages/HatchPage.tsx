@@ -67,17 +67,37 @@ export default function HatchPage() {
         )}
       </section>
 
-      {/* Unmatched Fly Patterns */}
-      {flies.length > 0 && (
-        <section className="hatch-section">
-          <h2 className="hatch-section-title">All Recommended Flies</h2>
-          <div className="hatch-flies">
-            {flies.slice(0, 12).map((fly: any, i: number) => (
-              <FlyCard key={i} fly={fly} ws={ws} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Additional Fly Patterns (deduplicated) */}
+      {flies.length > 0 && (() => {
+        // Collect all fly names already shown in curated insect cards
+        const curatedFlyNames = new Set<string>()
+        const allInsects = [...thisMonthInsects, ...nextMonthInsects]
+        for (const ins of allInsects) {
+          for (const fp of (ins.fly_patterns || [])) {
+            curatedFlyNames.add(fp.toLowerCase().replace(/#\d+.*/, '').trim())
+          }
+        }
+        // Deduplicate the fly list itself and exclude curated ones
+        const seen = new Set<string>()
+        const uniqueFlies = flies.filter((fly: any) => {
+          const key = (fly.fly_pattern || '').toLowerCase().trim()
+          if (seen.has(key)) return false
+          seen.add(key)
+          // Check if this fly name (without size) matches a curated pattern
+          const nameOnly = key.replace(/#\d+.*/, '').trim()
+          return !curatedFlyNames.has(nameOnly)
+        })
+        return uniqueFlies.length > 0 ? (
+          <section className="hatch-section">
+            <h2 className="hatch-section-title">More Fly Patterns</h2>
+            <div className="hatch-flies">
+              {uniqueFlies.slice(0, 12).map((fly: any, i: number) => (
+                <FlyCard key={i} fly={fly} ws={ws} />
+              ))}
+            </div>
+          </section>
+        ) : null
+      })()}
     </div>
   )
 }
