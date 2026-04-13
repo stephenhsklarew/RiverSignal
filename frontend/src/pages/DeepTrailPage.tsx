@@ -244,10 +244,6 @@ export default function DeepTrailPage() {
       <header className="dt-header">
         <div className="dt-header-top">
           <Link to="/" className="dt-logo-link"><img src={logo} alt="DeepTrail" className="dt-logo" /></Link>
-          <div className="dt-header-links">
-            <Link to="/path" className="dt-nav-link">RiverPath</Link>
-            <Link to="/deepsignal" className="dt-nav-link">DeepSignal</Link>
-          </div>
         </div>
         <h1 className="dt-title">Discover the Ancient Worlds Beneath Your Feet</h1>
       </header>
