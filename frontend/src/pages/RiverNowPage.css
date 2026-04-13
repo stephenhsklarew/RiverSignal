@@ -213,8 +213,8 @@
 }
 .rnow-card-deeptime .rnow-card-body { color: #c8c0b4; }
 
-.deeptime-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.deeptime-logo { height: 22px; width: auto; }
+.deeptime-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.deeptime-mark { height: 20px; width: 20px; border-radius: 4px; }
 .deeptime-label { font-size: 13px; font-weight: 600; color: #d4a96a; }
 
 .deeptime-age { margin-bottom: 6px; }

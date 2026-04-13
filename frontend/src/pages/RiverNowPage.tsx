@@ -5,7 +5,7 @@ import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
-import dtLogo from '../assets/deeptrail-logo.svg'
+const dtMark = '/favicon-deeptrail.svg'
 import './RiverNowPage.css'
 
 const API = 'http://localhost:8001/api/v1'
@@ -470,7 +470,7 @@ function DeepTimeCard({ geology, fossils, watershed }: { geology: any[]; fossils
   return (
     <div className="rnow-card rnow-card-deeptime">
       <div className="deeptime-header">
-        <img src={dtLogo} alt="DeepTrail" className="deeptime-logo" />
+        <img src={dtMark} alt="DeepTrail" className="deeptime-mark" />
         <span className="deeptime-label">Deep Time</span>
       </div>
       <div className="rnow-card-body">
