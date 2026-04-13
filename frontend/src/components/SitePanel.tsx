@@ -214,6 +214,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 </tbody>
               </table>
             </div>
+            <FlyRecommendations watershed={watershed} />
             <BarriersTable watershed={watershed} />
           </>
         )}
@@ -534,6 +535,49 @@ function BarriersTable({ watershed }: { watershed: string }) {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+
+/* ── Fly Recommendations ── */
+function FlyRecommendations({ watershed }: { watershed: string }) {
+  const [flies, setFlies] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/sites/${watershed}/fishing/fly-recommendations`)
+      .then(r => r.json()).then(d => setFlies(d || [])).catch(console.error)
+  }, [watershed])
+
+  if (flies.length === 0) return null
+
+  // Deduplicate by fly pattern name
+  const seen = new Set<string>()
+  const unique = flies.filter(f => {
+    if (seen.has(f.fly_pattern)) return false
+    seen.add(f.fly_pattern)
+    return true
+  })
+
+  return (
+    <div className="section">
+      <div className="section-title">What to Fish With This Month</div>
+      <div className="fly-recs">
+        {unique.slice(0, 8).map((f: any, i: number) => (
+          <div key={i} className="fly-card">
+            {f.fly_image_url && (
+              <img src={f.fly_image_url} alt={f.fly_pattern} className="fly-img" loading="lazy" />
+            )}
+            <div className="fly-info">
+              <div className="fly-name">{f.fly_pattern}</div>
+              <div className="fly-meta">{f.fly_size} · {f.fly_type} · {f.life_stage}</div>
+              <div className="fly-insect">Matches: {f.insect}</div>
+              <div className="fly-tip">{f.time_of_day} · {f.water_type}</div>
+              {f.notes && <div className="fly-notes">{f.notes}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
