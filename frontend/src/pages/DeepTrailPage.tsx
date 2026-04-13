@@ -459,7 +459,12 @@ export default function DeepTrailPage() {
               <div className="dt-list-meta">{f.phylum}{f.class_name ? ` · ${f.class_name}` : ''}{f.museum ? ` · ${f.museum}` : ''}</div>
               <div className="dt-list-sub">{f.period}{f.age_max_ma ? ` · ${f.age_max_ma} Ma` : ''}{f.distance_km != null ? ` · ${f.distance_km} km` : ''}</div>
             </div>
-            {f.source_id && <a href={`https://paleobiodb.org/classic/checkTaxonInfo?taxon_no=${f.source_id}`} target="_blank" rel="noopener noreferrer" className="dt-list-link">PBDB →</a>}
+            {f.source_id && (() => {
+              const sid = f.source_id || ''
+              if (sid.startsWith('occ:')) return <a href={`https://paleobiodb.org/classic/checkTaxonInfo?taxon_no=${sid.replace('occ:','')}`} target="_blank" rel="noopener noreferrer" className="dt-list-link">PBDB ↗</a>
+              if (/^\d+$/.test(sid)) return <a href={`https://www.gbif.org/occurrence/${sid}`} target="_blank" rel="noopener noreferrer" className="dt-list-link">GBIF ↗</a>
+              return <a href={`https://www.idigbio.org/portal/records/${sid}`} target="_blank" rel="noopener noreferrer" className="dt-list-link">iDigBio ↗</a>
+            })()}
           </div>
         ))}
         {filteredFossils.length === 0 && <div className="dt-empty">No fossils match filters.</div>}

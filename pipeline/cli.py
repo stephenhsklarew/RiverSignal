@@ -36,7 +36,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "recreation", "wqp_bugs", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -62,6 +62,7 @@ def ingest(source: str, watershed: str):
     from pipeline.ingest.restoration import RestorationAdapter
     from pipeline.ingest.snotel import SNOTELAdapter
     from pipeline.ingest.streamnet import StreamNetAdapter
+    from pipeline.ingest.gbif import GBIFFossilAdapter
     from pipeline.ingest.recreation import RecreationAdapter
     from pipeline.ingest.usgs import USGSAdapter
     from pipeline.ingest.wqp_bugs import WQPBugsAdapter
@@ -88,6 +89,7 @@ def ingest(source: str, watershed: str):
         "dogami": DOGAMIAdapter,
         "mrds": MRDSAdapter,
         "idigbio": IDigBioFossilAdapter,
+        "gbif": GBIFFossilAdapter,
         "recreation": RecreationAdapter,
         "wqp_bugs": WQPBugsAdapter,
     }
