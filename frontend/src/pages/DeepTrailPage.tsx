@@ -63,6 +63,7 @@ export default function DeepTrailPage() {
   const [timeline, setTimeline] = useState<TimelineItem[]>([])
   const [landStatus, setLandStatus] = useState<any>(null)
   const [geoContext, setGeoContext] = useState<any>(null)
+  const [riverData, setRiverData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [readingLevel, setReadingLevel] = useState('adult')
   const [chatInput, setChatInput] = useState('')
@@ -172,6 +173,18 @@ export default function DeepTrailPage() {
       setGeoContext(g)
       setLoading(false)
     }).catch(() => setLoading(false))
+
+    // Fetch nearest river data for Living River card
+    setRiverData(null)
+    fetch(`${API_BASE}/sites/nearest?lat=${loc.lat}&lon=${loc.lon}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(nearest => {
+        if (!nearest) return
+        return fetch(`${API_BASE}/sites/${nearest.watershed}`).then(r => r.json()).then(site => {
+          setRiverData({ ...nearest, ...site })
+        })
+      })
+      .catch(() => {})
   }, [loc])
 
   // Fetch deep time narrative when location or reading level changes
@@ -394,6 +407,20 @@ export default function DeepTrailPage() {
               <span className="dt-nav-card-count">{minerals.length}</span>
               <span className="dt-nav-card-arrow">→</span>
             </button>
+            {riverData && (
+              <a href={`/path/now/${riverData.watershed}`} target="_blank" rel="noopener noreferrer" className="dt-nav-card dt-nav-card-river">
+                <span className="dt-nav-card-icon">🐟</span>
+                <span className="dt-nav-card-label">
+                  Living River
+                  <span className="dt-nav-card-sub">{riverData.name}</span>
+                </span>
+                <span className="dt-nav-card-count">
+                  {riverData.scorecard?.total_species?.toLocaleString() || '—'}
+                  <span className="dt-nav-card-unit">species</span>
+                </span>
+                <span className="dt-nav-card-arrow">↗</span>
+              </a>
+            )}
           </section>
         </main>
       )}
