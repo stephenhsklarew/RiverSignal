@@ -35,8 +35,13 @@
 .confidence-medium { background: var(--warm-light); color: var(--warm); }
 .confidence-low { background: var(--bg); color: var(--text-muted); }
 .insect-stage { display: flex; align-items: center; gap: 2px; color: var(--text-secondary); font-weight: 500; }
+.insect-order { color: var(--accent); font-weight: 500; font-size: 10px; }
 .insect-activity { color: var(--text-secondary); }
 .insect-obs { color: var(--text-muted); }
+.insect-source {
+  padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 600;
+  background: var(--accent-light); color: var(--accent); text-transform: uppercase;
+}
 .insect-expand { color: var(--text-muted); font-size: 12px; flex-shrink: 0; padding: 4px; }
 
 /* Inline matching flies */
@@ -46,6 +51,12 @@
 }
 .insect-flies-label { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
 .insect-flies-empty { font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+.curated-fly-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 0; font-size: 12px;
+}
+.curated-fly-name { font-weight: 500; }
 
 /* Fly cards */
 .hatch-flies { display: flex; flex-direction: column; gap: 6px; }

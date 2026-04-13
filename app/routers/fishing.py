@@ -269,17 +269,18 @@ def fly_recommendations(watershed: str, month: int = None):
 
 @router.get("/sites/{watershed}/fishing/hatch-confidence")
 def hatch_confidence(watershed: str, month: int = None):
-    """Get hatch confidence scoring — top insects ranked by likelihood.
+    """Get hatch confidence scoring — top aquatic insects ranked by likelihood.
 
-    Combines observation frequency from hatch_chart with current water
-    temperature from fishing_conditions to produce a confidence tier.
+    Uses curated hatch chart data (expert-sourced emergence timing) enriched
+    with observation counts from gold.aquatic_hatch_chart. Falls back to
+    observation-only data if no curated entries exist.
     """
     from datetime import datetime
     if month is None:
         month = datetime.now().month
 
     with engine.connect() as conn:
-        # Get current water temp for this watershed
+        # Get current water temp
         temp_row = conn.execute(text("""
             SELECT avg_water_temp_c FROM gold.fishing_conditions
             WHERE watershed = :ws AND avg_water_temp_c IS NOT NULL
@@ -287,44 +288,94 @@ def hatch_confidence(watershed: str, month: int = None):
         """), {"ws": watershed}).fetchone()
         current_temp = float(temp_row[0]) if temp_row and temp_row[0] else None
 
-        # Get hatch data for this month and next
-        rows = conn.execute(text("""
-            SELECT taxon_name, common_name, obs_month, observation_count,
-                   activity_level, photo_url, years_observed
-            FROM gold.hatch_chart
-            WHERE watershed = :ws AND obs_month IN (:m1, :m2)
-            ORDER BY obs_month, observation_count DESC
-        """), {"ws": watershed, "m1": month, "m2": (month % 12) + 1}).fetchall()
+        insects = []
 
-    # Score confidence: high (>= 10 obs + peak), medium (>= 3 obs), low (< 3)
-    insects = []
-    for r in rows:
-        obs = r[3] or 0
-        activity = r[4] or 'present'
-        years = r[6] or 1
-        if activity == 'peak' and obs >= 10:
-            confidence = 'high'
-        elif obs >= 3 or years >= 2:
-            confidence = 'medium'
-        else:
-            confidence = 'low'
+        # 1. Curated hatch chart entries active this month and next
+        try:
+            curated = conn.execute(text("""
+                SELECT c.common_name, c.scientific_name, c.insect_order,
+                       c.start_month, c.end_month, c.peak_months, c.fly_patterns,
+                       (SELECT g.photo_url FROM gold.species_gallery g
+                        WHERE g.taxon_name ILIKE '%' || split_part(c.scientific_name, ' ', 1) || '%'
+                          AND g.watershed = c.watershed LIMIT 1) as photo_url
+                FROM curated_hatch_chart c
+                WHERE c.watershed = :ws
+                  AND (c.start_month <= :m1 AND c.end_month >= :m1
+                       OR c.start_month <= :m2 AND c.end_month >= :m2)
+                ORDER BY
+                    CASE WHEN :m1 = ANY(c.peak_months) THEN 0
+                         WHEN :m2 = ANY(c.peak_months) THEN 1
+                         ELSE 2 END,
+                    c.common_name
+            """), {"ws": watershed, "m1": month, "m2": (month % 12) + 1}).fetchall()
+        except Exception:
+            conn.rollback()
+            curated = []
 
-        insects.append({
-            "taxon_name": r[0],
-            "common_name": r[1],
-            "month": r[2],
-            "observations": obs,
-            "activity": activity,
-            "confidence": confidence,
-            "photo_url": r[5],
-            "years_observed": years,
-        })
+        for r in curated:
+            is_peak = month in (r[5] or [])
+            active_month = month if (r[3] <= month <= r[4]) else (month % 12) + 1
+            confidence = 'high' if is_peak else 'medium'
+            insects.append({
+                "taxon_name": r[1],
+                "common_name": r[0],
+                "month": active_month,
+                "observations": None,
+                "activity": "peak" if is_peak else "present",
+                "confidence": confidence,
+                "photo_url": r[7],
+                "years_observed": None,
+                "insect_order": r[2],
+                "fly_patterns": r[6] or [],
+                "source": "curated",
+            })
+
+        # 2. Supplement with observation-based data from aquatic hatch chart
+        try:
+            obs_rows = conn.execute(text("""
+                SELECT taxon_name, common_name, obs_month, observation_count,
+                       activity_level, photo_url, years_observed
+                FROM gold.aquatic_hatch_chart
+                WHERE watershed = :ws AND obs_month IN (:m1, :m2)
+                ORDER BY obs_month, observation_count DESC
+            """), {"ws": watershed, "m1": month, "m2": (month % 12) + 1}).fetchall()
+        except Exception:
+            conn.rollback()
+            obs_rows = []
+
+        # Add observation entries not already covered by curated data
+        curated_names = {i["taxon_name"].lower() for i in insects}
+        for r in obs_rows:
+            if r[0].lower() in curated_names:
+                continue
+            obs = r[3] or 0
+            activity = r[4] or 'present'
+            years = r[6] or 1
+            if activity == 'peak' and obs >= 10:
+                confidence = 'high'
+            elif obs >= 3 or years >= 2:
+                confidence = 'medium'
+            else:
+                confidence = 'low'
+            insects.append({
+                "taxon_name": r[0],
+                "common_name": r[1],
+                "month": r[2],
+                "observations": obs,
+                "activity": activity,
+                "confidence": confidence,
+                "photo_url": r[5],
+                "years_observed": years,
+                "insect_order": None,
+                "fly_patterns": [],
+                "source": "observed",
+            })
 
     return {
         "watershed": watershed,
         "current_month": month,
         "water_temp_c": current_temp,
-        "insects": insects[:10],  # top 10
+        "insects": insects[:15],
     }
 
 

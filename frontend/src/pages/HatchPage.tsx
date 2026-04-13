@@ -106,16 +106,29 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
           <div className="insect-sci">{insect.taxon_name}</div>
           <div className="insect-meta">
             <span className={`insect-confidence confidence-${insect.confidence}`}>{insect.confidence}</span>
+            {insect.insect_order && <span className="insect-order">{insect.insect_order}</span>}
             <span className="insect-stage" title={`Likely ${stage}`}>{STAGE_ICONS[stage]} {stage}</span>
             {insect.activity && <span className="insect-activity">{insect.activity}</span>}
-            <span className="insect-obs">{insect.observations} obs · {insect.years_observed}yr</span>
+            {insect.observations != null && <span className="insect-obs">{insect.observations} obs</span>}
+            {insect.source === 'curated' && <span className="insect-source">expert</span>}
           </div>
         </div>
         <span className="insect-expand">{expanded ? '▾' : '▸'}</span>
       </div>
 
-      {/* Matching flies inline */}
-      {expanded && matchingFlies.length > 0 && (
+      {/* Curated fly patterns or matched flies */}
+      {expanded && insect.fly_patterns?.length > 0 && (
+        <div className="insect-flies">
+          <div className="insect-flies-label">Recommended flies:</div>
+          {insect.fly_patterns.map((fp: string, i: number) => (
+            <div key={i} className="curated-fly-item">
+              <span className="curated-fly-name">{fp}</span>
+              <SaveButton item={{ type: 'fly', id: `${ws}-${fp}`, watershed: ws, label: fp, sublabel: insect.common_name }} size={14} />
+            </div>
+          ))}
+        </div>
+      )}
+      {expanded && (!insect.fly_patterns || insect.fly_patterns.length === 0) && matchingFlies.length > 0 && (
         <div className="insect-flies">
           <div className="insect-flies-label">Matching flies:</div>
           {matchingFlies.slice(0, 4).map((fly, i) => (
@@ -123,7 +136,7 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
           ))}
         </div>
       )}
-      {expanded && matchingFlies.length === 0 && (
+      {expanded && (!insect.fly_patterns || insect.fly_patterns.length === 0) && matchingFlies.length === 0 && (
         <div className="insect-flies">
           <div className="insect-flies-empty">No specific fly match — try a general attractor pattern.</div>
         </div>
