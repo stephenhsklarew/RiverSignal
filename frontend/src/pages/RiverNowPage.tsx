@@ -14,6 +14,14 @@ const TYPE_ICONS: Record<string, string> = {
   fishing_access: '🎣', swim_area: '🏊', waterfall: '💧',
 }
 
+const WS_CENTERS: Record<string, [number, number]> = {
+  mckenzie: [-122.3, 44.08],
+  deschutes: [-121.22, 44.33],
+  metolius: [-121.57, 44.50],
+  klamath: [-121.55, 42.65],
+  johnday: [-119.15, 44.60],
+}
+
 export default function RiverNowPage() {
   const watershed = useWatershed('/path/now')
 
@@ -162,6 +170,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [fishSpecies, setFishSpecies] = useState<any[]>([])
   const [accessPoints, setAccessPoints] = useState<any[]>([])
   const [whatsAlive, setWhatsAlive] = useState<any[]>([])
+  const [geology, setGeology] = useState<any[]>([])
+  const [fossils, setFossils] = useState<any[]>([])
 
   // Inline chat state
   const [askInput, setAskInput] = useState('')
@@ -179,6 +189,12 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/species?taxonomic_group=Actinopterygii&limit=5`).then(r => r.json()).then(setFishSpecies)
     fetch(`${API}/sites/${watershed}/recreation`).then(r => r.json()).then(d => setAccessPoints((d || []).slice(0, 8)))
     fetch(`${API}/sites/${watershed}/species?limit=6`).then(r => r.json()).then(setWhatsAlive)
+    // Geology + fossils for Deep Time card
+    const center = WS_CENTERS[watershed]
+    if (center) {
+      fetch(`${API}/geology/at/${center[1]}/${center[0]}`).then(r => r.json()).then(d => setGeology(d.units || [])).catch(() => {})
+      fetch(`${API}/fossils/near/${center[1]}/${center[0]}`).then(r => r.json()).then(d => setFossils(d.fossils || [])).catch(() => {})
+    }
   }, [watershed])
 
   // Handle pending question from URL
@@ -368,6 +384,11 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               </div>
               <div className="rnow-card-action">View Thermal Map →</div>
             </div>
+
+            {/* Deep Time Card */}
+            {geology.length > 0 && (
+              <DeepTimeCard geology={geology} fossils={fossils} watershed={watershed} />
+            )}
           </div>
 
           {/* ── What's Here Now ── */}
@@ -415,6 +436,64 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════
+// Deep Time Card — geology + fossils teaser
+// ════════════════════════════════════════════
+
+function DeepTimeCard({ geology, fossils, watershed }: { geology: any[]; fossils: any[]; watershed: string }) {
+  // Find the oldest and most interesting geologic unit
+  const sorted = [...geology].sort((a, b) => (b.age_max_ma || 0) - (a.age_max_ma || 0))
+  const oldest = sorted[0]
+  // Find a unit with a formation name for more interesting display
+  const named = sorted.find(u => u.formation && u.formation.trim()) || oldest
+
+  const ageDisplay = oldest?.age_max_ma
+    ? oldest.age_max_ma >= 1000 ? `${(oldest.age_max_ma / 1000).toFixed(1)} billion` : `${Math.round(oldest.age_max_ma)} million`
+    : null
+
+  const fossilCount = fossils.length
+  const oldestFossil = fossils.length > 0
+    ? fossils.reduce((a, b) => ((a.age_max_ma || 0) > (b.age_max_ma || 0) ? a : b))
+    : null
+
+  // Build a story hook
+  const rockDesc = oldest?.lithology || oldest?.rock_type || 'ancient rock'
+  const period = oldest?.period || ''
+  const center = WS_CENTERS[watershed]
+  const trailUrl = center ? `/trail?lat=${center[1]}&lon=${center[0]}&from=path` : '/trail'
+
+  return (
+    <div className="rnow-card rnow-card-deeptime">
+      <div className="rnow-card-header">
+        <span className="rnow-card-icon">🪨</span>
+        <span className="rnow-card-title">Deep Time</span>
+      </div>
+      <div className="rnow-card-body">
+        {ageDisplay && (
+          <div className="deeptime-age">
+            <span className="deeptime-age-number">{ageDisplay}</span>
+            <span className="deeptime-age-unit"> years old</span>
+          </div>
+        )}
+        <div className="deeptime-description">
+          This river flows over {period ? `${period}-era ` : ''}{rockDesc}
+          {named?.formation ? ` — the ${named.formation}` : ''}.
+        </div>
+        {fossilCount > 0 && (
+          <div className="deeptime-fossils">
+            {fossilCount} fossil{fossilCount !== 1 ? 's' : ''} found nearby
+            {oldestFossil?.age_max_ma ? `, oldest: ${Math.round(oldestFossil.age_max_ma)} Ma` : ''}
+            {oldestFossil?.taxon_name ? ` (${oldestFossil.taxon_name})` : ''}
+          </div>
+        )}
+      </div>
+      <a href={trailUrl} target="_blank" rel="noopener noreferrer" className="rnow-card-action deeptime-link">
+        Explore in DeepTrail ↗
+      </a>
     </div>
   )
 }
