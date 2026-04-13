@@ -50,7 +50,7 @@ export default function HatchPage() {
           <p className="hatch-empty">No hatch data for this month.</p>
         ) : (
           thisMonthInsects.slice(0, 5).map((insect: any, i: number) => (
-            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} allFlies={flies} />
+            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} />
           ))
         )}
       </section>
@@ -62,7 +62,7 @@ export default function HatchPage() {
           <p className="hatch-empty">No hatch data for next month.</p>
         ) : (
           nextMonthInsects.slice(0, 5).map((insect: any, i: number) => (
-            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} allFlies={flies} />
+            <InsectCardWithFlies key={i} insect={insect} ws={ws} matchingFlies={findFlies(insect, flyByInsect)} />
           ))
         )}
       </section>
@@ -101,7 +101,7 @@ function findFlies(insect: any, flyByInsect: Record<string, any[]>): any[] {
   return []
 }
 
-function InsectCardWithFlies({ insect, ws, matchingFlies, allFlies }: { insect: any; ws: string; matchingFlies: any[]; allFlies: any[] }) {
+function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: string; matchingFlies: any[] }) {
   const [expanded, setExpanded] = useState(false)
   // Guess lifecycle stage from activity level and observations
   const stage = insect.activity === 'peak' ? 'adult' : insect.observations > 5 ? 'emerger' : 'nymph'
@@ -125,39 +125,29 @@ function InsectCardWithFlies({ insect, ws, matchingFlies, allFlies }: { insect: 
         <span className="insect-expand">{expanded ? '▾' : '▸'}</span>
       </div>
 
-      {/* Curated fly patterns with images from fly recs */}
-      {expanded && insect.fly_patterns?.length > 0 && (
+      {/* Matching flies with images (primary), curated names as fallback */}
+      {expanded && (
         <div className="insect-flies">
-          <div className="insect-flies-label">Recommended flies:</div>
-          {insect.fly_patterns.map((fp: string, i: number) => {
-            // Try to find a matching fly rec to get the image
-            const fpLower = fp.toLowerCase().replace(/#\d+.*/, '').trim()
-            const flyMatch = allFlies.find((f: any) =>
-              (f.fly_pattern || '').toLowerCase().includes(fpLower) ||
-              fpLower.includes((f.fly_pattern || '').toLowerCase())
-            )
-            return flyMatch ? (
-              <FlyCard key={i} fly={flyMatch} ws={ws} compact />
-            ) : (
-              <div key={i} className="curated-fly-item">
-                <span className="curated-fly-name">{fp}</span>
-                <SaveButton item={{ type: 'fly', id: `${ws}-${fp}`, watershed: ws, label: fp, sublabel: insect.common_name }} size={14} />
-              </div>
-            )
-          })}
-        </div>
-      )}
-      {expanded && (!insect.fly_patterns || insect.fly_patterns.length === 0) && matchingFlies.length > 0 && (
-        <div className="insect-flies">
-          <div className="insect-flies-label">Matching flies:</div>
-          {matchingFlies.slice(0, 4).map((fly, i) => (
-            <FlyCard key={i} fly={fly} ws={ws} compact />
-          ))}
-        </div>
-      )}
-      {expanded && (!insect.fly_patterns || insect.fly_patterns.length === 0) && matchingFlies.length === 0 && (
-        <div className="insect-flies">
-          <div className="insect-flies-empty">No specific fly match — try a general attractor pattern.</div>
+          {matchingFlies.length > 0 ? (
+            <>
+              <div className="insect-flies-label">Matching flies:</div>
+              {matchingFlies.slice(0, 4).map((fly, i) => (
+                <FlyCard key={i} fly={fly} ws={ws} compact />
+              ))}
+            </>
+          ) : insect.fly_patterns?.length > 0 ? (
+            <>
+              <div className="insect-flies-label">Recommended flies:</div>
+              {insect.fly_patterns.map((fp: string, i: number) => (
+                <div key={i} className="curated-fly-item">
+                  <span className="curated-fly-name">{fp}</span>
+                  <SaveButton item={{ type: 'fly', id: `${ws}-${fp}`, watershed: ws, label: fp, sublabel: insect.common_name }} size={14} />
+                </div>
+              ))}
+            </>
+          ) : (
+            <div className="insect-flies-empty">No specific fly match — try a general attractor pattern.</div>
+          )}
         </div>
       )}
     </div>
