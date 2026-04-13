@@ -195,20 +195,20 @@
 .dt-nav-card-count { font-family: monospace; font-size: 1.1rem; font-weight: 600; color: #d4a96a; }
 .dt-nav-card-arrow { color: #6b5f4f; font-size: 1.2rem; }
 
-/* Living River card — green accent on brown */
+/* Living River card — RiverPath warm background */
 .dt-nav-card-river {
-  background: linear-gradient(135deg, #1a3a2a 0%, #1e2e22 100%);
-  border-color: #2a5a3a;
-  text-decoration: none; color: #e8e0d4;
+  background: #fffdf7;
+  border-color: #e8e2d8;
+  text-decoration: none; color: #2c2416;
 }
-.dt-nav-card-river:hover { border-color: #3a8a5a; }
-.dt-nav-card-river .dt-nav-card-count { color: #5cb88a; }
-.dt-nav-card-river .dt-nav-card-arrow { color: #5cb88a; }
+.dt-nav-card-river:hover { border-color: #1a6b4a; }
+.dt-nav-card-river .dt-nav-card-count { color: #1a6b4a; }
+.dt-nav-card-river .dt-nav-card-arrow { color: #1a6b4a; }
 .dt-nav-card-sub {
-  display: block; font-size: 0.72rem; font-weight: 400; color: #8aaa96; margin-top: 2px;
+  display: block; font-size: 0.72rem; font-weight: 400; color: #6b6966; margin-top: 2px;
 }
 .dt-nav-card-unit {
-  display: block; font-size: 0.6rem; font-weight: 400; color: #8aaa96; text-align: right;
+  display: block; font-size: 0.6rem; font-weight: 400; color: #6b6966; text-align: right;
 }
 
 /* ── Screen 3: List + Map ── */
