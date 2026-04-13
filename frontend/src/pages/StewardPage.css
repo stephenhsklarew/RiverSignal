@@ -1,0 +1,86 @@
+.steward-page { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
+
+.steward-ws-bar { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 16px; }
+.steward-ws-btn {
+  padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);
+  background: var(--surface); font-family: inherit; font-size: 12px;
+  cursor: pointer; white-space: nowrap; min-height: 32px;
+}
+.steward-ws-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+.steward-title { font-family: 'Fraunces', serif; font-size: 22px; margin: 0 0 16px; }
+.steward-section { margin-bottom: 28px; }
+.steward-section-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; color: var(--text-secondary); }
+
+/* Timeline */
+.steward-timeline { padding-left: 20px; border-left: 2px solid var(--border); }
+.timeline-item { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; position: relative; }
+.timeline-year { font-size: 12px; font-weight: 600; font-family: var(--mono); min-width: 40px; color: var(--accent); }
+.timeline-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+  position: absolute; left: -26px; top: 3px; border: 2px solid var(--bg);
+}
+.timeline-item.fire .timeline-dot { background: var(--alert); }
+.timeline-item.fire .timeline-year { color: var(--alert); }
+.timeline-content { flex: 1; }
+.timeline-name { font-size: 13px; line-height: 1.3; }
+.timeline-type { font-size: 10px; color: var(--text-muted); text-transform: capitalize; margin-top: 1px; }
+
+/* Outcome Cards */
+.outcome-card {
+  padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 10px;
+}
+.outcome-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.outcome-title-row { display: flex; gap: 10px; align-items: flex-start; }
+.outcome-icon { font-size: 20px; }
+.outcome-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.outcome-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.outcome-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.outcome-cta {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  padding: 3px 8px; font-size: 10px; font-family: inherit; color: var(--accent);
+  cursor: pointer; white-space: nowrap;
+}
+.outcome-cta:hover { background: var(--accent-light); }
+
+.outcome-comparison {
+  display: flex; align-items: center; gap: 12px; margin-top: 12px;
+  padding: 12px; background: var(--bg); border-radius: 8px;
+}
+.outcome-before, .outcome-after { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.outcome-count { font-size: 28px; font-weight: 700; font-family: var(--mono); }
+.outcome-before .outcome-count { color: var(--text-muted); }
+.outcome-after .outcome-count { color: var(--accent); }
+.outcome-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.outcome-arrow { font-size: 22px; color: var(--text-muted); }
+.outcome-delta {
+  font-size: 14px; font-weight: 700; color: var(--accent);
+  font-family: var(--mono); padding: 4px 8px; background: var(--accent-light); border-radius: 6px;
+}
+
+/* Opportunity Grid */
+.opp-grid { display: flex; flex-direction: column; gap: 8px; }
+.opp-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.opp-icon { font-size: 22px; flex-shrink: 0; }
+.opp-info { flex: 1; }
+.opp-category { font-size: 13px; font-weight: 600; color: var(--accent); }
+.opp-type { font-size: 13px; margin-top: 2px; }
+.opp-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+/* CTA Card */
+.steward-cta-card {
+  padding: 20px; background: var(--accent-light); border-radius: 12px; text-align: center;
+}
+.steward-cta-title { font-family: 'Fraunces', serif; font-size: 18px; margin: 0 0 8px; color: var(--accent); }
+.steward-cta-text { font-size: 13px; color: var(--text-secondary); margin: 0 0 14px; line-height: 1.5; }
+.steward-cta-btn {
+  display: inline-block; padding: 10px 24px; background: var(--accent);
+  color: white; border-radius: 8px; text-decoration: none;
+  font-size: 14px; font-weight: 600; font-family: inherit;
+}
+.steward-cta-btn:hover { opacity: 0.9; }

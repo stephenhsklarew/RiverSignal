@@ -29,6 +29,11 @@ Deferred items that are explicitly out of scope for the current MVP but tracked 
 | Creel survey data | Research finding | ODFW does not publish publicly; available only by direct request |
 | Landsat/Sentinel NDVI vegetation trends | Design plan | Requires Google Earth Engine or large raster infrastructure |
 | USGS BioData portal direct access | Research finding | BioData web portal retired; data partially available through WQP biological profile |
+| Hourly hatch forecasts (now / +4h / tomorrow) | Wireframe Screen 3 descope | Gold layer has monthly observation counts, not hourly phenology models; would require building a phenology model keyed to water temp + time of day. MVP uses "this month / next month" seasonal intelligence |
+| Holding water cards (pool/riffle/run) | Wireframe Screen 4 descope | No pool/riffle/run habitat classification data in any ingested source; would require NHDPlus reach characterization or ODFW habitat survey ingestion |
+| Before/after restoration photo slider | Wireframe Screen 5 descope | gold.restoration_outcomes has numeric before/after species counts but no curated imagery; photo slider needs content sourcing effort (watershed council archives, OWRI project photos) |
+| Trip journal with photos and notes | Wireframe Screen 6 descope | Wireframe implied user-generated content (hatch photos, field notes, trip timeline) — this is a UGC platform feature requiring backend user model, media storage, and moderation. MVP Saved = bookmarks via localStorage |
+| Oregon State Parks recreation adapter | FEAT-015 Phase 2 | RIDB covers federal lands first (USFS, BLM) where the 5 MVP watersheds sit; Oregon State Parks ArcGIS FeatureServer adds state-managed access points as incremental coverage |
 
 ## Phase 3 Candidates
 

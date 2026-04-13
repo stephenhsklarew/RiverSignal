@@ -1,0 +1,65 @@
+.hatch-page { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
+
+.hatch-ws-bar { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 16px; }
+.hatch-ws-btn {
+  padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);
+  background: var(--surface); font-family: inherit; font-size: 12px;
+  cursor: pointer; white-space: nowrap; min-height: 32px;
+}
+.hatch-ws-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+.hatch-title { font-family: 'Fraunces', serif; font-size: 22px; margin: 0 0 4px; }
+.hatch-temp { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; font-family: var(--mono); }
+
+.hatch-section { margin-bottom: 24px; }
+.hatch-section-title { font-size: 14px; font-weight: 600; margin: 0 0 10px; color: var(--text-secondary); }
+.hatch-empty { font-size: 13px; color: var(--text-muted); font-style: italic; }
+
+/* Insect card with expandable flies */
+.insect-card-wrap { margin-bottom: 8px; }
+.insect-card {
+  display: flex; gap: 12px; align-items: center;
+  padding: 10px 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer;
+}
+.insect-card:hover { border-color: var(--accent); }
+.insect-img { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.insect-info { flex: 1; min-width: 0; }
+.insect-name { font-size: 14px; font-weight: 600; }
+.insect-sci { font-size: 11px; color: var(--text-muted); font-style: italic; }
+.insect-meta { display: flex; gap: 6px; align-items: center; margin-top: 4px; font-size: 11px; flex-wrap: wrap; }
+.insect-confidence {
+  padding: 1px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; font-size: 10px;
+}
+.confidence-high { background: var(--accent-light); color: var(--accent); }
+.confidence-medium { background: var(--warm-light); color: var(--warm); }
+.confidence-low { background: var(--bg); color: var(--text-muted); }
+.insect-stage { display: flex; align-items: center; gap: 2px; color: var(--text-secondary); font-weight: 500; }
+.insect-activity { color: var(--text-secondary); }
+.insect-obs { color: var(--text-muted); }
+.insect-expand { color: var(--text-muted); font-size: 12px; flex-shrink: 0; padding: 4px; }
+
+/* Inline matching flies */
+.insect-flies {
+  margin: 0 0 0 16px; padding: 8px 12px;
+  border-left: 2px solid var(--accent-light); background: var(--bg); border-radius: 0 0 8px 8px;
+}
+.insect-flies-label { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+.insect-flies-empty { font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+/* Fly cards */
+.hatch-flies { display: flex; flex-direction: column; gap: 6px; }
+.fly-card {
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.fly-card.compact { padding: 6px 8px; border: none; background: transparent; }
+.fly-img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.fly-card.compact .fly-img { width: 28px; height: 28px; }
+.fly-info { flex: 1; min-width: 0; }
+.fly-name { font-size: 13px; font-weight: 500; }
+.fly-card.compact .fly-name { font-size: 12px; }
+.fly-meta { font-size: 11px; color: var(--text-secondary); }
+.fly-card.compact .fly-meta { font-size: 10px; }
+.fly-insect { font-size: 10px; color: var(--text-muted); margin-top: 2px; }

@@ -182,6 +182,16 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 8. **Land access and legality**: Public land boundaries (BLM, USFS, NPS, state) with collecting rules clearly displayed per parcel (DeepTrail)
 9. **Deep time storytelling**: For any location, generate an AI narrative of what ancient ecosystem existed there in each geologic period, with fossil evidence (DeepTrail)
 
+### Should Have (P1) — RiverPath Mobile MVP (2026-04-12)
+
+10. **RiverPath mobile navigation architecture**: Bottom tab bar (River Now / Explore / Hatch / Steward / Saved), GPS reach lookup, route-based screens optimized for one-handed mobile use (FEAT-014)
+11. **Recreation discovery and access points**: Ingest recreation data from USFS RIDB API, display adventure cards with family/dog/fishing filters and map/list toggle (FEAT-015)
+12. **Saved favorites**: Client-side persistence (localStorage) for bookmarking reaches, species, fly patterns, recreation sites, and restoration projects across sessions (FEAT-016)
+13. **Hatch confidence scoring**: Insect species cards ranked by confidence (high/medium/low) combining observation frequency, current water temperature, and seasonal patterns; matching fly pattern recommendations (FEAT-012 FR-19-23)
+14. **Cold-water refuge mapping**: Thermal station overlay on MapLibre map with blue-to-red gradient; refuge explanation cards for ecological context (FEAT-012 FR-24-28)
+15. **Reading mode toggle**: Kids/Adult/Science reading levels for river story narratives (FEAT-012 FR-12)
+16. **Stewardship action CTAs**: Save, Share, Join buttons on restoration outcome cards with native share API support (FEAT-012 FR-38-41)
+
 ### Nice to Have (P2)
 
 1. **Collaborative annotation**: Allow senior ecologists to annotate, correct, or override system interpretations, feeding back into reasoning quality
@@ -190,8 +200,7 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 4. **Geology-ecology correlation engine**: Automated analysis linking geologic unit properties (lithology, permeability, mineral content) to downstream water chemistry, species distribution, and restoration outcomes (DeepSignal)
 5. **Museum and site guide**: Nearby fossil museums, geologic interpretive sites, and visitor centers with hours, exhibits, and kid-friendliness ratings (DeepTrail)
 6. **Volcanic feature mapping**: Vents, flows, calderas, lava tubes, and hot springs with geologic history and hazard context (DeepTrail/DeepSignal)
-7. **Mobile-first responsive PWA**: Progressive Web App for RiverPath and DeepTrail with offline caching for remote areas (B2C products)
-4. **eBird integration**: Supplement iNaturalist bird observations with eBird data for richer avian indicators
+7. **eBird integration**: Supplement iNaturalist bird observations with eBird data for richer avian indicators
 
 ## Functional Requirements
 

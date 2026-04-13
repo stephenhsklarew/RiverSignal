@@ -95,6 +95,7 @@ def fishing_conditions(watershed: str):
             SELECT obs_year, obs_month, avg_water_temp_c, max_water_temp_c,
                    avg_discharge_cfs, avg_do_mg_l, steelhead_harvest, trout_stocked
             FROM gold.fishing_conditions WHERE watershed = :ws
+              AND (avg_water_temp_c IS NOT NULL OR avg_discharge_cfs IS NOT NULL)
             ORDER BY obs_year DESC, obs_month DESC LIMIT 12
         """), {"ws": watershed}).fetchall()
 
@@ -264,6 +265,113 @@ def fly_recommendations(watershed: str, month: int = None):
         }
         for r in rows
     ]
+
+
+@router.get("/sites/{watershed}/fishing/hatch-confidence")
+def hatch_confidence(watershed: str, month: int = None):
+    """Get hatch confidence scoring — top insects ranked by likelihood.
+
+    Combines observation frequency from hatch_chart with current water
+    temperature from fishing_conditions to produce a confidence tier.
+    """
+    from datetime import datetime
+    if month is None:
+        month = datetime.now().month
+
+    with engine.connect() as conn:
+        # Get current water temp for this watershed
+        temp_row = conn.execute(text("""
+            SELECT avg_water_temp_c FROM gold.fishing_conditions
+            WHERE watershed = :ws AND avg_water_temp_c IS NOT NULL
+            ORDER BY obs_year DESC, obs_month DESC LIMIT 1
+        """), {"ws": watershed}).fetchone()
+        current_temp = float(temp_row[0]) if temp_row and temp_row[0] else None
+
+        # Get hatch data for this month and next
+        rows = conn.execute(text("""
+            SELECT taxon_name, common_name, obs_month, observation_count,
+                   activity_level, photo_url, years_observed
+            FROM gold.hatch_chart
+            WHERE watershed = :ws AND obs_month IN (:m1, :m2)
+            ORDER BY obs_month, observation_count DESC
+        """), {"ws": watershed, "m1": month, "m2": (month % 12) + 1}).fetchall()
+
+    # Score confidence: high (>= 10 obs + peak), medium (>= 3 obs), low (< 3)
+    insects = []
+    for r in rows:
+        obs = r[3] or 0
+        activity = r[4] or 'present'
+        years = r[6] or 1
+        if activity == 'peak' and obs >= 10:
+            confidence = 'high'
+        elif obs >= 3 or years >= 2:
+            confidence = 'medium'
+        else:
+            confidence = 'low'
+
+        insects.append({
+            "taxon_name": r[0],
+            "common_name": r[1],
+            "month": r[2],
+            "observations": obs,
+            "activity": activity,
+            "confidence": confidence,
+            "photo_url": r[5],
+            "years_observed": years,
+        })
+
+    return {
+        "watershed": watershed,
+        "current_month": month,
+        "water_temp_c": current_temp,
+        "insects": insects[:10],  # top 10
+    }
+
+
+@router.get("/sites/{watershed}/stewardship")
+def stewardship(watershed: str):
+    """Get stewardship opportunities and restoration outcomes."""
+    with engine.connect() as conn:
+        # Stewardship opportunities
+        opps = conn.execute(text("""
+            SELECT intervention_category, raw_type, project_count,
+                   most_recent_year, project_summaries
+            FROM gold.stewardship_opportunities WHERE watershed = :ws
+            ORDER BY project_count DESC
+        """), {"ws": watershed}).fetchall()
+
+        # Restoration outcomes (before/after)
+        outcomes = conn.execute(text("""
+            SELECT intervention_category, intervention_year,
+                   intervention_count, species_before, species_after
+            FROM gold.restoration_outcomes WHERE watershed = :ws
+            ORDER BY intervention_year DESC
+        """), {"ws": watershed}).fetchall()
+
+    return {
+        "watershed": watershed,
+        "opportunities": [
+            {
+                "category": r[0],
+                "type": r[1],
+                "project_count": r[2],
+                "most_recent_year": r[3],
+                "examples": r[4],
+            }
+            for r in opps
+        ],
+        "outcomes": [
+            {
+                "name": f"{r[0]} ({r[1]})",
+                "category": r[0],
+                "year": r[1],
+                "projects": r[2],
+                "species_before": r[3],
+                "species_after": r[4],
+            }
+            for r in outcomes
+        ],
+    }
 
 
 @router.get("/river/{river_name}/species")

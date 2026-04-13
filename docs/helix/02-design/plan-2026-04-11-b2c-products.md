@@ -1,10 +1,11 @@
 # Design Plan: RiverPath + DeepTrail B2C Product Experiences
 
 **Date**: 2026-04-11
-**Status**: CONVERGED
+**Status**: PARTIALLY SUPERSEDED
 **Refinement Rounds**: 5
 **Scope**: FEAT-012 (RiverPath B2C), FEAT-013 (DeepTrail B2C)
 **Depends On**: plan-2026-04-10.md (MVP), plan-2026-04-10-four-product-platform.md (geology expansion)
+**Superseded By**: `plan-2026-04-12-riverpath-mobile-mvp.md` for RiverPath screen architecture, navigation, and wireframe-driven features (FEAT-014/015/016). DeepTrail sections (Phase B) remain current.
 
 ## 1. Problem Statement and User Impact
 

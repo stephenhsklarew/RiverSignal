@@ -106,18 +106,19 @@ The RiverSignal data platform provides **100% of the core data needs** for River
 
 ## Gaps to Close for RiverPath MVP
 
-| Gap | Priority | Approach |
-|-----|----------|----------|
-| Mobile-first UI/UX | P0 | React Native or progressive web app with location services |
-| Family-friendly content layer | P0 | LLM generates kid-accessible narratives from gold layer data |
-| River access points / boat ramps | P1 | Oregon State Marine Board data (partially available) |
-| Swimming/wading safety index | P1 | Derive from water temp + flow + depth data already in DB |
-| Stewardship events calendar | P1 | Scrape watershed council event pages or integrate with Meetup/Eventbrite |
-| John Day River data | P1 | Add watershed config + run existing 15 pipelines |
-| Trail data along rivers | P2 | OpenStreetMap or USFS trail data |
-| Dog-friendly route info | P2 | Manual curation or community-contributed |
-| Citizen science write-back | P2 | iNaturalist observation submission API |
-| Push notifications for conditions | P2 | Alert infrastructure for flow/temp thresholds |
+| Gap | Priority | Approach | Status |
+|-----|----------|----------|--------|
+| Mobile-first UI/UX | P0 | PWA with bottom nav, GPS reach lookup, swipeable cards | **Specified** — FEAT-014, design plan 2026-04-12 |
+| Family-friendly content layer | P0 | Reading mode toggle (Kids/Adult/Science) on river stories | **Specified** — FEAT-012 FR-12 |
+| River access points / boat ramps | P1 | USFS RIDB API + Oregon State Parks ArcGIS FeatureServer | **Specified** — FEAT-015 (recreation ingestion) |
+| Swimming/wading safety index | P1 | Derive from water temp + flow + depth data already in DB | **Implemented** — gold.swim_safety view |
+| Stewardship events calendar | P1 | Manual curation initially; scraping deferred to post-MVP | **Specified** — FEAT-012 FR-40 |
+| John Day River data | P1 | Add watershed config + run existing 18 pipelines | Open |
+| Saved/favorites | P1 | localStorage + React context; no backend auth needed | **Specified** — FEAT-016 |
+| Trail data along rivers | P2 | OpenStreetMap or USFS trail data | Parking lot |
+| Dog-friendly route info | P2 | RIDB amenity flags + manual curation seed table | **Specified** — FEAT-015 FR-10 |
+| Citizen science write-back | P2 | iNaturalist observation submission API | Parking lot |
+| Push notifications for conditions | P2 | Alert infrastructure for flow/temp thresholds | Parking lot |
 
 ## Product Principles
 

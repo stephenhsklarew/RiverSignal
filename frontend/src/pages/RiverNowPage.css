@@ -1,0 +1,84 @@
+.rnow { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
+
+.rnow-header { margin-bottom: 16px; }
+.rnow-locating { text-align: center; color: var(--text-muted); font-style: italic; padding: 24px 0; }
+
+.rnow-picker-label { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.rnow-picker-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rnow-chip {
+  padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface); font-family: inherit; font-size: 13px;
+  cursor: pointer; min-height: 36px;
+}
+.rnow-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+.rnow-location { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; }
+.rnow-location-icon { font-size: 18px; }
+.rnow-change { margin-left: auto; background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; font-family: inherit; }
+
+/* Hero */
+.rnow-hero { background: linear-gradient(135deg, #e8f5ef 0%, #f0ece4 100%); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.rnow-hero-title { font-family: 'Fraunces', serif; font-size: 22px; margin: 0 0 12px; }
+.rnow-hero-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
+.rnow-metric { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
+.rnow-metric-value { font-size: 18px; font-weight: 600; font-family: var(--mono); }
+.rnow-metric-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.rnow-hero-score { margin-top: 12px; font-size: 12px; color: var(--text-secondary); }
+.confidence-high { color: var(--accent); }
+.confidence-medium { color: var(--warm); }
+.confidence-low { color: var(--text-muted); }
+
+/* Swipeable Condition Cards */
+.rnow-cards-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+.rnow-cards {
+  display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch; padding-bottom: 4px; margin-bottom: 20px;
+}
+.rnow-card {
+  flex: 0 0 78%; scroll-snap-align: start;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; min-height: 120px;
+}
+.rnow-card:hover { border-color: var(--accent); }
+.rnow-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.rnow-card-icon { font-size: 18px; }
+.rnow-card-title { font-weight: 600; font-size: 13px; }
+.rnow-card-body { flex: 1; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.rnow-card-stat { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.rnow-card-detail { margin-top: 4px; }
+.rnow-card-action { font-size: 11px; color: var(--accent); margin-top: 8px; font-weight: 500; }
+
+.rnow-card-species { display: flex; flex-direction: column; gap: 4px; }
+.rnow-mini-species { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.rnow-mini-img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
+.rnow-conf { font-size: 9px; font-weight: 600; text-transform: uppercase; padding: 1px 4px; border-radius: 3px; }
+.rnow-conf.confidence-high { background: var(--accent-light); }
+.rnow-conf.confidence-medium { background: var(--warm-light); }
+.rnow-conf.confidence-low { background: var(--bg); }
+
+.rnow-mini-refuge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+.refuge-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Sections */
+.rnow-section { margin-bottom: 20px; }
+.rnow-section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; }
+
+/* What's Here Now */
+.rnow-alive-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rnow-alive-item { text-align: center; }
+.rnow-alive-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+.rnow-alive-name { font-size: 11px; margin-top: 4px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Access Points */
+.rnow-access-list { display: flex; flex-direction: column; gap: 6px; }
+.rnow-access-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.rnow-access-icon { font-size: 18px; flex-shrink: 0; }
+.rnow-access-info { flex: 1; min-width: 0; }
+.rnow-access-name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rnow-access-type { font-size: 10px; color: var(--text-muted); text-transform: capitalize; }
+.rnow-more-link { display: block; font-size: 12px; color: var(--accent); margin-top: 8px; text-decoration: none; }
+.rnow-more-link:hover { text-decoration: underline; }

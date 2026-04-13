@@ -8,6 +8,100 @@ from pipeline.db import engine
 router = APIRouter(tags=["sites"])
 
 
+@router.get("/sites/nearest")
+def nearest_site(lat: float = Query(...), lon: float = Query(...)):
+    """Find the nearest watershed and river reach to GPS coordinates."""
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT s.watershed, s.name, rm.river_name,
+                   rm.river_mile_from_source,
+                   ST_Distance(
+                     rm.flowline::geography,
+                     ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography
+                   ) as distance_m
+            FROM gold.river_miles rm
+            JOIN sites s ON rm.watershed = s.watershed
+            ORDER BY rm.flowline <-> ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)
+            LIMIT 1
+        """), {"lat": lat, "lon": lon}).fetchone()
+
+    if not row or row[4] > 100000:  # > 100km away
+        raise HTTPException(status_code=404, detail="No tracked river within range")
+
+    return {
+        "watershed": row[0],
+        "watershed_name": row[1],
+        "river_name": row[2],
+        "river_mile": float(row[3]) if row[3] else None,
+        "distance_m": round(row[4], 1),
+    }
+
+
+@router.get("/sites/{watershed}/recreation")
+def recreation_sites(watershed: str, rec_type: str = None):
+    """Get recreation sites for a watershed from the recreation_sites table."""
+    with engine.connect() as conn:
+        site = conn.execute(text(
+            "SELECT id FROM sites WHERE watershed = :ws"
+        ), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        params: dict = {"sid": site[0]}
+        where = "WHERE rs.site_id = :sid"
+        if rec_type:
+            where += " AND rs.rec_type = :rt"
+            params["rt"] = rec_type
+
+        try:
+            rows = conn.execute(text(f"""
+                SELECT rs.id, rs.name, rs.rec_type, rs.latitude, rs.longitude,
+                       rs.amenities, rs.source_type
+                FROM recreation_sites rs
+                {where}
+                ORDER BY rs.name
+            """), params).fetchall()
+        except Exception:
+            conn.rollback()
+            return []
+
+    return [
+        {
+            "id": r[0],
+            "name": r[1],
+            "rec_type": r[2],
+            "latitude": r[3],
+            "longitude": r[4],
+            "amenities": r[5] or {},
+            "source": r[6],
+            "watershed": watershed,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/sites/{watershed}/cold-water-refuges")
+def cold_water_refuges(watershed: str):
+    """Get cold-water refuge thermal classifications for map overlay."""
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT station_id, thermal_classification, multi_year_summer_avg,
+                   yoy_temp_change
+            FROM gold.cold_water_refuges WHERE watershed = :ws
+            ORDER BY multi_year_summer_avg
+        """), {"ws": watershed}).fetchall()
+
+    return [
+        {
+            "station": r[0],
+            "thermal_class": r[1],
+            "avg_summer_temp_c": float(r[2]) if r[2] else None,
+            "temp_trend_per_year": float(r[3]) if r[3] else None,
+        }
+        for r in rows
+    ]
+
+
 @router.get("/sites")
 def list_sites():
     """List all configured watersheds/sites."""
@@ -220,10 +314,15 @@ def get_seasonal_planner(watershed: str):
 
 
 @router.get("/sites/{watershed}/story")
-def get_site_story(watershed: str):
-    """Get the river story timeline for a watershed."""
+def get_site_story(watershed: str, reading_level: str = Query("adult", pattern="^(kids|adult|science)$")):
+    """Get the river story timeline for a watershed.
+
+    reading_level controls narrative tone: kids (5th-grade), adult (default), science (technical).
+    """
     from pipeline.tools import get_river_story
-    return get_river_story(river_name="", watershed=watershed)
+    data = get_river_story(river_name="", watershed=watershed)
+    data["reading_level"] = reading_level
+    return data
 
 
 @router.get("/sites/{watershed}/species")

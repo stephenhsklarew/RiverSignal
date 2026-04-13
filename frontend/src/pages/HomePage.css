@@ -279,6 +279,39 @@
 
 .ws-ask-row button:hover { opacity: 0.9; }
 
+/* Inline chat response */
+.ws-chat-response {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #f8f6f1;
+  border-radius: 8px;
+  border: 1px solid #e8e2d8;
+}
+
+.ws-chat-question {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--accent, #64705b);
+  margin-bottom: 8px;
+}
+
+.ws-chat-loading {
+  font-size: 13px;
+  color: #8a7e6b;
+  font-style: italic;
+}
+
+.ws-chat-answer {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #3d3527;
+}
+.ws-chat-answer p { margin: 0 0 8px; }
+.ws-chat-answer p:last-child { margin-bottom: 0; }
+.ws-chat-answer table { font-size: 12px; border-collapse: collapse; width: 100%; margin: 8px 0; }
+.ws-chat-answer th, .ws-chat-answer td { padding: 4px 8px; border: 1px solid #e8e2d8; text-align: left; }
+.ws-chat-answer th { background: #f0ece4; font-weight: 600; }
+
 /* ── Species section ── */
 .home-species {
   padding: 60px 48px;

@@ -27,30 +27,62 @@ RiverPath is the consumer-facing (B2C) mobile-first product for families, angler
 
 #### Home Experience (Story-Driven)
 1. Landing page presents 5 Oregon watersheds as visual story blocks with hero photos, health scores, species counts, and narrative taglines
-2. Each watershed block includes an inline question input: "Ask about this river..." that navigates to the dashboard with the question pre-loaded
+2. Each watershed block includes an inline question input with consumer-oriented placeholder (e.g., "Is today a good day to fly fish the McKenzie?") that submits the question inline within RiverPath — chat response renders as markdown below the watershed block without leaving the /path context
 3. Scroll-reveal animations create a narrative flow: each watershed "unfolds" as the user scrolls
 4. Species discovery section shows random photo cards from the 18,500+ species with CC-licensed photos
 
-#### River Detail Experience
-5. For each watershed, display a narrative "river story" synthesizing: current conditions (water temp, flow, DO), fire recovery status, restoration progress, and seasonal highlights
-6. Species photo gallery with cards showing common name, scientific name, photo, last observed date, and taxonomic group — filterable and scrollable
-7. Fishing intelligence section: morning brief, species by river mile, harvest trends, stocking schedule, hatch chart, swim safety ratings
-8. River story timeline: chronological events (fires, restoration projects, species milestones, dam removals) visualized as a scrollable timeline
-9. Indicator species checklist showing detected/absent status for ecological health indicators
+#### River Now — Hero Screen (Wireframe Screen 1)
+5. Hero card at top of River Now showing: river name, current flow trend (rising/falling/stable), water temperature, water clarity, and hatch confidence level (high/medium/low)
+6. Swipeable horizontal condition cards below hero: Fish Activity (species active now, preferred temps), Insect Activity (current hatch species, confidence), Refuge Status (cold-water refuge classification)
+7. Nearby access point cards below condition cards showing name, type, distance, and amenity icons — tappable to expand details (data from FEAT-015 recreation layer)
+8. Map pins update dynamically as the user pans the mini map header
+9. All content optimized for one-hand scrolling on mobile
 
-#### Location-Aware Features
-10. Observation map search: user types a species name (e.g., "mayfly", "salmon", "eagle") and sees every observation as a pin on the map with photo popups
-11. "What's here now" — species observed in the current month at the selected watershed
-12. Seasonal trip planner: "When should I visit for salmon?" returns peak activity windows by species and river
+#### Living River Story Mode (Wireframe Screen 2 / Feature 2)
+10. For each watershed, display a narrative "river story" synthesizing: current conditions (water temp, flow, DO), fire recovery status, restoration progress, and seasonal highlights
+11. At least one immersive ecological story card per reach, presented as image-first cards with ecological narratives — prioritize fish, aquatic insect, or restoration visuals
+12. Reading mode toggle with three levels: Kids (5th-grade vocabulary, "imagine you're standing in..." framing), Adult (standard narrative), Science (technical with citations and data references)
+13. River story timeline: chronological events (fires, restoration projects, species milestones, dam removals) visualized as a scrollable timeline
+14. Before/after restoration display showing species counts pre- and post-intervention from `gold.restoration_outcomes` (photo slider descoped to parking lot — MVP uses numeric before/after cards)
+
+#### Species & Observation
+15. Species photo gallery with cards showing common name, scientific name, photo, last observed date, and taxonomic group — filterable and scrollable
+16. Indicator species checklist showing detected/absent status for ecological health indicators
+17. Observation map search: user types a species name (e.g., "mayfly", "salmon", "eagle") and sees every observation as a pin on the map with photo popups
+18. "What's here now" — species observed in the current month at the selected watershed
+
+#### Hatch + Aquatic Insect Intelligence (Wireframe Screen 3)
+19. Hatch tab displays a seasonal hatch timeline showing insect activity by month for the selected watershed — time horizon is "this month / next month" (hourly forecasts descoped to parking lot)
+20. Top 3 likely aquatic insects displayed as species cards ranked by confidence level (high/medium/low), derived from `gold.hatch_confidence` combining observation frequency, current water temperature, and seasonal patterns
+21. Each insect card includes: species photo, common name, lifecycle stage indicator (nymph/emerger/adult), and suggested matching fly pattern with fly name and size
+22. Matching fly cards section below insect cards showing recommended dry flies and nymphs with: pattern name, hook size, fly type, time of day, and water type suitability
+23. Users can save favorite fly patterns to the Saved tab (FEAT-016)
+
+#### Fish Activity + Cold-Water Refuge (Wireframe Screen 4)
+24. Fish carousel displaying likely species as illustrated cards with: common name, photo, preferred temperature range, and current activity status
+25. Trout cards show preferred temperature range and current water temperature comparison — color-coded green (in range), amber (marginal), red (stress)
+26. Cold-water refuge overlay on MapLibre map shading thermal station classifications from `gold.cold_water_refuges`: blue=cold refuge, teal=cool, amber=warm, red=thermal stress
+27. Refuge cards below the map explaining ecological importance: why cold-water refuges matter, which species depend on them, and current thermal status of this reach
+28. Fish + Refuge is a drilldown from River Now (not a bottom nav tab), accessible via hero card or condition swipe cards
+
+#### Fishing Intelligence
+29. Fishing morning brief: water temp, flow, species active, recent stocking, harvest trends — all in one scrollable view
+30. Species by river mile table showing what fish are present and where (from `gold.species_by_reach`)
+31. Stocking schedule with recent and upcoming events
+32. Seasonal trip planner: "When should I visit for salmon?" returns peak activity windows by species and river
+33. Swim safety ratings with flow/temperature safety indicators
 
 #### AI Chat
-13. Natural-language chat for each watershed: "Is this river healthy?", "What fish are spawning?", "Tell me about the Holiday Farm Fire"
-14. Chat responses are grounded in gold-layer data with citations to observations, water quality, and interventions
-15. Chat is contextual — knows which watershed the user is viewing
+34. Natural-language chat for each watershed with consumer-friendly tone: "Is today a good day to fly fish?", "What bugs are hatching?", "Tell me about the Holiday Farm Fire"
+35. Chat responses are grounded in gold-layer data with citations to observations, water quality, and interventions
+36. Chat is contextual — knows which watershed the user is viewing
+37. Inline chat on homepage: questions submitted from watershed blocks are answered inline with markdown rendering, auto-scrolling to the response
 
-#### Stewardship
-16. Nearby volunteer events and watershed council links (manual curation initially)
-17. "How to help" actions tied to current restoration needs at each watershed
+#### Stewardship (Wireframe Screen 5)
+38. Restoration timeline cards showing project history: year, category, project name, and outcome summary — presented as a scrollable card timeline
+39. Restoration outcome cards displaying before/after species counts from `gold.restoration_outcomes` with clear numeric comparison (e.g., "12 species before → 34 species after")
+40. Volunteer and stewardship section showing: watershed council links, "How to help" actions tied to current restoration needs, and upcoming volunteer opportunities (manual curation initially, event feed post-MVP)
+41. Action CTAs on stewardship cards: Save (bookmark via FEAT-016), Share (native share API or copy link), Join (link to watershed council or event page)
 
 ### Non-Functional Requirements
 
@@ -64,12 +96,22 @@ RiverPath is the consumer-facing (B2C) mobile-first product for families, angler
 
 ## User Stories
 
+### Existing
 - US-040 -- Family at McKenzie opens RiverPath and sees the fire recovery story with before/after species richness
 - US-041 -- Angler searches "steelhead" on Deschutes and sees every observation pinned on the map
 - US-042 -- Guide opens morning brief before a Deschutes trip and gets conditions + species + stocking in one view
 - US-043 -- Parent plans September trip to see salmon spawning on the McKenzie
 - US-044 -- Teacher uses RiverPath to prep a field trip itinerary with species checklist for students
 - US-045 -- Family discovers volunteer tree-planting event at their favorite swimming hole
+
+### New (Wireframe-Driven)
+- US-046 -- Family opens River Now via GPS and sees hero card with current conditions
+- US-047 -- Angler checks hatch confidence and sees top 3 insects with matching flies
+- US-048 -- Angler views cold-water refuge map overlay to find holding water
+- US-049 -- Parent switches story to Kids reading mode for a 7-year-old
+- US-056 -- Steward taps Share on a restoration outcome card to send to a friend
+- US-057 -- Guide swipes through Fish/Bugs/Refuge condition cards on River Now
+- US-058 -- Family asks inline question on homepage and reads the answer without leaving RiverPath
 
 ## Edge Cases and Error Handling
 
@@ -91,18 +133,22 @@ RiverPath is the consumer-facing (B2C) mobile-first product for families, angler
 
 ## Dependencies
 
-- **Other features**: FEAT-001 (ecological summaries), FEAT-005 (data ingestion), FEAT-006 (map workspace), FEAT-007 (fishing intelligence), FEAT-011 (four-product UI architecture)
-- **Data**: 534K+ geolocated observations, 18,500+ species with photos, 21+ ecological gold views, 5 watersheds
-- **External services**: MapLibre basemap tiles, Claude API for chat
+- **Other features**: FEAT-001 (ecological summaries), FEAT-005 (data ingestion), FEAT-006 (map workspace), FEAT-007 (fishing intelligence), FEAT-011 (four-product UI architecture), FEAT-014 (mobile navigation — bottom nav shell), FEAT-015 (explore — recreation data for access point cards), FEAT-016 (saved — persistence for save CTAs and fly pattern bookmarks)
+- **Data**: 534K+ geolocated observations, 18,500+ species with photos, 31+ gold views (including hatch_chart, cold_water_refuges, restoration_outcomes, whats_alive_now, hatch_confidence), 5 watersheds
+- **New gold view**: `gold.hatch_confidence` — combines hatch_chart + water_quality_monthly + seasonal_observation_patterns to produce confidence tier per insect per month
+- **External services**: MapLibre basemap tiles, Claude API for chat, Browser Geolocation API
 
 ## Out of Scope
 
 - Native iOS/Android apps (PWA first)
-- User accounts and saved favorites (deferred to auth implementation)
 - Social features (trip reports, catch photos, community posts)
 - Push notifications for conditions alerts
 - Citizen science write-back (submitting observations to iNaturalist)
 - E-commerce (fishing permits, guided trip booking)
+- Hourly hatch forecasts — "now / +4h / tomorrow" (descoped to monthly; see parking lot)
+- Before/after restoration photo slider (descoped to numeric comparison; see parking lot)
+- Holding water cards with pool/riffle/run classification (no habitat data; see parking lot)
+- Trip journals with user-generated photos and notes (UGC feature; see parking lot)
 
 ## Review Checklist
 
