@@ -23,7 +23,7 @@ This addresses wireframe Screen 6 (Saved) and the "Save Trip" / "Save Spot" step
 
 - **Current situation**: RiverPath has no way to save or bookmark anything. Every session starts from zero. Users cannot mark a campground for later, save a fly pattern that worked, or bookmark a watershed they want to revisit.
 - **Pain points**: Families planning trips cannot save access points or species they want to find. Anglers cannot bookmark fly recommendations. Stewardship advocates cannot save restoration projects. Every visit requires re-navigating to the same content.
-- **Desired outcome**: A heart/bookmark icon appears on every saveable card (reach, species, fly, recreation site, restoration project). Tapping it saves the item. The Saved tab shows all saved items grouped by type, persisted across browser sessions.
+- **Desired outcome**: A heart/bookmark icon appears on every saveable card (reach, species, fly, recreation site, restoration project). Tapping it saves the item. The Saved tab shows all saved items grouped by watershed (river name), persisted across browser sessions.
 
 ## Requirements
 
@@ -44,7 +44,7 @@ This addresses wireframe Screen 6 (Saved) and the "Save Trip" / "Save Spot" step
 
 #### Saved Page
 10. Saved page accessible via bottom nav "Saved" tab at `/path/saved`
-11. Items grouped by type with section headers: Saved Reaches, Saved Species, Saved Flies, Saved Adventures, Saved Projects
+11. Items grouped by watershed (river name) with section headers showing river name and item count. Within each watershed group, items display with type icon, label, sublabel, and saved date.
 12. Each saved item renders as a compact card with: thumbnail (if available), label, sublabel, watershed name, saved date
 13. Swipe-to-delete or tap-delete button removes a saved item
 14. Empty state: "Nothing saved yet — tap the heart icon on any card to save it here"

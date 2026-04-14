@@ -274,15 +274,16 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 
 ## Technical Context
 
-- **Language/Runtime**: Python 3.12+, TypeScript 5.x
-- **Frontend**: React 18 with MapLibre GL JS for map rendering, Vite 6 build
-- **Backend**: FastAPI on Python for reasoning and data pipelines, Node.js for real-time workspace API
-- **LLM Integration**: Claude API (Anthropic) for ecological reasoning and report generation; tool-using agent architecture with geospatial and data-query tools
-- **Data/Storage**: PostgreSQL 17 with PostGIS 3.6.2 on port 5433; S3-compatible object store for media (photos, audio, PDFs)
-- **Data Sources (15 operational pipelines)**: iNaturalist API v1, USGS NWIS (stream gauges), Water Quality Portal (WQP), EPA ATTAINS (impaired waters), NHDPlus HR (stream flowlines), National Wetlands Inventory (NWI), NIFC/MTBS (fire perimeters and burn severity), USGS WBD (watershed boundaries), Oregon Dept of Forestry (ODF), Oregon Dept of Fish & Wildlife (ODFW sport catch/stocking), Oregon Watershed Restoration Inventory (OWRI), PRISM (climate), Oregon DEQ (water quality), USFS (land management)
-- **Database Tables (13)**: observations, time_series, interventions, fire_perimeters, stream_flowlines, impaired_waters, wetlands, watershed_boundaries, geologic_units, fossil_occurrences, mineral_deposits, land_ownership, deep_time_stories
-- **Data Volume**: 2.5M+ records loaded across 5 watersheds (Klamath, McKenzie, Deschutes, Metolius, John Day); 17,288 geologic units, 1,959 fossil occurrences, 1,980 mineral deposits
-- **Medallion Architecture**: 7 silver views + 31 gold views = 38 materialized views
+- **Language/Runtime**: Python 3.12+, TypeScript 6.x
+- **Frontend**: React 19 with MapLibre GL JS for map rendering, Vite 8 build
+- **Backend**: FastAPI on Python for reasoning, data pipelines, and real-time pass-through APIs (NWS, USGS)
+- **LLM Integration**: Claude API (Anthropic) for ecological reasoning, report generation, and deep time storytelling; tool-using agent architecture with geospatial and data-query tools
+- **Data/Storage**: PostgreSQL 17 with PostGIS 3.6.2 on port 5433
+- **Data Sources (26 ingested + 2 live APIs)**: iNaturalist, USGS NWIS, WQP (chemistry + macroinvertebrates), SNOTEL, BioData, StreamNet, MTBS, NHDPlus HR, OWRI/NOAA/PCSRF, Fish Passage, PRISM, EPA ATTAINS, NWI, USGS WBD, ODFW (sport catch/stocking), Macrostrat, PBDB, iDigBio, GBIF (with fossil images), BLM SMA, DOGAMI, MRDS, USFS Recreation, OSMB Boating Access, curated hatch chart. Live: NWS Weather API, USGS Instantaneous Values.
+- **Database Tables (15)**: observations (550K), time_series (1.7M), interventions (2.6K), fire_perimeters (277), stream_flowlines (142K), impaired_waters (778), wetlands (13K), watershed_boundaries (975), geologic_units (17.3K), fossil_occurrences (3.7K), mineral_deposits (2K), land_ownership (40), deep_time_stories (7), recreation_sites (566), curated_hatch_chart (50)
+- **Data Volume**: 2.3M+ records loaded across 5 watersheds (Klamath, McKenzie, Deschutes, Metolius, John Day)
+- **Medallion Architecture**: 7 silver views + 34 gold views = 41 materialized views
+- **Platform Targets**: Web application; Chrome, Firefox, Safari latest; RiverPath and DeepTrail are mobile-first responsive PWAs; RiverSignal and DeepSignal are desktop-primary
 - **Geology Data Sources (6)**: Macrostrat, USGS NGMDB via DOGAMI OGDC v6, Paleobiology Database (PBDB), iDigBio museum specimens, USGS MRDS mineral deposits, BLM Surface Management Agency
 - **GIS**: HUC12 watershed boundaries from USGS WBD, wetland layers from NWI, burn severity from MTBS, stream flowlines from NHDPlus HR
 - **Platform Targets**: Web application; Chrome, Firefox, Safari latest; responsive but desktop-primary (field tablet secondary)

@@ -33,10 +33,12 @@ DeepTrail is the consumer-facing (B2C) mobile-first product for families, rockho
 5. Deep time timeline: chronological visualization of geologic events at a location, oldest at top, with geologic units and fossil occurrences interleaved
 
 #### Fossil Discovery
-6. For any lat/lon, display fossil occurrences within configurable radius (default 25km, max 100km) with taxon name, phylum, class, period, age, and distance
-7. Fossil cards showing key information in a scannable grid layout
+6. For any lat/lon, display fossil occurrences within configurable radius (default 50km, max 200km) with taxon name, phylum, class, period, age, distance, and specimen photo (when available from GBIF)
+7. Fossil cards showing key information in a scannable grid layout, with specimen thumbnails for records that have images
 8. Filter fossils by geologic period (Eocene, Miocene, etc.) or phylum (Mollusca, Chordata, etc.)
-9. Link to source records (PBDB, iDigBio) for researchers wanting full citation data
+9. Link to correct source per record: PBDB → paleobiodb.org, GBIF → gbif.org/occurrence, iDigBio → idigbio.org/portal. Source displayed as badge on each fossil card.
+9a. Fossils with specimen images sorted to top of results for visual engagement
+9b. Data from 3 sources: PBDB (667 records), iDigBio (2,041 records), GBIF (965 records, 18 with specimen photos)
 
 #### Legal Collecting Status
 10. For any lat/lon, display land ownership (BLM, USFS, NPS, state, private) with collecting legality shown as prominent color-coded badges: green (permitted), yellow (restricted), red (prohibited)
@@ -58,6 +60,7 @@ DeepTrail is the consumer-facing (B2C) mobile-first product for families, rockho
 20. Curated list of Oregon deep time locations: Painted Hills, Clarno, John Day Fossil Beds, Smith Rock, Newberry Volcanic Monument — each with story tagline and coordinates
 21. Custom location support: user can enter any lat/lon or use GPS
 22. Cross-product navigation: link from geologic features to RiverPath watershed stories where geology drives ecology
+22a. **Living River cross-sell card**: Navigation card alongside Fossils and Minerals showing nearest watershed name, species count, and "Explore in RiverPath" link (opens in new tab). Uses RiverPath warm background (#fffdf7) to visually distinguish from geology cards. Data fetched via `/sites/nearest` → `/sites/{ws}` on location select.
 
 #### AI Chat
 23. Natural-language questions about geology: "What was this place like 33 million years ago?", "Can I collect fossils here?", "What minerals can I find near Madras?"

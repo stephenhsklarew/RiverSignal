@@ -84,6 +84,29 @@ RiverPath is the consumer-facing (B2C) mobile-first product for families, angler
 40. Volunteer and stewardship section showing: watershed council links, "How to help" actions tied to current restoration needs, and upcoming volunteer opportunities (manual curation initially, event feed post-MVP)
 41. Action CTAs on stewardship cards: Save (bookmark via FEAT-016), Share (native share API or copy link), Join (link to watershed council or event page)
 
+#### Weather + Live Conditions (Built 2026-04-13, not in original wireframe)
+42. NWS 7-day weather forecast displayed as a 3x2 grid on River Now between condition cards and What's Here Now. Shows temperature, conditions, wind for 6 periods (3 days).
+43. USGS real-time stream gauge readings (water temp °F, flow cfs) replace monthly averages on hero card when gauges respond. Red pulsing "LIVE" badge indicates real-time data. Station name and timestamp shown.
+44. Snowpack card on River Now showing: average SWE (inches), % of normal (color-coded green/amber/red), stations with snow, 7-day trend (building/melting/stable), and a fishing-relevant insight generated from deterministic rules (e.g., "Drought conditions — target cold-water refuges and fish early morning").
+45. Fish stocking section showing upcoming stocking events (green "UPCOMING" badge) and recent stocking events.
+
+#### Species Map (Built 2026-04-13)
+46. Full-screen MapLibre species map at `/path/map/:watershed` with Fish/Insect toggle. All observations shown as colored pins (blue=fish, amber=insects). Clicking a pin shows popup with photo, common name, scientific name, date. For insect pins, a "Match the hatch" fly recommendation is shown when a pattern match exists.
+47. "View Map" button next to "What's Here Now" section on River Now navigates to species map.
+
+#### Deep Time Cross-Sell (Built 2026-04-12)
+48. Dark-themed Deep Time card in condition card carousel showing: oldest rock formation age, rock type narrative, nearby fossil count, and "Explore in DeepTrail" link (opens in new tab with lat/lon context). Uses DeepTrail brown theme (#2a2318) with DeepTrail favicon mark.
+
+#### Temperature Display
+49. All temperatures displayed in Fahrenheit across all RiverPath pages (hero card, hatch, fish carousel, thermal refuges, trend rates). Conversion utility in `utils/temp.ts`.
+
+#### Watershed State Persistence
+50. Selected watershed persists across all tabs (River Now, Explore, Hatch, Steward) via `sessionStorage` and `useWatershed` hook. Changing river on any page updates all pages. "View all rivers" clears selection.
+51. Shared `WatershedHeader` component (pin icon + river name + Change modal) used on all tab pages and drilldowns.
+
+#### Explore Map (Built 2026-04-13)
+52. Full-screen MapLibre recreation map at `/path/explore-map/:watershed` with type filter chips (All, Camping, Trails, Boats, Fishing, Day Use). Color-coded pins by type. Click pin shows popup with name, type, amenity badges. "← Explore List" back button.
+
 ### Non-Functional Requirements
 
 - **Mobile performance**: Lighthouse score > 80 on mobile (tested at 4G throttle)

@@ -66,11 +66,26 @@ This addresses PRD persona Sarah (river-visiting family): "I want nearby river e
 - [US-051 — Angler finds boat ramp on Deschutes](../user-stories/riverpath-stories.md)
 - [US-052 — Parent filters for dog-friendly access](../user-stories/riverpath-stories.md)
 
+## Current Data Status (2026-04-13)
+
+566 recreation sites loaded across 5 watersheds:
+- **By source**: USFS Recreation 406, OSMB Boating Access 160
+- **By type**: Boat ramps 183, Trailheads 169, Campgrounds 142, Day use 68, Swim areas 3, Fishing access 1
+- **OSMB URL**: `Boating_Access_Sites_OA` FeatureServer from boatoregon-geo.hub.arcgis.com (1,815 statewide)
+
+### Explore Map (Built 2026-04-13)
+
+Full-screen MapLibre recreation map at `/path/explore-map/:watershed`:
+- Type filter chips (All, Camping, Trails, Boats, Fishing, Day Use) filter pins in real time
+- Color-coded pins: campground=green, trailhead=brown, boat ramp=blue, fishing=orange, day use=purple
+- Click pin → popup with name, type, amenity badges
+- "← Explore List" back button returns to card view
+- "View Map" button on Explore list page navigates to map
+
 ## Edge Cases and Error Handling
 
-- **RIDB API key not yet registered**: Explore page shows placeholder: "Adventure data coming soon — we're connecting to recreation databases"
-- **No recreation sites in watershed**: Show message: "No recreation sites found for [watershed]. Check back soon." with link to Recreation.gov
-- **Sparse data for remote watersheds (Metolius, Upper Klamath)**: Supplement with ODFW fishing access locations already in sport catch data; accept sparse coverage with message: "Showing [N] sites — more coming soon"
+- **No recreation sites in watershed**: Show message: "No recreation sites found for [watershed]. Check back soon."
+- **Sparse data for remote watersheds**: OSMB provides statewide boat access; USFS covers federal lands. Accept sparse coverage with count display.
 - **GPS unavailable for distance sorting**: Fall back to alphabetical sort; show "Enable location for distance sorting" hint
 - **Filter combination returns zero results**: Show empty state with reset button — don't silently fail
 

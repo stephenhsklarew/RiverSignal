@@ -26,22 +26,22 @@ Potential public data sources not yet implemented, organized by effort and impac
 
 ## High Value, Higher Effort
 
-| Source | Data | Value to App | Effort |
-|--------|------|-------------|--------|
-| **Water Quality Portal — Chemistry** | Nutrient, turbidity, pH, conductivity readings | Water clarity metric (missing from hero card), nutrient trends for Steward | Higher — large dataset, new silver/gold views |
-| **Westfly.com** hatch charts | Expert hatch timing by river | Enrich curated hatch chart beyond our 50 entries | Higher — web scrape + manual curation |
-| **USDA SNOTEL** (expand) | Real-time snowpack + soil moisture | "Snowmelt runoff starting" context for spring flow predictions | Higher — already have adapter, need real-time + forecast interpretation |
-| **NPS API** | National park campgrounds, alerts, activities | Crater Lake data for Klamath users | Medium — free key required |
-| **ODOT TripCheck** | Road conditions, closures, cameras | "Road to Metolius is open/closed" on River Now | Medium — free registration |
+| Source                               | Data                                           | Value to App                                                               | Effort                                                                  |
+| ------------------------------------ | ---------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Water Quality Portal — Chemistry** | Nutrient, turbidity, pH, conductivity readings | Water clarity metric (missing from hero card), nutrient trends for Steward | Higher — large dataset, new silver/gold views                           |
+| **Westfly.com** hatch charts         | Expert hatch timing by river                   | Enrich curated hatch chart beyond our 50 entries                           | Higher — web scrape + manual curation                                   |
+| **USDA SNOTEL** (expand)             | Real-time snowpack + soil moisture             | "Snowmelt runoff starting" context for spring flow predictions             | Higher — already have adapter, need real-time + forecast interpretation |
+| **NPS API**                          | National park campgrounds, alerts, activities  | Crater Lake data for Klamath users                                         | Medium — free key required                                              |
+| **ODOT TripCheck**                   | Road conditions, closures, cameras             | "Road to Metolius is open/closed" on River Now                             | Medium — free registration                                              |
 
 ## DeepTrail-Specific
 
-| Source | Data | Value |
-|--------|------|-------|
-| **Mindat.org API** | Mineral locality data with photos | Richer mineral site cards with specimen photos |
-| **GBIF** (Global Biodiversity) | Additional fossil + specimen records | Fill fossil gaps beyond PBDB |
-| **USGS Volcano Hazards** | Active/dormant volcano info, hazard zones | "You're near a volcano" context for Cascade locations |
-| **Oregon LIDAR** (DOGAMI) | Terrain models | 3D terrain visualization potential |
+| Source                         | Data                                      | Value                                                 |
+| ------------------------------ | ----------------------------------------- | ----------------------------------------------------- |
+| **Mindat.org API**             | Mineral locality data with photos         | Richer mineral site cards with specimen photos        |
+| **GBIF** (Global Biodiversity) | Additional fossil + specimen records      | Fill fossil gaps beyond PBDB                          |
+| **USGS Volcano Hazards**       | Active/dormant volcano info, hazard zones | "You're near a volcano" context for Cascade locations |
+| **Oregon LIDAR** (DOGAMI)      | Terrain models                            | 3D terrain visualization potential                    |
 
 ## Top 3 Recommendations for Immediate Impact
 
@@ -51,27 +51,49 @@ Potential public data sources not yet implemented, organized by effort and impac
 
 3. **Fix OSMB Boating Access URL** — have 23 boat ramps from USFS but Oregon's marine board has 1,815. Finding the correct ArcGIS endpoint would 80x the boat ramp coverage in Explore.
 
-## Currently Implemented Data Sources (20)
+## Currently Implemented Data Sources (26)
+
+### Ingested into Database (Bronze)
 
 | # | Source | Records | Type |
 |---|--------|---------|------|
-| 1 | iNaturalist | 534K+ | Citizen science observations |
-| 2 | USGS NWIS | 98K+ time series | Stream gauges (flow, temp, DO) |
-| 3 | Water Quality Portal (WQP) | 2.5K+ | Water chemistry |
-| 4 | SNOTEL | Climate/snowpack | Temperature, precipitation, snow |
-| 5 | BioData (USGS) | 292K | Professional bio surveys |
-| 6 | WQP Bugs | 14.8K | Aquatic macroinvertebrates |
-| 7 | StreamNet | Fish monitoring | Salmon/steelhead abundance |
-| 8 | MTBS | Fire severity | Burn perimeters |
-| 9 | NHDPlus HR | 15K+ segments | Stream flowlines |
-| 10 | OWRI/NOAA/PCSRF | 1.4K | Restoration interventions |
-| 11 | Fish Passage | 476 | Barrier locations |
-| 12 | PRISM | Climate grids | Monthly temp/precip |
-| 13 | EPA ATTAINS | Impaired waters | 303(d) listings |
-| 14 | NWI | Wetlands | Wetland polygons |
-| 15 | USGS WBD | Watershed boundaries | HUC boundaries |
-| 16 | ODFW | Sport catch + stocking | Harvest/stocking data |
-| 17 | Macrostrat | 17K+ geologic units | Rock type, age, formation |
-| 18 | PBDB | 1.9K fossils | Paleontology occurrences |
-| 19 | BLM SMA | Land ownership | Collecting legality |
-| 20 | USFS Recreation | 406 sites | Campgrounds, trailheads |
+| 1 | iNaturalist | 238K observations | Citizen science observations |
+| 2 | USGS NWIS | 103K time series | Stream gauges (flow, temp, DO) |
+| 3 | Water Quality Portal (WQP) | 66K time series | Water chemistry |
+| 4 | SNOTEL | 650K time series | Temperature, precipitation, snow → gold.snowpack_current |
+| 5 | BioData (USGS) | 293K observations | Professional bio surveys |
+| 6 | WQP Bugs | 14.9K observations | Aquatic macroinvertebrates → gold.aquatic_hatch_chart |
+| 7 | StreamNet | merged into obs | Salmon/steelhead abundance |
+| 8 | MTBS | 277 fire perimeters | Burn perimeters |
+| 9 | NHDPlus HR | 142K segments | Stream flowlines → gold.river_miles |
+| 10 | OWRI/NOAA/PCSRF | 2.6K interventions | Restoration interventions |
+| 11 | Fish Passage | 476 barriers | Barrier locations |
+| 12 | PRISM | 914K time series | Monthly temp/precip |
+| 13 | EPA ATTAINS | 778 segments | Impaired waters (303d) |
+| 14 | NWI | 13K polygons | Wetland boundaries |
+| 15 | USGS WBD | 975 boundaries | HUC watershed boundaries |
+| 16 | ODFW | 953 time series | Sport catch + stocking |
+| 17 | Macrostrat | 17.3K geologic units | Rock type, age, formation |
+| 18 | PBDB | 667 fossils | Paleontology occurrences |
+| 19 | iDigBio | 2,041 fossils | Museum specimen records |
+| 20 | GBIF | 965 fossils (18 with images) | Fossil specimens with photos |
+| 21 | BLM SMA | 40 land parcels | Land ownership + collecting legality |
+| 22 | DOGAMI | merged into geologic_units | Oregon geology polygons |
+| 23 | MRDS | 1,980 mineral deposits | Mineral deposit locations |
+| 24 | USFS Recreation | 406 sites | Campgrounds, trailheads, day use |
+| 25 | OSMB Boating Access | 160 sites | Oregon boat ramps + launches |
+| 26 | Curated Hatch Chart | 50 entries | Expert fly fishing hatch data |
+
+### Live API Sources (Not Stored in DB)
+
+| # | Source | Data | Cache |
+|---|--------|------|-------|
+| 27 | NWS Weather API | 7-day forecast by watershed | 30 min |
+| 28 | USGS Instantaneous Values | Real-time flow + water temp | 15 min |
+
+### Totals
+- **Observations**: 550,014
+- **Time Series**: 1,734,579
+- **Silver Views**: 7
+- **Gold Views**: 34
+- **Total Records**: ~2.3M
