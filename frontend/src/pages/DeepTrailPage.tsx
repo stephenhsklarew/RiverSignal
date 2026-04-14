@@ -420,13 +420,8 @@ export default function DeepTrailPage() {
       <MiniMap items={filteredFossils} center={loc!} color="#d4a96a"
         labels={filteredFossils.map(f => f.common_name || f.taxon_name)} />
 
-      {/* Filter chips */}
-      <div className="dt-filter-chips">
-        <button className={`dt-chip${!periodFilter ? ' active' : ''}`} onClick={() => setPeriodFilter('')}>All Periods</button>
-        {fossilPeriods.map(p => (
-          <button key={p} className={`dt-chip${periodFilter === p ? ' active' : ''}`} onClick={() => setPeriodFilter(periodFilter === p ? '' : p)}>{p}</button>
-        ))}
-      </div>
+      {/* Period selector + phylum chips */}
+      <PeriodFilterModal periods={fossilPeriods} selected={periodFilter} onSelect={setPeriodFilter} />
       <div className="dt-filter-chips">
         <button className={`dt-chip${!phylumFilter ? ' active' : ''}`} onClick={() => setPhylumFilter('')}>All Types</button>
         {fossilPhyla.map(p => (
@@ -861,5 +856,53 @@ function MineralGroupedList({ minerals }: { minerals: any[] }) {
         )
       })}
     </div>
+  )
+}
+
+// ── Period filter as a button that opens a selection modal ──
+
+function PeriodFilterModal({ periods, selected, onSelect }: {
+  periods: string[]; selected: string; onSelect: (p: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const label = selected || 'All Periods'
+
+  return (
+    <>
+      <div className="dt-period-selector">
+        <button className="dt-period-btn" onClick={() => setOpen(true)}>
+          {label} <span className="dt-period-arrow">▾</span>
+        </button>
+      </div>
+
+      {open && (
+        <div className="dt-period-overlay" onClick={() => setOpen(false)}>
+          <div className="dt-period-modal" onClick={e => e.stopPropagation()}>
+            <div className="dt-period-modal-header">
+              <span>Select Period</span>
+              <button className="dt-period-modal-close" onClick={() => setOpen(false)}>✕</button>
+            </div>
+            <div className="dt-period-modal-list">
+              <button
+                className={`dt-period-modal-item${!selected ? ' active' : ''}`}
+                onClick={() => { onSelect(''); setOpen(false) }}
+              >
+                All Periods
+              </button>
+              {periods.map(p => (
+                <button
+                  key={p}
+                  className={`dt-period-modal-item${selected === p ? ' active' : ''}`}
+                  onClick={() => { onSelect(p); setOpen(false) }}
+                >
+                  <span>{p}</span>
+                  {ERA_CONTEXT[p] && <span className="dt-period-modal-context">{ERA_CONTEXT[p]}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
