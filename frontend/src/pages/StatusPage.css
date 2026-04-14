@@ -63,6 +63,12 @@
 .status-badge.warning { background: var(--warm-light); color: var(--warm); }
 .status-badge.error { background: var(--alert-light); color: var(--alert); }
 
+.status-layer-desc { font-size: 12px; color: var(--text-muted); margin: -8px 0 12px; }
+.status-num-col { text-align: right; }
+.status-num { text-align: right; font-family: var(--mono); font-size: 12px; }
+.status-total-label { font-weight: 600; }
+.status-total { font-weight: 700; color: var(--accent); border-top: 2px solid var(--border); }
+
 @media (max-width: 768px) {
   .status-table { font-size: 11px; }
   .status-desc { max-width: 180px; }

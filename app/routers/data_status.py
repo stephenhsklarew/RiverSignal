@@ -44,6 +44,34 @@ def get_data_status():
             GROUP BY schemaname ORDER BY schemaname
         """)).fetchall()
 
+    # Table/view record counts for inventory
+    bronze_tables = {}
+    for tbl in ['observations', 'time_series', 'interventions', 'fire_perimeters',
+                'stream_flowlines', 'impaired_waters', 'wetlands', 'watershed_boundaries',
+                'geologic_units', 'fossil_occurrences', 'mineral_deposits', 'land_ownership',
+                'recreation_sites', 'curated_hatch_chart', 'deep_time_stories']:
+        try:
+            bronze_tables[tbl] = conn.execute(text(f"SELECT count(*) FROM {tbl}")).scalar()
+        except Exception:
+            conn.rollback()
+            bronze_tables[tbl] = 0
+
+    silver_views = {}
+    gold_views = {}
+    mv_rows = conn.execute(text(
+        "SELECT schemaname, matviewname FROM pg_matviews WHERE schemaname IN ('silver','gold') ORDER BY schemaname, matviewname"
+    )).fetchall()
+    for r in mv_rows:
+        try:
+            cnt = conn.execute(text(f"SELECT count(*) FROM {r[0]}.{r[1]}")).scalar()
+        except Exception:
+            conn.rollback()
+            cnt = 0
+        if r[0] == 'silver':
+            silver_views[r[1]] = cnt
+        else:
+            gold_views[r[1]] = cnt
+
     return {
         "bronze": {
             "observations": bronze_obs,
@@ -51,12 +79,15 @@ def get_data_status():
             "interventions": bronze_int,
             "most_recent_sync": most_recent.isoformat() if most_recent else None,
             "oldest_pipeline_sync": oldest.isoformat() if oldest else None,
+            "tables": bronze_tables,
         },
         "silver": {
             "views": next((r[1] for r in views if r[0] == 'silver'), 0),
+            "tables": silver_views,
         },
         "gold": {
             "views": next((r[1] for r in views if r[0] == 'gold'), 0),
+            "tables": gold_views,
         },
         "pipelines": [
             {
