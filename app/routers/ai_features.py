@@ -457,7 +457,26 @@ def compare_rivers(ws1: str = Query(...), ws2: str = Query(...)):
 # ═══════════════════════════════════════════════
 @router.get("/sites/{watershed}/campfire-story")
 def campfire_story(watershed: str):
-    """Generate a 3-minute campfire story about the watershed."""
+    """Generate a 3-minute campfire story. Cached on disk (text + audio)."""
+    import pathlib
+    import httpx
+
+    cache_dir = pathlib.Path(__file__).resolve().parent.parent.parent / ".campfire_cache"
+    cache_dir.mkdir(exist_ok=True)
+    text_file = cache_dir / f"{watershed}.txt"
+    audio_file = cache_dir / f"{watershed}.mp3"
+
+    # ── Check cache ──
+    if text_file.exists():
+        story_text = text_file.read_text()
+        return {
+            "watershed": watershed,
+            "story": story_text,
+            "audio_url": f"/api/v1/sites/{watershed}/campfire-audio" if audio_file.exists() else None,
+            "cached": True,
+        }
+
+    # ── Generate story via Claude ──
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(503, "ANTHROPIC_API_KEY not configured")
@@ -467,7 +486,7 @@ def campfire_story(watershed: str):
         if not site:
             raise HTTPException(404)
 
-        story = conn.execute(text("""
+        timeline = conn.execute(text("""
             SELECT event_year, event_type, event_name, description
             FROM gold.river_story_timeline WHERE watershed = :ws
             ORDER BY event_year DESC LIMIT 15
@@ -483,7 +502,7 @@ def campfire_story(watershed: str):
 
     context = {
         "river": site[0],
-        "timeline": [{"year": r[0], "type": r[1], "name": r[2], "desc": r[3]} for r in story],
+        "timeline": [{"year": r[0], "type": r[1], "name": r[2], "desc": r[3]} for r in timeline],
         "fire_recovery": [{"fire": r[0], "year": r[1], "acres": r[2], "species": r[3]} for r in recovery],
         "species_count": sc[5] if sc else 0,
         "projects": sc[4] if sc else 0,
@@ -508,7 +527,48 @@ Do NOT use markdown formatting — this will be spoken aloud.""",
         messages=[{"role": "user", "content": json.dumps(context, default=str)}],
     )
 
-    return {"watershed": watershed, "river": site[0], "story": message.content[0].text}
+    story_text = message.content[0].text
+
+    # ── Cache story text ──
+    text_file.write_text(story_text)
+
+    # ── Generate and cache audio via OpenAI TTS ──
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    has_audio = False
+    if openai_key:
+        try:
+            resp = httpx.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers={"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"},
+                json={"model": "tts-1", "voice": "nova", "input": story_text[:4096]},
+                timeout=60,
+            )
+            if resp.status_code == 200:
+                audio_file.write_bytes(resp.content)
+                has_audio = True
+        except Exception:
+            pass
+
+    return {
+        "watershed": watershed,
+        "river": site[0],
+        "story": story_text,
+        "audio_url": f"/api/v1/sites/{watershed}/campfire-audio" if has_audio else None,
+        "cached": False,
+    }
+
+
+@router.get("/sites/{watershed}/campfire-audio")
+def campfire_audio(watershed: str):
+    """Serve cached campfire story audio (MP3)."""
+    import pathlib
+    from fastapi.responses import Response
+
+    audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".campfire_cache" / f"{watershed}.mp3"
+    if not audio_file.exists():
+        raise HTTPException(404, "No cached audio. Generate the campfire story first.")
+
+    return Response(content=audio_file.read_bytes(), media_type="audio/mpeg")
 
 
 # ═══════════════════════════════════════════════

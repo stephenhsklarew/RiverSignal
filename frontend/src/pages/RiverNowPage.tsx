@@ -271,22 +271,25 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     if (campfirePlaying && campfireAudio) { campfireAudio.pause(); setCampfirePlaying(false); return }
     setCampfireLoading(true)
     try {
-      // Get or generate story
-      let story = campfireStory
-      if (!story) {
-        const r = await fetch(`${API}/sites/${watershed}/campfire-story`)
-        const d = await r.json()
-        story = d.story
-        setCampfireStory(story)
+      // Get or generate story (server caches both text + audio)
+      const r = await fetch(`${API}/sites/${watershed}/campfire-story`)
+      const d = await r.json()
+      setCampfireStory(d.story)
+
+      // Play cached audio if available, otherwise fall back to TTS endpoint
+      let audioUrl: string
+      if (d.audio_url) {
+        audioUrl = `http://localhost:8001${d.audio_url}`
+      } else {
+        const ttsResp = await fetch(`${API}/tts`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: d.story, voice: 'nova' }),
+        })
+        const blob = await ttsResp.blob()
+        audioUrl = URL.createObjectURL(blob)
       }
-      // TTS
-      const ttsResp = await fetch(`${API}/tts`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: story, voice: 'nova' }),
-      })
-      const blob = await ttsResp.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
+
+      const audio = new Audio(audioUrl)
       audio.onended = () => setCampfirePlaying(false)
       setCampfireAudio(audio)
       setCampfirePlaying(true)
