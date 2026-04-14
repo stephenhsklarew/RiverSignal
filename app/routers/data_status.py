@@ -10,9 +10,9 @@ router = APIRouter(tags=["data-status"])
 
 @router.get("/data-status")
 def get_data_status():
-    """Get pipeline sync status and data freshness for all layers."""
+    """Get pipeline sync status, record counts, and layer inventory."""
     with engine.connect() as conn:
-        # Bronze: last sync per pipeline
+        # Pipeline sync status
         pipelines = conn.execute(text("""
             SELECT source_type,
                    max(completed_at) as last_sync,
@@ -24,7 +24,6 @@ def get_data_status():
             ORDER BY max(completed_at) DESC NULLS LAST
         """)).fetchall()
 
-        # Overall freshness
         most_recent = conn.execute(text(
             "SELECT max(completed_at) FROM ingestion_jobs WHERE status = 'completed'"
         )).scalar()
@@ -32,45 +31,46 @@ def get_data_status():
             "SELECT min(max_sync) FROM (SELECT source_type, max(completed_at) as max_sync FROM ingestion_jobs WHERE status = 'completed' GROUP BY source_type) sub"
         )).scalar()
 
-        # Record counts per layer
+        # Bronze record counts
         bronze_obs = conn.execute(text("SELECT count(*) FROM observations")).scalar()
         bronze_ts = conn.execute(text("SELECT count(*) FROM time_series")).scalar()
         bronze_int = conn.execute(text("SELECT count(*) FROM interventions")).scalar()
 
-        # Silver/Gold view counts
-        views = conn.execute(text("""
+        # View count summary
+        view_counts = conn.execute(text("""
             SELECT schemaname, count(*)
             FROM pg_matviews WHERE schemaname IN ('silver', 'gold')
             GROUP BY schemaname ORDER BY schemaname
         """)).fetchall()
 
-    # Table/view record counts for inventory
-    bronze_tables = {}
-    for tbl in ['observations', 'time_series', 'interventions', 'fire_perimeters',
-                'stream_flowlines', 'impaired_waters', 'wetlands', 'watershed_boundaries',
-                'geologic_units', 'fossil_occurrences', 'mineral_deposits', 'land_ownership',
-                'recreation_sites', 'curated_hatch_chart', 'deep_time_stories']:
-        try:
-            bronze_tables[tbl] = conn.execute(text(f"SELECT count(*) FROM {tbl}")).scalar()
-        except Exception:
-            conn.rollback()
-            bronze_tables[tbl] = 0
+        # Bronze table inventory
+        bronze_tables = {}
+        for tbl in ['observations', 'time_series', 'interventions', 'fire_perimeters',
+                    'stream_flowlines', 'impaired_waters', 'wetlands', 'watershed_boundaries',
+                    'geologic_units', 'fossil_occurrences', 'mineral_deposits', 'land_ownership',
+                    'recreation_sites', 'curated_hatch_chart', 'deep_time_stories']:
+            try:
+                bronze_tables[tbl] = conn.execute(text(f"SELECT count(*) FROM {tbl}")).scalar()
+            except Exception:
+                conn.rollback()
+                bronze_tables[tbl] = 0
 
-    silver_views = {}
-    gold_views = {}
-    mv_rows = conn.execute(text(
-        "SELECT schemaname, matviewname FROM pg_matviews WHERE schemaname IN ('silver','gold') ORDER BY schemaname, matviewname"
-    )).fetchall()
-    for r in mv_rows:
-        try:
-            cnt = conn.execute(text(f"SELECT count(*) FROM {r[0]}.{r[1]}")).scalar()
-        except Exception:
-            conn.rollback()
-            cnt = 0
-        if r[0] == 'silver':
-            silver_views[r[1]] = cnt
-        else:
-            gold_views[r[1]] = cnt
+        # Silver/Gold view inventory with counts
+        silver_views = {}
+        gold_views = {}
+        mv_rows = conn.execute(text(
+            "SELECT schemaname, matviewname FROM pg_matviews WHERE schemaname IN ('silver','gold') ORDER BY schemaname, matviewname"
+        )).fetchall()
+        for r in mv_rows:
+            try:
+                cnt = conn.execute(text(f"SELECT count(*) FROM {r[0]}.{r[1]}")).scalar()
+            except Exception:
+                conn.rollback()
+                cnt = 0
+            if r[0] == 'silver':
+                silver_views[r[1]] = cnt
+            else:
+                gold_views[r[1]] = cnt
 
     return {
         "bronze": {
@@ -82,11 +82,11 @@ def get_data_status():
             "tables": bronze_tables,
         },
         "silver": {
-            "views": next((r[1] for r in views if r[0] == 'silver'), 0),
+            "views": next((r[1] for r in view_counts if r[0] == 'silver'), 0),
             "tables": silver_views,
         },
         "gold": {
-            "views": next((r[1] for r in views if r[0] == 'gold'), 0),
+            "views": next((r[1] for r in view_counts if r[0] == 'gold'), 0),
             "tables": gold_views,
         },
         "pipelines": [
