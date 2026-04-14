@@ -297,29 +297,18 @@ export default function DeepTrailPage() {
             {loc!.photo && (
               <img src={loc!.photo} alt={loc!.name} className="dt-hero-img" />
             )}
-            <div className="dt-reading-toggle">
-              {(['adult', 'kid_friendly', 'expert'] as const).map(level => (
-                <button key={level} className={`dt-reading-btn${readingLevel === level ? ' active' : ''}`}
-                  onClick={() => setReadingLevel(level)}>
-                  {level === 'kid_friendly' ? 'Kids' : level === 'expert' ? 'Expert' : 'Adult'}
-                </button>
-              ))}
-            </div>
           </section>
 
           {/* Deep Time Story */}
-          <section className="dt-story-card">
-            <button className={`dt-listen-btn${speaking ? ' active' : ''}`} onClick={speakStory} disabled={audioLoading || storyLoading}>
-              {audioLoading ? '⏳ Loading audio...' : speaking ? '⏹ Stop' : '🔊 Listen to Story'}
-            </button>
-            {storyLoading ? (
-              <div className="dt-story-loading">Generating deep time narrative...</div>
-            ) : (
-              <div className="dt-story-md">
-                <Markdown>{storyNarrative}</Markdown>
-              </div>
-            )}
-          </section>
+          <StoryCard
+            narrative={storyNarrative}
+            loading={storyLoading}
+            readingLevel={readingLevel}
+            onChangeLevel={setReadingLevel}
+            speaking={speaking}
+            audioLoading={audioLoading}
+            onSpeak={speakStory}
+          />
 
           {/* Ask About This Place */}
           <section className="dt-chat-section">
@@ -341,11 +330,19 @@ export default function DeepTrailPage() {
             </div>
           </section>
 
-          {/* Geologic Context */}
-          {geoContext?.units?.length > 0 && (
+          {/* Geologic Context (deduplicated) */}
+          {geoContext?.units?.length > 0 && (() => {
+            const seen = new Set<string>()
+            const unique = geoContext.units.filter((u: any) => {
+              const key = `${u.unit_name}|${u.rock_type}|${u.period}|${u.lithology}`
+              if (seen.has(key)) return false
+              seen.add(key)
+              return true
+            })
+            return unique.length > 0 ? (
             <section className="dt-geo-section">
               <h3>Geologic Context</h3>
-              {geoContext.units.slice(0, 3).map((u: any, i: number) => (
+              {unique.slice(0, 3).map((u: any, i: number) => (
                 <div key={i} className="dt-geo-unit">
                   <span className={`rock-badge-dt ${u.rock_type || ''}`}>{u.rock_type || 'unknown'}</span>
                   <div>
@@ -355,7 +352,8 @@ export default function DeepTrailPage() {
                 </div>
               ))}
             </section>
-          )}
+            ) : null
+          })()}
 
           {/* Legal Collecting */}
           {landStatus && (
@@ -585,4 +583,65 @@ function MiniMap({ items, center, color, labels }: {
   }, [items, center, color, labels])
 
   return <div ref={ref} className="dt-mini-map" />
+}
+
+// ── Story Card with pagination + reading level toggle ──
+
+function StoryCard({ narrative, loading, readingLevel, onChangeLevel, speaking, audioLoading, onSpeak }: {
+  narrative: string; loading: boolean; readingLevel: string;
+  onChangeLevel: (level: string) => void;
+  speaking: boolean; audioLoading: boolean; onSpeak: () => void;
+}) {
+  const [page, setPage] = useState(0)
+  const LINES_PER_PAGE = 5
+
+  // Reset page when narrative changes
+  useEffect(() => { setPage(0) }, [narrative])
+
+  // Split narrative into paragraphs (double newline or single newline with content)
+  const lines = narrative.split(/\n\n+/).filter(l => l.trim())
+  // If only 1 block, try splitting on single newlines
+  const paragraphs = lines.length <= 1 ? narrative.split(/\n/).filter(l => l.trim()) : lines
+  const totalPages = Math.max(1, Math.ceil(paragraphs.length / LINES_PER_PAGE))
+  const pageLines = paragraphs.slice(page * LINES_PER_PAGE, (page + 1) * LINES_PER_PAGE)
+
+  return (
+    <>
+      <h3 className="dt-story-label">Deep Time Story</h3>
+      <section className="dt-story-card">
+        {/* Reading level toggle */}
+        <div className="dt-story-controls">
+          <div className="dt-reading-toggle">
+            {(['adult', 'kid_friendly', 'expert'] as const).map(level => (
+              <button key={level} className={`dt-reading-btn${readingLevel === level ? ' active' : ''}`}
+                onClick={() => onChangeLevel(level)}>
+                {level === 'kid_friendly' ? 'Kids' : level === 'expert' ? 'Expert' : 'Adult'}
+              </button>
+            ))}
+          </div>
+          <button className={`dt-listen-btn-sm${speaking ? ' active' : ''}`} onClick={onSpeak} disabled={audioLoading || loading}>
+            {audioLoading ? '⏳' : speaking ? '⏹' : '🔊'}
+          </button>
+        </div>
+
+        {/* Story content */}
+        {loading ? (
+          <div className="dt-story-loading">Generating deep time narrative...</div>
+        ) : (
+          <div className="dt-story-md">
+            <Markdown>{pageLines.join('\n\n')}</Markdown>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="dt-story-pagination">
+            <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="dt-page-btn">← Prev</button>
+            <span className="dt-page-info">{page + 1} / {totalPages}</span>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="dt-page-btn">Next →</button>
+          </div>
+        )}
+      </section>
+    </>
+  )
 }

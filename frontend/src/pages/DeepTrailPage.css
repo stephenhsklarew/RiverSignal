@@ -99,11 +99,38 @@
 .dt-reading-btn.active { background: #d4a96a; color: #1a1612; border-color: #d4a96a; }
 
 /* Story card */
+.dt-story-label {
+  font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500;
+  color: #d4a96a; margin: 0 0 8px;
+}
 .dt-story-card {
   background: linear-gradient(135deg, #332b1f, #2a2318);
   border: 1px solid #3d3328; border-radius: 12px;
   padding: 20px 22px; margin-bottom: 20px;
 }
+.dt-story-controls {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dt-listen-btn-sm {
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 6px;
+  padding: 6px 10px; font-size: 1rem; color: #d4a96a; cursor: pointer;
+  min-width: 36px; min-height: 36px;
+}
+.dt-listen-btn-sm:hover { border-color: #d4a96a; }
+.dt-listen-btn-sm.active { background: #d4a96a; color: #1a1612; }
+.dt-story-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid #3d3328;
+}
+.dt-page-btn {
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 6px;
+  padding: 6px 14px; font-size: 0.8rem; color: #d4a96a; cursor: pointer;
+  font-family: inherit;
+}
+.dt-page-btn:disabled { opacity: 0.3; cursor: default; }
+.dt-page-btn:hover:not(:disabled) { border-color: #d4a96a; }
+.dt-page-info { font-size: 0.75rem; color: #6b5f4f; }
 .dt-story-md { font-size: 0.92rem; color: #c4b8a4; line-height: 1.65; }
 .dt-story-md p { margin: 0 0 12px; }
 .dt-story-md p:last-child { margin-bottom: 0; }
