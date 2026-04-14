@@ -619,7 +619,25 @@ function PredictionsPanel({ watershed }: { watershed: string }) {
       }),
     })
       .then(r => r.json())
-      .then(d => { setResult(d); setScreen('results'); setGenerating(false) })
+      .then(d => {
+        // If narrative contains JSON, try to parse it and extract structured data
+        if (d.narrative && d.narrative.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(d.narrative)
+            if (parsed.predictions) d.predictions = parsed.predictions
+            if (parsed.risk_factors) d.risk_factors = parsed.risk_factors
+            if (parsed.scenario_comparison) d.scenario_comparison = parsed.scenario_comparison
+            if (parsed.narrative) d.narrative = parsed.narrative
+            if (parsed.overall_confidence) { d.confidence = parsed.overall_confidence; d.confidence_level = parsed.overall_confidence >= 75 ? 'HIGH' : parsed.overall_confidence >= 50 ? 'MEDIUM' : 'LOW' }
+          } catch { /* not JSON, keep as narrative text */ }
+        }
+        // Strip markdown code fences from narrative
+        if (d.narrative && d.narrative.startsWith('```')) {
+          d.narrative = d.narrative.replace(/^```json?\n?/, '').replace(/```$/, '').trim()
+          try { const p = JSON.parse(d.narrative); if (p.narrative) { Object.assign(d, p); d.narrative = p.narrative } } catch {}
+        }
+        setResult(d); setScreen('results'); setGenerating(false)
+      })
       .catch(() => setGenerating(false))
   }
 
@@ -656,7 +674,12 @@ function PredictionsPanel({ watershed }: { watershed: string }) {
           {history.slice(0, 5).map((p: any, i: number) => (
             <div key={i} className="pred-history-item" onClick={() => {
               fetch(`${API_BASE}/predictions/${p.id}`).then(r => r.json())
-                .then(d => { setResult(d); setScreen('results') })
+                .then(d => {
+                  if (d.narrative && d.narrative.startsWith('{')) {
+                    try { const p = JSON.parse(d.narrative); if (p.predictions) Object.assign(d, p); if (p.narrative) d.narrative = p.narrative } catch {}
+                  }
+                  setResult(d); setScreen('results')
+                })
             }}>
               <span className="pred-hist-type">{TYPES.find(t => t.id === p.type)?.icon || '📊'}</span>
               <span className="pred-hist-name">{p.type.replace('_', ' ')}</span>

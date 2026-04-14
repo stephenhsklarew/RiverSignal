@@ -232,6 +232,13 @@ Return ONLY valid JSON.""",
             )
 
             raw = message.content[0].text.strip()
+            # Strip markdown code fences if present
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[-1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3].strip()
+                elif "```" in raw:
+                    raw = raw[:raw.rfind("```")].strip()
             try:
                 parsed = json.loads(raw)
                 predictions_json = parsed.get("predictions", predictions_json)
