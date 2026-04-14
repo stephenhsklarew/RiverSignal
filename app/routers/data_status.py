@@ -86,6 +86,18 @@ def get_data_status():
         except Exception:
             conn.rollback()
 
+        try:
+            shop_count = conn.execute(text("SELECT count(*) FROM fly_shops_guides")).scalar()
+            curated.append({
+                "name": "Fly Shops & Guide Services",
+                "table": "fly_shops_guides",
+                "records": shop_count,
+                "description": "Oregon fly shops and guide services with contact info, websites, and coordinates per watershed",
+                "source": "Hand-curated from web research (verified businesses)",
+            })
+        except Exception:
+            conn.rollback()
+
         # Fossil common names
         fossil_common = conn.execute(text(
             "SELECT count(*) FROM fossil_occurrences WHERE common_name IS NOT NULL AND common_name != ''"

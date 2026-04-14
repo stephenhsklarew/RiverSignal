@@ -181,6 +181,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [harvest, setHarvest] = useState<any[]>([])
   const [speciesByReach, setSpeciesByReach] = useState<any[]>([])
   const [barriers, setBarriers] = useState<any[]>([])
+  const [flyShops, setFlyShops] = useState<any[]>([])
   const [catchProb, setCatchProb] = useState<any>(null)
   const [spotter, setSpotter] = useState<any>(null)
   const [replay, setReplay] = useState<any>(null)
@@ -228,6 +229,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/fishing/harvest`).then(r => r.json()).then(setHarvest).catch(() => {})
     fetch(`${API}/sites/${watershed}/fishing/species`).then(r => r.json()).then(setSpeciesByReach).catch(() => {})
     fetch(`${API}/sites/${watershed}/fishing/barriers`).then(r => r.json()).then(setBarriers).catch(() => {})
+    fetch(`${API}/sites/${watershed}/fly-shops`).then(r => r.json()).then(setFlyShops).catch(() => {})
     fetch(`${API}/sites/${watershed}/catch-probability`).then(r => r.json()).then(setCatchProb).catch(() => {})
     fetch(`${API}/sites/${watershed}/species-spotter`).then(r => r.json()).then(setSpotter).catch(() => {})
     fetch(`${API}/sites/${watershed}/replay?days_ago=30`).then(r => r.json()).then(setReplay).catch(() => {})
@@ -631,6 +633,29 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
           </div>
           <div data-card="time_machine">
+          {/* ── Fly Shops & Guides ── */}
+          {flyShops.length > 0 && (
+            <section className="rnow-section">
+              <div className="rnow-section-title">🏪 Fly Shops & Guides</div>
+              <div className="rnow-shops">
+                {flyShops.map((s: any, i: number) => (
+                  <div key={i} className="rnow-shop-card">
+                    <div className="rnow-shop-type">{s.type === 'fly_shop' ? '🏪' : s.type === 'guide_service' ? '🚣' : '🏪🚣'}</div>
+                    <div className="rnow-shop-info">
+                      <div className="rnow-shop-name">{s.name}</div>
+                      <div className="rnow-shop-city">{s.city}</div>
+                      <div className="rnow-shop-desc">{s.description}</div>
+                      <div className="rnow-shop-links">
+                        {s.phone && <a href={`tel:${s.phone}`} className="rnow-shop-link">📞 {s.phone}</a>}
+                        {s.website && <a href={s.website} target="_blank" rel="noopener noreferrer" className="rnow-shop-link">🌐 Website</a>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* ── Time Machine ── */}
           {timeMachine && timeMachine.years?.length > 2 && (() => {
             const years = timeMachine.years

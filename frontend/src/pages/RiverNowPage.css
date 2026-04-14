@@ -372,6 +372,21 @@
   max-height: 200px; overflow-y: auto;
 }
 
+/* ── Fly Shops & Guides ── */
+.rnow-shops { display: flex; flex-direction: column; gap: 8px; }
+.rnow-shop-card {
+  display: flex; gap: 10px; padding: 10px;
+  background: #fff; border: 1px solid #e8e5de; border-radius: 8px;
+}
+.rnow-shop-type { font-size: 20px; flex-shrink: 0; padding-top: 2px; }
+.rnow-shop-info { flex: 1; min-width: 0; }
+.rnow-shop-name { font-size: 13px; font-weight: 600; color: #2a2a2a; }
+.rnow-shop-city { font-size: 11px; color: #888; }
+.rnow-shop-desc { font-size: 11px; color: #666; margin-top: 3px; line-height: 1.3; }
+.rnow-shop-links { display: flex; gap: 12px; margin-top: 6px; }
+.rnow-shop-link { font-size: 11px; color: #1a6b4a; text-decoration: none; }
+.rnow-shop-link:hover { text-decoration: underline; }
+
 /* ── Time Machine ── */
 .rnow-tm-slider-row { display: flex; align-items: center; gap: 8px; padding: 0 16px; }
 .rnow-tm-year-label { font-size: 11px; color: #999; font-family: monospace; min-width: 32px; }

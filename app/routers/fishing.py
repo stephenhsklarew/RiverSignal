@@ -430,6 +430,24 @@ def stewardship(watershed: str):
     }
 
 
+@router.get("/sites/{watershed}/fly-shops")
+def fly_shops_and_guides(watershed: str):
+    """Get fly shops and guide services for a watershed."""
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT name, type, city, address, latitude, longitude, phone, website, description
+            FROM fly_shops_guides
+            WHERE :ws = ANY(watersheds)
+            ORDER BY type, name
+        """), {"ws": watershed}).fetchall()
+
+    return [{
+        "name": r[0], "type": r[1], "city": r[2], "address": r[3],
+        "latitude": r[4], "longitude": r[5], "phone": r[6],
+        "website": r[7], "description": r[8],
+    } for r in rows]
+
+
 @router.get("/river/{river_name}/species")
 def river_species_by_mile(river_name: str, mile_start: float = 0, mile_end: float = 999, taxonomic_group: str = None):
     """Get species with photos for a river section by mile range."""
