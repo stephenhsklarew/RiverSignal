@@ -632,7 +632,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           )}
 
           </div>
-          <div data-card="time_machine">
+          <div data-card="fly_shops">
           {/* ── Fly Shops & Guides ── */}
           {flyShops.length > 0 && (
             <section className="rnow-section">
@@ -655,7 +655,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               </div>
             </section>
           )}
-
+          </div>
+          <div data-card="time_machine">
           {/* ── Time Machine ── */}
           {timeMachine && timeMachine.years?.length > 2 && (() => {
             const years = timeMachine.years

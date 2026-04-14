@@ -19,6 +19,7 @@ const DEFAULT_CARDS: CardConfig[] = [
   { id: 'current_activity', label: 'Current Activity Cards', icon: '📊', visible: true },
   { id: 'fish_present', label: 'Fish Present', icon: '🐟', visible: true },
   { id: 'barriers', label: 'Fish Passage Barriers', icon: '⚠', visible: true },
+  { id: 'fly_shops', label: 'Fly Shops & Guides', icon: '🏪', visible: true },
   { id: 'time_machine', label: 'Time Machine — Species', icon: '🕰️', visible: true },
   { id: 'compare_rivers', label: 'Compare Rivers', icon: '⚖️', visible: true },
   { id: 'weather', label: 'Weather Forecast', icon: '🌤', visible: true },
