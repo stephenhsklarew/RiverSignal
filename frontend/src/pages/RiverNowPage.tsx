@@ -180,6 +180,13 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [harvest, setHarvest] = useState<any[]>([])
   const [speciesByReach, setSpeciesByReach] = useState<any[]>([])
   const [barriers, setBarriers] = useState<any[]>([])
+  const [catchProb, setCatchProb] = useState<any>(null)
+  const [spotter, setSpotter] = useState<any>(null)
+  const [replay, setReplay] = useState<any>(null)
+  const [campfireStory, setCampfireStory] = useState<string | null>(null)
+  const [campfireLoading, setCampfireLoading] = useState(false)
+  const [campfireAudio, setCampfireAudio] = useState<HTMLAudioElement | null>(null)
+  const [campfirePlaying, setCampfirePlaying] = useState(false)
 
   // Inline chat state
   const [askInput, setAskInput] = useState('')
@@ -205,6 +212,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/fishing/harvest`).then(r => r.json()).then(setHarvest).catch(() => {})
     fetch(`${API}/sites/${watershed}/fishing/species`).then(r => r.json()).then(setSpeciesByReach).catch(() => {})
     fetch(`${API}/sites/${watershed}/fishing/barriers`).then(r => r.json()).then(setBarriers).catch(() => {})
+    fetch(`${API}/sites/${watershed}/catch-probability`).then(r => r.json()).then(setCatchProb).catch(() => {})
+    fetch(`${API}/sites/${watershed}/species-spotter`).then(r => r.json()).then(setSpotter).catch(() => {})
+    fetch(`${API}/sites/${watershed}/replay?days_ago=30`).then(r => r.json()).then(setReplay).catch(() => {})
     // Geology + fossils for Deep Time card
     const center = WS_CENTERS[watershed]
     if (center) {
@@ -256,6 +266,34 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const displayFlow = liveFlow ? Math.round(liveFlow.value).toLocaleString() : latest?.discharge_cfs != null ? Math.round(latest.discharge_cfs).toLocaleString() : null
   const displayDO = liveDO ? liveDO.value.toFixed(1) : health.dissolved_oxygen_mg_l
   const isLive = !!(liveTemp || liveFlow)
+
+  const playCampfireStory = async () => {
+    if (campfirePlaying && campfireAudio) { campfireAudio.pause(); setCampfirePlaying(false); return }
+    setCampfireLoading(true)
+    try {
+      // Get or generate story
+      let story = campfireStory
+      if (!story) {
+        const r = await fetch(`${API}/sites/${watershed}/campfire-story`)
+        const d = await r.json()
+        story = d.story
+        setCampfireStory(story)
+      }
+      // TTS
+      const ttsResp = await fetch(`${API}/tts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: story, voice: 'nova' }),
+      })
+      const blob = await ttsResp.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.onended = () => setCampfirePlaying(false)
+      setCampfireAudio(audio)
+      setCampfirePlaying(true)
+      setCampfireLoading(false)
+      audio.play()
+    } catch { setCampfireLoading(false) }
+  }
 
   // Harvest trend — latest year vs prior
   const latestHarvest = harvest[0]
@@ -377,6 +415,66 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               </div>
             )}
           </div>
+
+          {/* ── River Replay (what changed) ── */}
+          {replay && replay.changes?.length > 0 && (
+            <div className="rnow-replay">
+              <div className="rnow-replay-title">📋 What Changed (Last 30 Days)</div>
+              {replay.changes.map((c: any, i: number) => (
+                <div key={i} className={`rnow-replay-item ${c.delta > 0 ? 'positive' : c.delta < 0 ? 'negative' : ''}`}>
+                  {c.label}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Catch Probability ── */}
+          {catchProb && (
+            <div className="rnow-catch-prob">
+              <div className="rnow-catch-header">
+                <span className="rnow-catch-title">🎣 Catch Probability</span>
+                <span className={`rnow-catch-score ${catchProb.overall_level}`}>{catchProb.overall_score}</span>
+              </div>
+              <div className="rnow-catch-species">
+                {catchProb.species?.slice(0, 4).map((s: any, i: number) => (
+                  <div key={i} className="rnow-catch-row">
+                    <span className="rnow-catch-name">{s.species}</span>
+                    <div className="rnow-catch-bar-bg">
+                      <div className={`rnow-catch-bar-fill ${s.level}`} style={{ width: `${s.score}%` }}></div>
+                    </div>
+                    <span className={`rnow-catch-pct ${s.level}`}>{s.score}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Species Spotter ── */}
+          {spotter && spotter.species?.length > 0 && (
+            <section className="rnow-section">
+              <div className="rnow-section-title">👀 Likely Sightings Today</div>
+              <div className="rnow-spotter-grid">
+                {spotter.species.slice(0, 6).map((s: any, i: number) => (
+                  <div key={i} className="rnow-spotter-card">
+                    {s.photo_url && <img src={s.photo_url} alt={s.common_name} className="rnow-spotter-img" loading="lazy" />}
+                    <div className="rnow-spotter-name">{s.common_name}</div>
+                    <div className="rnow-spotter-prob">{s.probability}% likely</div>
+                    <div className="rnow-spotter-group">{s.group}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Campfire Story ── */}
+          <section className="rnow-section">
+            <button className={`rnow-campfire-btn${campfirePlaying ? ' playing' : ''}`} onClick={playCampfireStory} disabled={campfireLoading}>
+              {campfireLoading ? '⏳ Generating story...' : campfirePlaying ? '⏹ Stop Story' : '🔥 Campfire Story'}
+            </button>
+            {campfireStory && !campfirePlaying && (
+              <div className="rnow-campfire-text">{campfireStory}</div>
+            )}
+          </section>
 
           {/* ── Swipeable Condition Cards ── */}
           <div className="rnow-cards-label">Current Activity</div>

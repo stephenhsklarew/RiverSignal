@@ -293,6 +293,71 @@
 }
 .deeptime-link:hover { text-decoration: underline; }
 
+/* ── River Replay ── */
+.rnow-replay { margin: 0 16px 16px; padding: 12px; background: #f8f6f1; border-radius: 10px; border: 1px solid #e8e2d8; }
+.rnow-replay-title { font-size: 13px; font-weight: 600; color: #2a2a2a; margin-bottom: 8px; }
+.rnow-replay-item { font-size: 12px; padding: 4px 0; color: #555; border-bottom: 1px solid #f0ece4; }
+.rnow-replay-item:last-child { border-bottom: none; }
+.rnow-replay-item.positive { color: #2e7d32; }
+.rnow-replay-item.negative { color: #c62828; }
+
+/* ── Catch Probability ── */
+.rnow-catch-prob { margin: 0 16px 16px; padding: 14px; background: #fff; border-radius: 10px; border: 1px solid #e8e5de; }
+.rnow-catch-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.rnow-catch-title { font-size: 13px; font-weight: 600; color: #2a2a2a; }
+.rnow-catch-score {
+  font-size: 24px; font-weight: 700; width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.rnow-catch-score.excellent { background: #e8f5e9; color: #2e7d32; }
+.rnow-catch-score.good { background: #e3f2fd; color: #1565c0; }
+.rnow-catch-score.fair { background: #fff3e0; color: #e65100; }
+.rnow-catch-score.poor { background: #fce4ec; color: #c62828; }
+
+.rnow-catch-species { display: flex; flex-direction: column; gap: 6px; }
+.rnow-catch-row { display: flex; align-items: center; gap: 8px; }
+.rnow-catch-name { font-size: 12px; width: 90px; flex-shrink: 0; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rnow-catch-bar-bg { flex: 1; height: 8px; background: #f0ede6; border-radius: 4px; overflow: hidden; }
+.rnow-catch-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+.rnow-catch-bar-fill.excellent { background: #4caf50; }
+.rnow-catch-bar-fill.good { background: #2196f3; }
+.rnow-catch-bar-fill.fair { background: #ff9800; }
+.rnow-catch-bar-fill.poor { background: #f44336; }
+.rnow-catch-pct { font-size: 11px; font-weight: 600; width: 32px; text-align: right; }
+.rnow-catch-pct.excellent { color: #2e7d32; }
+.rnow-catch-pct.good { color: #1565c0; }
+.rnow-catch-pct.fair { color: #e65100; }
+.rnow-catch-pct.poor { color: #c62828; }
+
+/* ── Species Spotter ── */
+.rnow-spotter-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.rnow-spotter-card {
+  background: #fff; border: 1px solid #e8e5de; border-radius: 8px;
+  padding: 8px; text-align: center; overflow: hidden;
+}
+.rnow-spotter-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; margin-bottom: 4px; }
+.rnow-spotter-name { font-size: 11px; font-weight: 600; color: #2a2a2a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rnow-spotter-prob { font-size: 12px; font-weight: 700; color: #1a6b4a; }
+.rnow-spotter-group { font-size: 9px; color: #999; text-transform: capitalize; }
+
+/* ── Campfire Story ── */
+.rnow-campfire-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: calc(100% - 32px); margin: 0 auto; padding: 14px;
+  background: linear-gradient(135deg, #8b5a2b, #d4a96a); color: #fff;
+  border: none; border-radius: 12px; font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit; min-height: 52px;
+}
+.rnow-campfire-btn:disabled { opacity: 0.6; }
+.rnow-campfire-btn.playing { background: linear-gradient(135deg, #c62828, #e65100); }
+.rnow-campfire-text {
+  margin: 12px 16px 0; padding: 14px; background: #faf6f0; border-radius: 10px;
+  border: 1px solid #e8dcc8; font-size: 13px; color: #3d3527; line-height: 1.6;
+  max-height: 200px; overflow-y: auto;
+}
+
 /* ── Harvest delta badge ── */
 .rnow-delta {
   font-size: 10px; font-weight: 600; margin-left: 4px;
