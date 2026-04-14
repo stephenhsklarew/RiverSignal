@@ -193,6 +193,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [campfireLoading, setCampfireLoading] = useState(false)
   const [campfireAudio, setCampfireAudio] = useState<HTMLAudioElement | null>(null)
   const [campfirePlaying, setCampfirePlaying] = useState(false)
+  const [campfireLevel, setCampfireLevel] = useState<string>('adult')
+  const [campfireExpanded, setCampfireExpanded] = useState(false)
 
   // Card customization
   const [cardConfig, setCardConfig] = useState<CardConfig[]>(loadCardSettings)
@@ -287,28 +289,38 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const displayDO = liveDO ? liveDO.value.toFixed(1) : health.dissolved_oxygen_mg_l
   const isLive = !!(liveTemp || liveFlow)
 
-  const playCampfireStory = async () => {
-    if (campfirePlaying && campfireAudio) { campfireAudio.pause(); setCampfirePlaying(false); return }
+  const fetchCampfireStory = async (level: string) => {
     setCampfireLoading(true)
+    setCampfireStory(null)
+    setCampfireExpanded(false)
+    if (campfireAudio) { campfireAudio.pause(); setCampfirePlaying(false) }
     try {
-      // Get or generate story (server caches both text + audio)
-      const r = await fetch(`${API}/sites/${watershed}/campfire-story`)
+      const r = await fetch(`${API}/sites/${watershed}/campfire-story?reading_level=${level}`)
       const d = await r.json()
       setCampfireStory(d.story)
+      setCampfireLoading(false)
+    } catch { setCampfireLoading(false) }
+  }
 
-      // Play cached audio if available, otherwise fall back to TTS endpoint
+  const playCampfireAudio = async () => {
+    if (campfirePlaying && campfireAudio) { campfireAudio.pause(); setCampfirePlaying(false); return }
+    if (!campfireStory) return
+    setCampfireLoading(true)
+    try {
+      // Try cached audio first
       let audioUrl: string
-      if (d.audio_url) {
-        audioUrl = `http://localhost:8001${d.audio_url}`
+      const audioResp = await fetch(`http://localhost:8001/api/v1/sites/${watershed}/campfire-audio?reading_level=${campfireLevel}`)
+      if (audioResp.ok) {
+        const blob = await audioResp.blob()
+        audioUrl = URL.createObjectURL(blob)
       } else {
         const ttsResp = await fetch(`${API}/tts`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: d.story, voice: 'nova' }),
+          body: JSON.stringify({ text: campfireStory, voice: 'nova' }),
         })
         const blob = await ttsResp.blob()
         audioUrl = URL.createObjectURL(blob)
       }
-
       const audio = new Audio(audioUrl)
       audio.onended = () => setCampfirePlaying(false)
       setCampfireAudio(audio)
@@ -316,6 +328,11 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
       setCampfireLoading(false)
       audio.play()
     } catch { setCampfireLoading(false) }
+  }
+
+  const handleCampfireLevelChange = (level: string) => {
+    setCampfireLevel(level)
+    fetchCampfireStory(level)
   }
 
   // Harvest trend — latest year vs prior
@@ -506,11 +523,39 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           <div data-card="campfire_story">
           {/* ── Campfire Story ── */}
           <section className="rnow-section">
-            <button className={`rnow-campfire-btn${campfirePlaying ? ' playing' : ''}`} onClick={playCampfireStory} disabled={campfireLoading}>
-              {campfireLoading ? '⏳ Generating story...' : campfirePlaying ? '⏹ Stop Story' : '🔥 Campfire Story'}
+            <div className="rnow-section-title">🔥 River Story</div>
+
+            {/* Reading level toggle */}
+            <div className="rnow-campfire-levels">
+              {(['kids', 'adult', 'expert'] as const).map(level => (
+                <button key={level}
+                  className={`rnow-campfire-level${campfireLevel === level ? ' active' : ''}`}
+                  onClick={() => handleCampfireLevelChange(level)}>
+                  {level === 'kids' ? 'Kids' : level === 'expert' ? 'Expert' : 'Adult'}
+                </button>
+              ))}
+            </div>
+
+            {/* Listen button */}
+            <button className={`rnow-campfire-btn${campfirePlaying ? ' playing' : ''}`}
+              onClick={campfireStory ? playCampfireAudio : () => fetchCampfireStory(campfireLevel)}
+              disabled={campfireLoading}>
+              {campfireLoading ? '⏳ Generating...' : campfirePlaying ? '⏹ Stop' : campfireStory ? '🔊 Listen to Story' : '🔥 Generate Story'}
             </button>
-            {campfireStory && !campfirePlaying && (
-              <div className="rnow-campfire-text">{campfireStory}</div>
+
+            {/* Story text with expand/collapse */}
+            {campfireStory && (
+              <div className={`rnow-campfire-card${campfireExpanded ? ' expanded' : ''}`}>
+                <div className="rnow-campfire-text">
+                  <Markdown>{campfireStory}</Markdown>
+                </div>
+                {!campfireExpanded && campfireStory.length > 300 && (
+                  <div className="rnow-campfire-fade" />
+                )}
+                <button className="rnow-campfire-expand" onClick={() => setCampfireExpanded(!campfireExpanded)}>
+                  {campfireExpanded ? 'Show less ↑' : 'Read full story ↓'}
+                </button>
+              </div>
             )}
           </section>
 

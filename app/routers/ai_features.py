@@ -457,23 +457,28 @@ def compare_rivers(ws1: str = Query(...), ws2: str = Query(...)):
 # 8. CAMPFIRE STORY — Spoken ecological narrative
 # ═══════════════════════════════════════════════
 @router.get("/sites/{watershed}/campfire-story")
-def campfire_story(watershed: str):
-    """Generate a 3-minute campfire story. Cached on disk (text + audio)."""
+def campfire_story(watershed: str, reading_level: str = "adult"):
+    """Generate a campfire story. Cached on disk per reading level (text + audio)."""
     import pathlib
     import httpx
+    from fastapi import Query as Q
+
+    if reading_level not in ("kids", "adult", "expert"):
+        reading_level = "adult"
 
     cache_dir = pathlib.Path(__file__).resolve().parent.parent.parent / ".campfire_cache"
     cache_dir.mkdir(exist_ok=True)
-    text_file = cache_dir / f"{watershed}.txt"
-    audio_file = cache_dir / f"{watershed}.mp3"
+    text_file = cache_dir / f"{watershed}_{reading_level}.txt"
+    audio_file = cache_dir / f"{watershed}_{reading_level}.mp3"
 
     # ── Check cache ──
     if text_file.exists():
         story_text = text_file.read_text()
         return {
             "watershed": watershed,
+            "reading_level": reading_level,
             "story": story_text,
-            "audio_url": f"/api/v1/sites/{watershed}/campfire-audio" if audio_file.exists() else None,
+            "audio_url": f"/api/v1/sites/{watershed}/campfire-audio?reading_level={reading_level}" if audio_file.exists() else None,
             "cached": True,
         }
 
@@ -509,22 +514,37 @@ def campfire_story(watershed: str):
         "projects": sc[4] if sc else 0,
     }
 
+    level_prompts = {
+        "kids": """You are a campfire storyteller for kids ages 6-10. Generate a 2-minute story (300-400 words).
+
+Use simple vocabulary (5th grade level). Start with "Imagine you're sitting by the river..."
+Use comparisons kids understand ("as big as a school bus", "as cold as a freezer").
+Make animals feel like characters with personalities. End with "And that's why we take care of our rivers."
+No markdown formatting — this will be spoken aloud.""",
+
+        "adult": """You are a campfire storyteller. Generate a 3-minute spoken story (400-500 words) for a family.
+
+Start with "Let me tell you the story of the [river name]..."
+Weave together the river's ecological history: fires, restoration, species recovery, dam removals.
+Include moments of drama and wonder. End with hope and a call to stewardship.
+Use vivid sensory language (sounds of the river, the smell of pine, the flash of a salmon).
+No markdown formatting — this will be spoken aloud.""",
+
+        "expert": """You are a restoration ecologist telling the scientific story of a watershed. Generate a 3-minute narrative (400-500 words).
+
+Use proper ecological terminology: species richness, trophic cascades, riparian buffer zones.
+Include specific data: species counts, restoration outcomes, temperature measurements.
+Reference monitoring methodologies and cite intervention types by name.
+End with assessment of current trajectory and research questions.
+No markdown formatting — this will be spoken aloud.""",
+    }
+
     import anthropic
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=1500,
-        system="""You are a campfire storyteller. Generate a 3-minute spoken story (about 400-500 words) about this Oregon river for a family sitting around a campfire.
-
-The story should:
-- Start with "Let me tell you the story of the [river name]..."
-- Weave together the river's ecological history: fires, restoration, species recovery, dam removals
-- Include moments of drama and wonder
-- End with hope and a call to stewardship
-- Use vivid sensory language (sounds of the river, the smell of pine, the flash of a salmon)
-- Be appropriate for kids ages 6+
-
-Do NOT use markdown formatting — this will be spoken aloud.""",
+        system=level_prompts.get(reading_level, level_prompts["adult"]),
         messages=[{"role": "user", "content": json.dumps(context, default=str)}],
     )
 
@@ -553,19 +573,26 @@ Do NOT use markdown formatting — this will be spoken aloud.""",
     return {
         "watershed": watershed,
         "river": site[0],
+        "reading_level": reading_level,
         "story": story_text,
-        "audio_url": f"/api/v1/sites/{watershed}/campfire-audio" if has_audio else None,
+        "audio_url": f"/api/v1/sites/{watershed}/campfire-audio?reading_level={reading_level}" if has_audio else None,
         "cached": False,
     }
 
 
 @router.get("/sites/{watershed}/campfire-audio")
-def campfire_audio(watershed: str):
+def campfire_audio(watershed: str, reading_level: str = "adult"):
     """Serve cached campfire story audio (MP3)."""
     import pathlib
     from fastapi.responses import Response
 
-    audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".campfire_cache" / f"{watershed}.mp3"
+    if reading_level not in ("kids", "adult", "expert"):
+        reading_level = "adult"
+
+    audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".campfire_cache" / f"{watershed}_{reading_level}.mp3"
+    # Fallback to old format
+    if not audio_file.exists():
+        audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".campfire_cache" / f"{watershed}.mp3"
     if not audio_file.exists():
         raise HTTPException(404, "No cached audio. Generate the campfire story first.")
 

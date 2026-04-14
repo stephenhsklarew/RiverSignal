@@ -357,19 +357,54 @@
 .rnow-spotter-group { font-size: 9px; color: #999; text-transform: capitalize; }
 
 /* ── Campfire Story ── */
+.rnow-campfire-levels {
+  display: flex; gap: 4px; margin-bottom: 10px;
+}
+.rnow-campfire-level {
+  padding: 5px 14px; border: 1px solid var(--border); border-radius: 16px;
+  background: none; font-family: inherit; font-size: 12px; cursor: pointer;
+  color: var(--text-secondary);
+}
+.rnow-campfire-level.active {
+  background: #8b5a2b; color: #fff; border-color: #8b5a2b;
+}
+
 .rnow-campfire-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: calc(100% - 32px); margin: 0 auto; padding: 14px;
+  width: 80%; margin: 0 auto 12px; padding: 12px;
   background: linear-gradient(135deg, #8b5a2b, #d4a96a); color: #fff;
-  border: none; border-radius: 12px; font-size: 15px; font-weight: 600;
-  cursor: pointer; font-family: inherit; min-height: 52px;
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit; min-height: 48px;
 }
 .rnow-campfire-btn:disabled { opacity: 0.6; }
 .rnow-campfire-btn.playing { background: linear-gradient(135deg, #c62828, #e65100); }
+
+.rnow-campfire-card {
+  position: relative; padding: 14px; background: #faf6f0; border-radius: 10px;
+  border: 1px solid #e8dcc8; overflow: hidden;
+}
+.rnow-campfire-card:not(.expanded) .rnow-campfire-text {
+  max-height: 150px; overflow: hidden;
+}
+.rnow-campfire-card.expanded .rnow-campfire-text {
+  max-height: none;
+}
 .rnow-campfire-text {
-  margin: 12px 16px 0; padding: 14px; background: #faf6f0; border-radius: 10px;
-  border: 1px solid #e8dcc8; font-size: 13px; color: #3d3527; line-height: 1.6;
-  max-height: 200px; overflow-y: auto;
+  font-size: 13px; color: #3d3527; line-height: 1.65;
+}
+.rnow-campfire-text p { margin: 0 0 10px; }
+.rnow-campfire-text p:last-child { margin-bottom: 0; }
+
+.rnow-campfire-fade {
+  position: absolute; bottom: 36px; left: 0; right: 0; height: 60px;
+  background: linear-gradient(transparent, #faf6f0);
+  pointer-events: none;
+}
+.rnow-campfire-expand {
+  display: block; width: 100%; text-align: center; padding: 8px 0 0;
+  background: none; border: none; border-top: 1px solid #e8dcc8;
+  color: #8b5a2b; font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: inherit; margin-top: 8px;
 }
 
 /* ── Fly Shops & Guides ── */
