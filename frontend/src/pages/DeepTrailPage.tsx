@@ -420,39 +420,22 @@ export default function DeepTrailPage() {
       <MiniMap items={filteredFossils} center={loc!} color="#d4a96a"
         labels={filteredFossils.map(f => f.common_name || f.taxon_name)} />
 
-      <div className="dt-list-filters">
-        <select value={periodFilter} onChange={e => setPeriodFilter(e.target.value)} className="dt-filter-select">
-          <option value="">All Periods</option>
-          {fossilPeriods.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <select value={phylumFilter} onChange={e => setPhylumFilter(e.target.value)} className="dt-filter-select">
-          <option value="">All Phyla</option>
-          {fossilPhyla.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
+      {/* Filter chips */}
+      <div className="dt-filter-chips">
+        <button className={`dt-chip${!periodFilter ? ' active' : ''}`} onClick={() => setPeriodFilter('')}>All Periods</button>
+        {fossilPeriods.map(p => (
+          <button key={p} className={`dt-chip${periodFilter === p ? ' active' : ''}`} onClick={() => setPeriodFilter(periodFilter === p ? '' : p)}>{p}</button>
+        ))}
+      </div>
+      <div className="dt-filter-chips">
+        <button className={`dt-chip${!phylumFilter ? ' active' : ''}`} onClick={() => setPhylumFilter('')}>All Types</button>
+        {fossilPhyla.map(p => (
+          <button key={p} className={`dt-chip${phylumFilter === p ? ' active' : ''}`} onClick={() => setPhylumFilter(phylumFilter === p ? '' : p)}>{PHYLUM_ICONS[p] || '🪨'} {p}</button>
+        ))}
       </div>
 
-      <div className="dt-list">
-        {filteredFossils.map((f, i) => (
-          <div key={i} className="dt-list-item">
-            <div className="dt-list-thumb">
-              {f.image_url ? <img src={f.image_url} alt={f.taxon_name} loading="lazy" /> : <span>{PHYLUM_ICONS[f.phylum] || '🪨'}</span>}
-            </div>
-            <div className="dt-list-body">
-              {f.common_name && <div className="dt-list-common">{f.common_name}</div>}
-              <div className="dt-list-name">{f.taxon_name}</div>
-              <div className="dt-list-meta">{f.phylum}{f.class_name ? ` · ${f.class_name}` : ''}{f.museum ? ` · ${f.museum}` : ''}</div>
-              <div className="dt-list-sub">{f.period}{f.age_max_ma ? ` · ${f.age_max_ma} Ma` : ''}{f.distance_km != null ? ` · ${f.distance_km} km` : ''}</div>
-            </div>
-            {f.source_id && (() => {
-              const sid = f.source_id || ''
-              if (sid.startsWith('occ:')) return <a href={`https://paleobiodb.org/classic/checkTaxonInfo?taxon_no=${sid.replace('occ:','')}`} target="_blank" rel="noopener noreferrer" className="dt-list-link">PBDB ↗</a>
-              if (/^\d+$/.test(sid)) return <a href={`https://www.gbif.org/occurrence/${sid}`} target="_blank" rel="noopener noreferrer" className="dt-list-link">GBIF ↗</a>
-              return <a href={`https://www.idigbio.org/portal/records/${sid}`} target="_blank" rel="noopener noreferrer" className="dt-list-link">iDigBio ↗</a>
-            })()}
-          </div>
-        ))}
-        {filteredFossils.length === 0 && <div className="dt-empty">No fossils match filters.</div>}
-      </div>
+      {/* Grouped by period */}
+      <FossilGroupedList fossils={filteredFossils} />
     </div>
   )
 
@@ -469,31 +452,16 @@ export default function DeepTrailPage() {
       <MiniMap items={filteredMinerals} center={loc!} color="#e65100"
         labels={filteredMinerals.map(m => m.site_name)} />
 
-      <div className="dt-list-filters">
-        <select value={mineralFilter} onChange={e => setMineralFilter(e.target.value)} className="dt-filter-select">
-          <option value="">All Commodities</option>
-          {mineralCommodities.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+      {/* Filter chips */}
+      <div className="dt-filter-chips">
+        <button className={`dt-chip${!mineralFilter ? ' active' : ''}`} onClick={() => setMineralFilter('')}>All</button>
+        {mineralCommodities.map(c => (
+          <button key={c} className={`dt-chip${mineralFilter === c ? ' active' : ''}`} onClick={() => setMineralFilter(mineralFilter === c ? '' : c)}>{c}</button>
+        ))}
       </div>
 
-      <div className="dt-list">
-        {filteredMinerals.map((m, i) => {
-          const comLower = (m.commodity || '').toLowerCase()
-          const icon = comLower.includes('gold') ? '🥇' : comLower.includes('silver') ? '🥈'
-            : comLower.includes('copper') ? '🟤' : comLower.includes('mercury') ? '💧' : '💎'
-          return (
-            <div key={i} className="dt-list-item">
-              <div className="dt-list-thumb"><span>{icon}</span></div>
-              <div className="dt-list-body">
-                <div className="dt-list-name">{m.site_name}</div>
-                <div className="dt-list-meta">{m.commodity}</div>
-                <div className="dt-list-sub">{m.dev_status}{m.distance_km != null ? ` · ${m.distance_km} km` : ''}</div>
-              </div>
-            </div>
-          )
-        })}
-        {filteredMinerals.length === 0 && <div className="dt-empty">No minerals match filter.</div>}
-      </div>
+      {/* Grouped by commodity */}
+      <MineralGroupedList minerals={filteredMinerals} />
     </div>
   )
 }
@@ -723,5 +691,175 @@ function TimelineSection({ items }: { items: any[] }) {
         </div>
       )}
     </section>
+  )
+}
+
+// ── Fossil List grouped by period ──
+
+const PERIOD_ORDER = [
+  'Cambrian','Ordovician','Silurian','Devonian','Carboniferous','Permian',
+  'Triassic','Jurassic','Cretaceous','Paleocene','Eocene','Oligocene',
+  'Miocene','Pliocene','Pleistocene','Holocene','Quaternary','Neogene','Paleogene',
+]
+
+function FossilGroupedList({ fossils }: { fossils: any[] }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const ITEMS_VISIBLE = 5
+
+  // Group by period
+  const groups: Record<string, any[]> = {}
+  for (const f of fossils) {
+    const period = f.period || 'Unknown'
+    if (!groups[period]) groups[period] = []
+    groups[period].push(f)
+  }
+
+  // Sort periods by geological age
+  const sortedPeriods = Object.keys(groups).sort((a, b) => {
+    const ai = PERIOD_ORDER.indexOf(a)
+    const bi = PERIOD_ORDER.indexOf(b)
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+  })
+
+  if (fossils.length === 0) return <div className="dt-empty">No fossils match filters.</div>
+
+  return (
+    <div className="dt-grouped-list">
+      {sortedPeriods.map(period => {
+        const items = groups[period]
+        const isExpanded = expanded[period]
+        const visible = isExpanded ? items : items.slice(0, ITEMS_VISIBLE)
+        const context = ERA_CONTEXT[period] || ''
+
+        return (
+          <div key={period} className="dt-group">
+            <div className="dt-group-header">
+              <div className="dt-group-title">
+                <span className="dt-group-period">{period}</span>
+                <span className="dt-group-count">{items.length}</span>
+              </div>
+              {context && <div className="dt-group-context">{context}</div>}
+            </div>
+            <div className="dt-group-items">
+              {visible.map((f, i) => (
+                <FossilCard key={i} fossil={f} />
+              ))}
+            </div>
+            {items.length > ITEMS_VISIBLE && (
+              <button className="dt-group-toggle" onClick={() => setExpanded(prev => ({ ...prev, [period]: !prev[period] }))}>
+                {isExpanded ? 'Show less' : `Show all ${items.length}`}
+              </button>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function FossilCard({ fossil: f }: { fossil: any }) {
+  const sid = f.source_id || ''
+  const sourceLink = sid.startsWith('occ:')
+    ? `https://paleobiodb.org/classic/checkTaxonInfo?taxon_no=${sid.replace('occ:', '')}`
+    : /^\d+$/.test(sid) ? `https://www.gbif.org/occurrence/${sid}`
+    : `https://www.idigbio.org/portal/records/${sid}`
+  const sourceLabel = sid.startsWith('occ:') ? 'PBDB' : /^\d+$/.test(sid) ? 'GBIF' : 'iDigBio'
+
+  return (
+    <div className="dt-fossil-card">
+      <div className="dt-fossil-thumb">
+        {f.image_url
+          ? <img src={f.image_url} alt={f.taxon_name} loading="lazy" />
+          : <span className="dt-fossil-icon">{PHYLUM_ICONS[f.phylum] || '🪨'}</span>}
+      </div>
+      <div className="dt-fossil-body">
+        <div className="dt-fossil-name">{f.taxon_name}</div>
+        {f.common_name && <div className="dt-fossil-common">{f.common_name}</div>}
+        <div className="dt-fossil-meta">
+          {f.phylum && <span>{f.phylum}</span>}
+          {f.class_name && <span> · {f.class_name}</span>}
+          {f.age_max_ma && <span> · {f.age_max_ma} Ma</span>}
+        </div>
+        <div className="dt-fossil-bottom">
+          {f.museum && <span className="dt-fossil-museum">{f.museum}</span>}
+          {f.distance_km != null && <span className="dt-fossil-dist">{f.distance_km} km</span>}
+          {sid && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="dt-fossil-source">{sourceLabel} ↗</a>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Mineral List grouped by commodity ──
+
+function MineralGroupedList({ minerals }: { minerals: any[] }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const ITEMS_VISIBLE = 5
+
+  const COMMODITY_ICONS: Record<string, string> = {
+    'gold': '🥇', 'silver': '🥈', 'copper': '🟤', 'mercury': '💧',
+    'agate': '💎', 'obsidian': '⚫', 'thunderegg': '🥚', 'opal': '🔮',
+    'pumice': '🪨', 'perlite': '⚪', 'diatomite': '🟡',
+  }
+
+  function getIcon(commodity: string): string {
+    const lower = commodity.toLowerCase()
+    for (const [key, icon] of Object.entries(COMMODITY_ICONS)) {
+      if (lower.includes(key)) return icon
+    }
+    return '💎'
+  }
+
+  // Group by primary commodity
+  const groups: Record<string, any[]> = {}
+  for (const m of minerals) {
+    const commodity = (m.commodity || 'Unknown').split(',')[0].trim()
+    if (!groups[commodity]) groups[commodity] = []
+    groups[commodity].push(m)
+  }
+  const sortedCommodities = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length)
+
+  if (minerals.length === 0) return <div className="dt-empty">No minerals match filter.</div>
+
+  return (
+    <div className="dt-grouped-list">
+      {sortedCommodities.map(commodity => {
+        const items = groups[commodity]
+        const isExpanded = expanded[commodity]
+        const visible = isExpanded ? items : items.slice(0, ITEMS_VISIBLE)
+        const icon = getIcon(commodity)
+
+        return (
+          <div key={commodity} className="dt-group">
+            <div className="dt-group-header">
+              <div className="dt-group-title">
+                <span>{icon}</span>
+                <span className="dt-group-period">{commodity}</span>
+                <span className="dt-group-count">{items.length}</span>
+              </div>
+            </div>
+            <div className="dt-group-items">
+              {visible.map((m, i) => (
+                <div key={i} className="dt-mineral-card">
+                  <div className="dt-mineral-body">
+                    <div className="dt-mineral-name">{m.site_name}</div>
+                    <div className="dt-mineral-meta">{m.commodity}</div>
+                    <div className="dt-mineral-bottom">
+                      {m.dev_status && <span className="dt-mineral-status">{m.dev_status}</span>}
+                      {m.distance_km != null && <span className="dt-mineral-dist">{m.distance_km} km</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {items.length > ITEMS_VISIBLE && (
+              <button className="dt-group-toggle" onClick={() => setExpanded(prev => ({ ...prev, [commodity]: !prev[commodity] }))}>
+                {isExpanded ? 'Show less' : `Show all ${items.length}`}
+              </button>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
