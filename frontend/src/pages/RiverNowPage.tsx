@@ -176,6 +176,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [weather, setWeather] = useState<any>(null)
   const [liveConditions, setLiveConditions] = useState<any>(null)
   const [stocking, setStocking] = useState<any[]>([])
+  const [snowpack, setSnowpack] = useState<any>(null)
 
   // Inline chat state
   const [askInput, setAskInput] = useState('')
@@ -197,6 +198,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/weather`).then(r => r.json()).then(setWeather).catch(() => {})
     fetch(`${API}/sites/${watershed}/conditions/live`).then(r => r.json()).then(setLiveConditions).catch(() => {})
     fetch(`${API}/sites/${watershed}/fishing/stocking`).then(r => r.json()).then(setStocking).catch(() => {})
+    fetch(`${API}/sites/${watershed}/snowpack`).then(r => r.json()).then(setSnowpack).catch(() => {})
     // Geology + fossils for Deep Time card
     const center = WS_CENTERS[watershed]
     if (center) {
@@ -431,6 +433,49 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                     <div className="rnow-weather-wind">{p.wind_speed} {p.wind_direction}</div>
                   </div>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Snowpack Card ── */}
+          {snowpack && (snowpack.stations_with_snow > 0 || snowpack.station_count > 0) && (
+            <section className="rnow-section">
+              <div className="rnow-section-title">Snowpack & Mountain Conditions</div>
+              <div className="rnow-snowpack-card">
+                <div className="rnow-snow-metrics">
+                  {snowpack.avg_swe_in != null && (
+                    <div className="rnow-snow-metric">
+                      <span className="rnow-snow-value">{snowpack.avg_swe_in}"</span>
+                      <span className="rnow-snow-label">Avg SWE</span>
+                    </div>
+                  )}
+                  {snowpack.avg_pct_normal != null && (
+                    <div className="rnow-snow-metric">
+                      <span className={`rnow-snow-value ${snowpack.avg_pct_normal > 90 ? 'good' : snowpack.avg_pct_normal > 50 ? 'moderate' : 'low'}`}>
+                        {snowpack.avg_pct_normal}%
+                      </span>
+                      <span className="rnow-snow-label">of Normal</span>
+                    </div>
+                  )}
+                  <div className="rnow-snow-metric">
+                    <span className="rnow-snow-value">{snowpack.stations_with_snow}/{snowpack.station_count}</span>
+                    <span className="rnow-snow-label">Stations w/ Snow</span>
+                  </div>
+                </div>
+                {snowpack.stations?.[0]?.swe_7day_change != null && (
+                  <div className="rnow-snow-trend">
+                    7-day trend: {snowpack.stations[0].swe_7day_change > 0 ? '↑ Building' : snowpack.stations[0].swe_7day_change < -0.3 ? '↓ Melting' : '→ Stable'}
+                    {snowpack.stations[0].swe_7day_change !== 0 && ` (${snowpack.stations[0].swe_7day_change > 0 ? '+' : ''}${snowpack.stations[0].swe_7day_change}")`}
+                  </div>
+                )}
+                {snowpack.insight && (
+                  <div className="rnow-snow-insight">{snowpack.insight}</div>
+                )}
+                {snowpack.stations?.[0] && (
+                  <div className="rnow-snow-station">
+                    Station {snowpack.stations[0].station_id} · {snowpack.stations[0].latest_timestamp ? new Date(snowpack.stations[0].latest_timestamp).toLocaleDateString() : ''}
+                  </div>
+                )}
               </div>
             </section>
           )}

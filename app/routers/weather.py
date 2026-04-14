@@ -1,12 +1,10 @@
-"""Weather and real-time conditions endpoints.
-
-NWS 7-day forecast and USGS instantaneous gauge readings — both are
-pass-through API calls (no database storage), cached briefly.
-"""
+"""Weather, real-time conditions, and snowpack endpoints."""
 
 import time
 from fastapi import APIRouter, HTTPException
 import httpx
+from sqlalchemy import text
+from pipeline.db import engine
 
 router = APIRouter(tags=["weather"])
 
@@ -167,3 +165,89 @@ def get_live_conditions(watershed: str):
     }
     _set_cache(cache_key, result)
     return result
+
+
+# ── Snowpack ──
+
+def _snowpack_insight(pct_normal, swe, swe_change, month):
+    """Generate a fishing-relevant insight from snowpack conditions."""
+    if swe is None or swe == 0:
+        if month >= 6:
+            return "Snowpack depleted — river flows now depend on springs and groundwater. Fish morning and evening when water is coolest."
+        return "No snow at this station. Check higher-elevation stations for snowpack status."
+
+    melting = swe_change is not None and swe_change < -0.3
+    building = swe_change is not None and swe_change > 0.3
+
+    if pct_normal is not None and pct_normal > 130:
+        if melting:
+            return "Big melt underway — rivers running high and cold. Fish pushed to bank edges and eddies. Use heavy nymphs and streamers."
+        return "Heavy snowpack — expect high flows and late runoff. Spring fishing will be delayed but summer flows should be excellent."
+    elif pct_normal is not None and pct_normal > 90:
+        if melting:
+            return "Steady melt — rivers should fish well as flows gradually drop. Good conditions for dry-dropper rigs."
+        return "Normal snowpack — on track for a healthy summer flow season."
+    elif pct_normal is not None and pct_normal > 50:
+        return "Below-average snowpack — expect lower summer flows and warmer water earlier. Fish early season for best conditions."
+    elif pct_normal is not None:
+        return "Drought conditions — summer will bring low flows and thermal stress. Target cold-water refuges and fish early morning."
+    elif melting:
+        return "Snowpack melting — rising river flows expected. Nymph fishing should be productive as bugs get dislodged."
+    elif building:
+        return "Snow still accumulating — spring runoff hasn't peaked. Expect high water for several more weeks."
+    return "Snowpack data available — check trends to plan your fishing season."
+
+
+@router.get("/sites/{watershed}/snowpack")
+def get_snowpack(watershed: str):
+    """Current snowpack conditions from SNOTEL stations."""
+    from datetime import datetime
+    month = datetime.now().month
+
+    with engine.connect() as conn:
+        try:
+            rows = conn.execute(text("""
+                SELECT station_id, snow_depth_in, swe_in, precip_cumulative_in,
+                       air_temp_f, latest_timestamp, swe_7day_change, pct_of_normal
+                FROM gold.snowpack_current
+                WHERE watershed = :ws
+                ORDER BY swe_in DESC NULLS LAST
+            """), {"ws": watershed}).fetchall()
+        except Exception:
+            return {"watershed": watershed, "stations": [], "insight": None}
+
+    if not rows:
+        return {"watershed": watershed, "stations": [], "insight": None}
+
+    stations = []
+    for r in rows:
+        stations.append({
+            "station_id": r[0],
+            "snow_depth_in": r[1],
+            "swe_in": r[2],
+            "precip_cumulative_in": r[3],
+            "air_temp_f": r[4],
+            "latest_timestamp": str(r[5]) if r[5] else None,
+            "swe_7day_change": round(r[6], 1) if r[6] is not None else None,
+            "pct_of_normal": int(r[7]) if r[7] is not None else None,
+        })
+
+    # Generate insight from the station with most snow
+    top = stations[0]
+    insight = _snowpack_insight(top["pct_of_normal"], top["swe_in"], top["swe_7day_change"], month)
+
+    # Summary stats
+    active = [s for s in stations if s["swe_in"] and s["swe_in"] > 0]
+    avg_swe = sum(s["swe_in"] for s in active) / len(active) if active else 0
+    pcts = [s["pct_of_normal"] for s in active if s["pct_of_normal"]]
+    avg_pct = sum(pcts) / len(pcts) if pcts else None
+
+    return {
+        "watershed": watershed,
+        "stations": stations[:5],
+        "station_count": len(rows),
+        "stations_with_snow": len(active),
+        "avg_swe_in": round(avg_swe, 1),
+        "avg_pct_normal": int(avg_pct) if avg_pct else None,
+        "insight": insight,
+    }
