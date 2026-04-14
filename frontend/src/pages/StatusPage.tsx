@@ -111,6 +111,7 @@ export default function StatusPage() {
   const [bronzeTables, setBronzeTables] = useState<Record<string, number>>({})
   const [silverTables, setSilverTables] = useState<Record<string, number>>({})
   const [goldTables, setGoldTables] = useState<Record<string, number>>({})
+  const [curated, setCurated] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [totalRecords, setTotalRecords] = useState(0)
 
@@ -135,6 +136,7 @@ export default function StatusPage() {
         setBronzeTables(data.bronze?.tables || {})
         setSilverTables(data.silver?.tables || {})
         setGoldTables(data.gold?.tables || {})
+        setCurated(data.curated || [])
 
         const bt = data.bronze?.tables || {}
         setTotalRecords(Object.values(bt).reduce((a: number, b: any) => a + (b || 0), 0))
@@ -324,6 +326,32 @@ export default function StatusPage() {
               </table>
             </div>
           </section>
+
+          {/* ── Manually Curated Data ── */}
+          {curated.length > 0 && (
+            <section className="status-section">
+              <h2>Manually Curated Data ({curated.length})</h2>
+              <p className="status-layer-desc">Hand-built datasets created from expert knowledge, fly fishing literature, and local business directories.</p>
+              <div className="status-table-wrap">
+                <table className="status-table">
+                  <thead>
+                    <tr><th>Name</th><th>Description</th><th>Source</th><th>Table</th><th className="status-num-col">Records</th></tr>
+                  </thead>
+                  <tbody>
+                    {curated.map((c, i) => (
+                      <tr key={i}>
+                        <td className="status-source">{c.name}</td>
+                        <td className="status-desc">{c.description}</td>
+                        <td className="status-freq">{c.source}</td>
+                        <td className="status-source">{c.table}</td>
+                        <td className="status-num">{c.records?.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>
