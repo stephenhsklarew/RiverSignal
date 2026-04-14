@@ -255,14 +255,26 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     setChatQuestion(question)
     setChatLoading(true)
     setChatAnswer(null)
-    // Use River Oracle for richer, trip-planning-aware answers
+    // Try River Oracle first, fall back to basic chat
     fetch(`${API}/river-oracle`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, watershed }),
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('oracle failed')
+        return r.json()
+      })
       .then(data => setChatAnswer(data.answer || data.detail || 'Unable to answer.'))
-      .catch(() => setChatAnswer('Set ANTHROPIC_API_KEY to enable AI answers.'))
+      .catch(() => {
+        // Fallback to basic chat endpoint
+        fetch(`${API}/sites/${watershed}/chat`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+        })
+          .then(r => r.json())
+          .then(data => setChatAnswer(data.answer || data.detail || 'Unable to answer.'))
+          .catch(() => setChatAnswer('Set ANTHROPIC_API_KEY to enable AI answers.'))
+      })
       .finally(() => setChatLoading(false))
   }
 
