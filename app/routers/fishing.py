@@ -153,7 +153,12 @@ def fish_passage_barriers(watershed: str):
                    data_payload->>'barrier_name' as barrier_name
             FROM observations
             WHERE site_id = :sid AND source_type = 'fish_barrier'
-            ORDER BY taxon_name
+              AND data_payload->>'stream_name' IS NOT NULL
+              AND data_payload->>'stream_name' != 'None'
+              AND data_payload->>'stream_name' != ''
+              AND (data_payload->>'passage_status' IS NULL
+                   OR data_payload->>'passage_status' NOT ILIKE 'unknown')
+            ORDER BY data_payload->>'passage_status', data_payload->>'stream_name'
         """), {"sid": site[0]}).fetchall()
 
     return [
