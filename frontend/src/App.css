@@ -1069,3 +1069,17 @@
   color: var(--text-secondary);
   line-height: 1.8;
 }
+
+.freshness-curated {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.freshness-curated-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.freshness-curated table { font-size: 11px; }
+.freshness-curated td { vertical-align: top; }

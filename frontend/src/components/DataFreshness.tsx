@@ -10,10 +10,19 @@ interface Pipeline {
   failed: number
 }
 
+interface CuratedSource {
+  name: string
+  table: string
+  records: number
+  description: string
+  source: string
+}
+
 interface DataStatus {
   bronze: { observations: number; time_series: number; interventions: number; most_recent_sync: string | null; oldest_pipeline_sync: string | null }
   silver: { views: number }
   gold: { views: number }
+  curated?: CuratedSource[]
   pipelines: Pipeline[]
 }
 
@@ -108,6 +117,26 @@ export default function DataFreshness({ compact = false }: { compact?: boolean }
             <div><strong>Silver:</strong> {status.silver.views} materialized views</div>
             <div><strong>Gold:</strong> {status.gold.views} materialized views</div>
           </div>
+          {status.curated && status.curated.length > 0 && (
+            <div className="freshness-curated">
+              <div className="freshness-curated-title">Manually Curated Data</div>
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Records</th><th>Description</th><th>Source</th></tr>
+                </thead>
+                <tbody>
+                  {status.curated.map((c, i) => (
+                    <tr key={i}>
+                      <td>{c.name}</td>
+                      <td className="mono">{c.records?.toLocaleString()}</td>
+                      <td>{c.description}</td>
+                      <td className="mono" style={{ fontSize: '10px' }}>{c.source}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

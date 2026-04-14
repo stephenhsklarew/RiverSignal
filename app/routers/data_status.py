@@ -72,6 +72,44 @@ def get_data_status():
             else:
                 gold_views[r[1]] = cnt
 
+        # Curated data sources (manually created, not from public APIs)
+        curated = []
+        try:
+            fly_count = conn.execute(text("SELECT count(*) FROM silver.insect_fly_patterns")).scalar()
+            curated.append({
+                "name": "Insect-to-Fly Pattern Mapping",
+                "table": "silver.insect_fly_patterns",
+                "records": fly_count,
+                "description": "Aquatic insects mapped to fly fishing patterns with hook sizes, fly types, photos, seasons, and fishing tips",
+                "source": "Hand-curated from fly fishing literature",
+            })
+        except Exception:
+            conn.rollback()
+
+        # Fossil common names
+        fossil_common = conn.execute(text(
+            "SELECT count(*) FROM fossil_occurrences WHERE common_name IS NOT NULL AND common_name != ''"
+        )).scalar()
+        curated.append({
+            "name": "Fossil Common Names",
+            "table": "fossil_occurrences.common_name",
+            "records": fossil_common,
+            "description": "Latin genus/species names mapped to English common names (e.g., Mesohippus → Three-toed Horse)",
+            "source": "Hand-curated lookup table (~60 genera)",
+        })
+
+        # Mineral commodity code expansion
+        mineral_expanded = conn.execute(text(
+            "SELECT count(*) FROM mineral_deposits WHERE commodity NOT SIMILAR TO '%[A-Z]{2,}%'"
+        )).scalar()
+        curated.append({
+            "name": "Mineral Commodity Names",
+            "table": "mineral_deposits.commodity",
+            "records": mineral_expanded,
+            "description": "MRDS abbreviations expanded to human-readable names (SDG → Sand & Gravel, PGE_PT → Platinum)",
+            "source": "Hand-curated code-to-name mapping (~16 codes)",
+        })
+
     return {
         "bronze": {
             "observations": bronze_obs,
@@ -89,6 +127,7 @@ def get_data_status():
             "views": next((r[1] for r in view_counts if r[0] == 'gold'), 0),
             "tables": gold_views,
         },
+        "curated": curated,
         "pipelines": [
             {
                 "source": r[0],
