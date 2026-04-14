@@ -593,17 +593,17 @@ function StoryCard({ narrative, loading, readingLevel, onChangeLevel, speaking, 
   speaking: boolean; audioLoading: boolean; onSpeak: () => void;
 }) {
   const [page, setPage] = useState(0)
-  const LINES_PER_PAGE = 5
+  const SENTENCES_PER_PAGE = 5
 
   // Reset page when narrative changes
   useEffect(() => { setPage(0) }, [narrative])
 
-  // Split narrative into paragraphs (double newline or single newline with content)
-  const lines = narrative.split(/\n\n+/).filter(l => l.trim())
-  // If only 1 block, try splitting on single newlines
-  const paragraphs = lines.length <= 1 ? narrative.split(/\n/).filter(l => l.trim()) : lines
-  const totalPages = Math.max(1, Math.ceil(paragraphs.length / LINES_PER_PAGE))
-  const pageLines = paragraphs.slice(page * LINES_PER_PAGE, (page + 1) * LINES_PER_PAGE)
+  // Split into sentences for pagination
+  const sentences = narrative
+    .split(/(?<=[.!?])\s+/)
+    .filter(s => s.trim().length > 10)
+  const totalPages = Math.max(1, Math.ceil(sentences.length / SENTENCES_PER_PAGE))
+  const pageSentences = sentences.slice(page * SENTENCES_PER_PAGE, (page + 1) * SENTENCES_PER_PAGE)
 
   return (
     <>
@@ -629,7 +629,7 @@ function StoryCard({ narrative, loading, readingLevel, onChangeLevel, speaking, 
           <div className="dt-story-loading">Generating deep time narrative...</div>
         ) : (
           <div className="dt-story-md">
-            <Markdown>{pageLines.join('\n\n')}</Markdown>
+            <Markdown>{pageSentences.join(' ')}</Markdown>
           </div>
         )}
 
