@@ -513,6 +513,94 @@
 .fly-tip { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 .fly-notes { font-size: 10px; color: var(--text-muted); margin-top: 3px; font-style: italic; line-height: 1.3; }
 
+/* ── Predictions ── */
+.pred-types { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.pred-type-card {
+  display: flex; align-items: center; gap: 8px; padding: 10px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; font-family: inherit; text-align: left; transition: border-color 0.15s;
+}
+.pred-type-card:hover { border-color: var(--accent); }
+.pred-type-icon { font-size: 1.4rem; }
+.pred-type-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.pred-type-desc { font-size: 10px; color: var(--text-muted); }
+
+.pred-accuracy-bar {
+  font-size: 11px; color: var(--accent); font-weight: 500;
+  padding: 6px 0; border-top: 1px solid var(--border);
+}
+
+.pred-history-item {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  border-bottom: 1px solid var(--border); cursor: pointer; font-size: 12px;
+}
+.pred-history-item:hover { background: var(--bg); }
+.pred-hist-type { font-size: 14px; }
+.pred-hist-name { flex: 1; color: var(--text-secondary); text-transform: capitalize; }
+.pred-hist-badge {
+  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px;
+}
+.pred-hist-badge.high { background: #e8f5e9; color: #2e7d32; }
+.pred-hist-badge.medium { background: #fff3e0; color: #e65100; }
+.pred-hist-badge.low { background: #fce4ec; color: #c62828; }
+.pred-hist-status { font-size: 10px; color: var(--text-muted); }
+
+.pred-back {
+  background: none; border: none; color: var(--accent); font-size: 12px;
+  cursor: pointer; padding: 0 0 8px; font-family: inherit;
+}
+.pred-label { display: block; font-size: 11px; color: var(--text-muted); margin: 10px 0 4px; }
+.pred-select {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px;
+  font-family: inherit; font-size: 12px; background: var(--bg);
+}
+.pred-horizon-btns { display: flex; gap: 6px; }
+.pred-horizon-btn {
+  flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); font-family: inherit; font-size: 12px; cursor: pointer;
+}
+.pred-horizon-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.pred-generate-btn {
+  width: 100%; margin-top: 16px; padding: 10px; background: var(--accent); color: white;
+  border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.pred-generate-btn:disabled { opacity: 0.5; }
+
+.pred-conf-bar {
+  position: relative; height: 28px; background: var(--bg); border-radius: 6px;
+  border: 1px solid var(--border); overflow: hidden; margin: 8px 0 12px;
+}
+.pred-conf-fill { height: 100%; background: var(--accent); opacity: 0.2; }
+.pred-conf-text {
+  position: absolute; top: 50%; left: 12px; transform: translateY(-50%);
+  font-size: 12px; font-weight: 600; color: var(--accent);
+}
+
+.pred-sub-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin: 12px 0 6px; }
+
+.pred-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.pred-item-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.pred-item-bar {
+  display: flex; align-items: center; gap: 6px; margin: 4px 0;
+  height: 16px; background: var(--bg); border-radius: 3px; overflow: hidden;
+}
+.pred-item-fill { height: 100%; background: var(--accent); opacity: 0.3; }
+.pred-item-bar span { font-size: 10px; font-weight: 600; color: var(--accent); flex-shrink: 0; padding-right: 4px; }
+.pred-item-text { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+.pred-item-evidence { font-size: 10px; color: var(--text-muted); font-style: italic; margin-top: 2px; }
+
+.pred-risk { margin-bottom: 8px; font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+.pred-risk-badge {
+  display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; margin-right: 6px;
+}
+.pred-risk-badge.high { background: #fce4ec; color: #c62828; }
+.pred-risk-badge.medium { background: #fff3e0; color: #e65100; }
+.pred-risk-badge.low { background: #e3f2fd; color: #1565c0; }
+.pred-risk-mit { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-style: italic; }
+
+.pred-narrative { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.pred-meta { font-size: 10px; color: var(--text-muted); margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+
 .status-tag {
   display: inline-block;
   padding: 1px 6px;

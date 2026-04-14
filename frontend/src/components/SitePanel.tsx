@@ -17,7 +17,7 @@ interface ChatMessage {
 }
 
 export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed }: SitePanelProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'recs' | 'ask'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'recs' | 'predict' | 'ask'>(
     initialQuestion ? 'ask' : 'overview'
   )
   const [species, setSpecies] = useState<any[]>([])
@@ -97,7 +97,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
 
       {/* Tabs */}
       <div className="panel-tabs">
-        {(['overview', 'species', 'fishing', 'story', 'recs', 'ask'] as const).map(tab => (
+        {(['overview', 'species', 'fishing', 'story', 'recs', 'predict', 'ask'] as const).map(tab => (
           <button key={tab} className={`panel-tab${activeTab === tab ? ' active' : ''}`} onClick={() => setActiveTab(tab)}>
             {tab}
           </button>
@@ -289,6 +289,10 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
               <div style={{ padding: 20, color: '#888', textAlign: 'center' }}>No priority actions this period. Sites are in stable condition.</div>
             )}
           </div>
+        )}
+
+        {activeTab === 'predict' && (
+          <PredictionsPanel watershed={watershed} />
         )}
 
         {activeTab === 'ask' && (
@@ -580,4 +584,208 @@ function FlyRecommendations({ watershed }: { watershed: string }) {
       </div>
     </div>
   )
+}
+
+
+/* ── Predictions Panel ── */
+function PredictionsPanel({ watershed }: { watershed: string }) {
+  const [screen, setScreen] = useState<'hub' | 'builder' | 'results'>('hub')
+  const [predType, setPredType] = useState('')
+  const [history, setHistory] = useState<any[]>([])
+  const [result, setResult] = useState<any>(null)
+  const [generating, setGenerating] = useState(false)
+  const [intervention, setIntervention] = useState('native_planting')
+  const [scale, setScale] = useState('500 trees / 2 acres')
+  const [horizon, setHorizon] = useState(12)
+  const [accSummary, setAccSummary] = useState<any>(null)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/sites/${watershed}/predictions`)
+      .then(r => r.json())
+      .then(d => { setHistory(d.predictions || []); setAccSummary(d.accuracy_summary) })
+      .catch(console.error)
+  }, [watershed])
+
+  const generate = () => {
+    setGenerating(true)
+    fetch(`${API_BASE}/sites/${watershed}/predictions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prediction_type: predType,
+        intervention_type: intervention,
+        intervention_scale: scale,
+        horizon_months: horizon,
+        scenario: 'with_intervention',
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { setResult(d); setScreen('results'); setGenerating(false) })
+      .catch(() => setGenerating(false))
+  }
+
+  const TYPES = [
+    { id: 'species_return', icon: '🌿', name: 'Species Return', desc: 'What will come back?' },
+    { id: 'fire_recovery', icon: '🔥', name: 'Fire Recovery', desc: 'When will it recover?' },
+    { id: 'thermal_forecast', icon: '🌡️', name: 'Thermal Forecast', desc: 'Will it get too warm?' },
+    { id: 'invasive_spread', icon: '🌱', name: 'Invasive Spread', desc: 'Where is it heading?' },
+  ]
+
+  // ── Hub ──
+  if (screen === 'hub') return (
+    <div className="section">
+      <div className="section-title">Predictions</div>
+      <div className="pred-types">
+        {TYPES.map(t => (
+          <button key={t.id} className="pred-type-card" onClick={() => { setPredType(t.id); setScreen('builder') }}>
+            <span className="pred-type-icon">{t.icon}</span>
+            <div>
+              <div className="pred-type-name">{t.name}</div>
+              <div className="pred-type-desc">{t.desc}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+      {accSummary && accSummary.resolved > 0 && (
+        <div className="pred-accuracy-bar">
+          Accuracy: {accSummary.avg_accuracy?.toFixed(0) || '—'}% ({accSummary.confirmed}/{accSummary.resolved} confirmed)
+        </div>
+      )}
+      {history.length > 0 && (
+        <>
+          <div className="section-title" style={{ marginTop: 12 }}>Recent</div>
+          {history.slice(0, 5).map((p: any, i: number) => (
+            <div key={i} className="pred-history-item" onClick={() => {
+              fetch(`${API_BASE}/predictions/${p.id}`).then(r => r.json())
+                .then(d => { setResult(d); setScreen('results') })
+            }}>
+              <span className="pred-hist-type">{TYPES.find(t => t.id === p.type)?.icon || '📊'}</span>
+              <span className="pred-hist-name">{p.type.replace('_', ' ')}</span>
+              <span className={`pred-hist-badge ${p.confidence_level?.toLowerCase()}`}>{p.confidence_level}</span>
+              <span className="pred-hist-status">{p.status}</span>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+
+  // ── Builder ──
+  if (screen === 'builder') return (
+    <div className="section">
+      <button className="pred-back" onClick={() => setScreen('hub')}>← Back</button>
+      <div className="section-title">{TYPES.find(t => t.id === predType)?.name}</div>
+
+      {predType === 'species_return' && (
+        <>
+          <label className="pred-label">Intervention type</label>
+          <select value={intervention} onChange={e => setIntervention(e.target.value)} className="pred-select">
+            <option value="native_planting">Native planting</option>
+            <option value="invasive_removal">Invasive removal</option>
+            <option value="riparian_fencing">Riparian fencing</option>
+            <option value="large_wood">Large wood placement</option>
+            <option value="channel_reconnection">Channel reconnection</option>
+          </select>
+          <label className="pred-label">Scale</label>
+          <select value={scale} onChange={e => setScale(e.target.value)} className="pred-select">
+            <option value="500 trees / 2 acres">500 trees / 2 acres</option>
+            <option value="1000 trees / 5 acres">1,000 trees / 5 acres</option>
+            <option value="2000 trees / 10 acres">2,000 trees / 10 acres</option>
+            <option value="100m riparian fencing">100m riparian fencing</option>
+            <option value="500m riparian fencing">500m riparian fencing</option>
+          </select>
+        </>
+      )}
+
+      <label className="pred-label">Timeframe</label>
+      <div className="pred-horizon-btns">
+        {[6, 12, 24].map(m => (
+          <button key={m} className={`pred-horizon-btn${horizon === m ? ' active' : ''}`}
+            onClick={() => setHorizon(m)}>{m} months</button>
+        ))}
+      </div>
+
+      <button className="pred-generate-btn" onClick={generate} disabled={generating}>
+        {generating ? 'Generating...' : 'Generate Prediction →'}
+      </button>
+    </div>
+  )
+
+  // ── Results ──
+  if (screen === 'results' && result) return (
+    <div className="section">
+      <button className="pred-back" onClick={() => setScreen('hub')}>← Predictions</button>
+      <div className="section-title">{result.type?.replace('_', ' ') || 'Prediction'}</div>
+
+      {/* Confidence bar */}
+      <div className="pred-conf-bar">
+        <div className="pred-conf-fill" style={{ width: `${result.confidence || 0}%` }}></div>
+        <span className="pred-conf-text">{result.confidence?.toFixed(0)}% {result.confidence_level}</span>
+      </div>
+
+      {/* Predictions */}
+      {result.predictions?.length > 0 && (
+        <>
+          <div className="pred-sub-title">Expected Outcomes</div>
+          {result.predictions.map((p: any, i: number) => (
+            <div key={i} className="pred-item">
+              <div className="pred-item-name">{p.species}</div>
+              <div className="pred-item-bar">
+                <div className="pred-item-fill" style={{ width: `${p.confidence || 50}%` }}></div>
+                <span>{p.confidence?.toFixed(0)}%</span>
+              </div>
+              <div className="pred-item-text">{p.prediction}</div>
+              {p.evidence && <div className="pred-item-evidence">{p.evidence}</div>}
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Risk factors */}
+      {result.risk_factors?.length > 0 && (
+        <>
+          <div className="pred-sub-title">Risk Factors</div>
+          {result.risk_factors.map((r: any, i: number) => (
+            <div key={i} className="pred-risk">
+              <span className={`pred-risk-badge ${r.severity}`}>⚠ {r.severity}</span>
+              <div>{r.risk}</div>
+              {r.mitigation && <div className="pred-risk-mit">{r.mitigation}</div>}
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Scenario comparison */}
+      {result.scenario_comparison && (
+        <>
+          <div className="pred-sub-title">Scenario Comparison</div>
+          <table className="data-table">
+            <thead><tr><th></th><th>With Intervention</th><th>Baseline</th></tr></thead>
+            <tbody>
+              {Object.keys(result.scenario_comparison.with_intervention || {}).map((k: string) => (
+                <tr key={k}>
+                  <td>{k.replace('_', ' ')}</td>
+                  <td className="mono">{result.scenario_comparison.with_intervention[k]}</td>
+                  <td className="mono">{result.scenario_comparison.baseline?.[k] || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {/* Narrative */}
+      {result.narrative && (
+        <>
+          <div className="pred-sub-title">Analysis</div>
+          <div className="pred-narrative">{result.narrative}</div>
+        </>
+      )}
+
+      <div className="pred-meta">
+        Check date: {result.check_date} · Status: {result.status}
+      </div>
+    </div>
+  )
+
+  return null
 }

@@ -14,6 +14,10 @@ from pipeline.models.geology import (
     LandOwnership,
     MineralDeposit,
 )
+from pipeline.models.predictions import (
+    Prediction,
+    PredictionOutcome,
+)
 from pipeline.models.spatial import (
     FirePerimeter,
     ImpairedWater,
@@ -40,4 +44,6 @@ __all__ = [
     "LandOwnership",
     "DeepTimeStory",
     "MineralDeposit",
+    "Prediction",
+    "PredictionOutcome",
 ]
