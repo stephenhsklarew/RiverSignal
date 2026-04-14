@@ -253,8 +253,26 @@ def fly_recommendations(watershed: str, month: int = None):
             ORDER BY observation_count DESC
         """), {"ws": watershed, "month": month}).fetchall()
 
-    return [
-        {
+    # Load fly tying video lookup
+    video_map = {}
+    try:
+        with engine.connect() as vconn:
+            vrows = vconn.execute(text("SELECT fly_pattern, video_title, youtube_url FROM fly_tying_videos")).fetchall()
+            for v in vrows:
+                video_map[v[0].lower()] = {"video_title": v[1], "youtube_url": v[2]}
+    except Exception:
+        pass
+
+    results = []
+    for r in rows:
+        fly_name = r[3] or ""
+        # Match video by fly pattern name (try exact, then prefix match)
+        video = video_map.get(fly_name.lower())
+        if not video:
+            # Try matching without size suffix
+            base_name = fly_name.split('#')[0].strip().lower()
+            video = video_map.get(base_name)
+        results.append({
             "insect": r[0] or r[2] or r[1],
             "insect_taxon": r[1],
             "fly_pattern": r[3],
@@ -267,9 +285,24 @@ def fly_recommendations(watershed: str, month: int = None):
             "notes": r[10],
             "observations": r[11],
             "insect_photo_url": r[12],
-        }
-        for r in rows
-    ]
+            "tying_video_title": video["video_title"] if video else None,
+            "tying_video_url": video["youtube_url"] if video else None,
+        })
+    return results
+
+
+def _enrich_patterns(patterns: list, video_map: dict) -> list:
+    """Enrich fly pattern strings with tying video links."""
+    enriched = []
+    for p in patterns:
+        base = p.split('#')[0].strip().lower()
+        video = video_map.get(p.lower()) or video_map.get(base)
+        enriched.append({
+            "name": p,
+            "tying_video_title": video["title"] if video else None,
+            "tying_video_url": video["url"] if video else None,
+        })
+    return enriched
 
 
 @router.get("/sites/{watershed}/fishing/hatch-confidence")
@@ -283,6 +316,16 @@ def hatch_confidence(watershed: str, month: int = None):
     from datetime import datetime
     if month is None:
         month = datetime.now().month
+
+    # Load fly tying video lookup
+    video_map = {}
+    try:
+        with engine.connect() as vconn:
+            vrows = vconn.execute(text("SELECT fly_pattern, video_title, youtube_url FROM fly_tying_videos")).fetchall()
+            for v in vrows:
+                video_map[v[0].lower()] = {"title": v[1], "url": v[2]}
+    except Exception:
+        pass
 
     with engine.connect() as conn:
         # Get current water temp
@@ -331,7 +374,7 @@ def hatch_confidence(watershed: str, month: int = None):
                 "photo_url": r[7],
                 "years_observed": None,
                 "insect_order": r[2],
-                "fly_patterns": r[6] or [],
+                "fly_patterns": _enrich_patterns(r[6] or [], video_map),
                 "source": "curated",
             })
 

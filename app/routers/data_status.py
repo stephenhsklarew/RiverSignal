@@ -122,6 +122,32 @@ def get_data_status():
             "source": "Hand-curated code-to-name mapping (~16 codes)",
         })
 
+        # Fly tying videos
+        try:
+            video_count = conn.execute(text("SELECT count(*) FROM fly_tying_videos")).scalar()
+            curated.append({
+                "name": "Fly Tying Videos",
+                "table": "fly_tying_videos",
+                "records": video_count,
+                "description": "YouTube fly tying tutorial links for each fly pattern — opens in new tab from Hatch Intelligence",
+                "source": "Curated from Tightline Productions, InTheRiffle, Tim Flagler, Davie McPhail",
+            })
+        except Exception:
+            conn.rollback()
+
+        # Curated hatch chart
+        try:
+            hatch_count = conn.execute(text("SELECT count(*) FROM curated_hatch_chart")).scalar()
+            curated.append({
+                "name": "Expert Hatch Chart",
+                "table": "curated_hatch_chart",
+                "records": hatch_count,
+                "description": "Month-by-month aquatic insect emergence timing with fly pattern recommendations for 5 Oregon watersheds",
+                "source": "Compiled from Western Hatches, The Caddis Fly Shop, Westfly.com, The Fly Fisher's Place",
+            })
+        except Exception:
+            conn.rollback()
+
     return {
         "bronze": {
             "observations": bronze_obs,

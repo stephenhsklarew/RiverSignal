@@ -138,12 +138,22 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
           ) : insect.fly_patterns?.length > 0 ? (
             <>
               <div className="insect-flies-label">Recommended flies:</div>
-              {insect.fly_patterns.map((fp: string, i: number) => (
-                <div key={i} className="curated-fly-item">
-                  <span className="curated-fly-name">{fp}</span>
-                  <SaveButton item={{ type: 'fly', id: `${ws}-${fp}`, watershed: ws, label: fp, sublabel: insect.common_name }} size={14} />
-                </div>
-              ))}
+              {insect.fly_patterns.map((fp: any, i: number) => {
+                const name = typeof fp === 'string' ? fp : fp.name
+                const videoUrl = typeof fp === 'object' ? fp.tying_video_url : null
+                const videoTitle = typeof fp === 'object' ? fp.tying_video_title : null
+                return (
+                  <div key={i} className="curated-fly-item">
+                    <span className="curated-fly-name">{name}</span>
+                    {videoUrl && (
+                      <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="fly-video-link" title={videoTitle || 'Fly tying video'}>
+                        ▶ Tie it
+                      </a>
+                    )}
+                    <SaveButton item={{ type: 'fly', id: `${ws}-${name}`, watershed: ws, label: name, sublabel: insect.common_name }} size={14} />
+                  </div>
+                )
+              })}
             </>
           ) : (
             <div className="insect-flies-empty">No specific fly match — try a general attractor pattern.</div>
@@ -168,6 +178,11 @@ function FlyCard({ fly, ws, compact }: { fly: any; ws: string; compact?: boolean
           {fly.water_type && <span> · {fly.water_type}</span>}
         </div>
         {!compact && fly.insect && <div className="fly-insect">Matches: {fly.insect}</div>}
+        {fly.tying_video_url && (
+          <a href={fly.tying_video_url} target="_blank" rel="noopener noreferrer" className="fly-video-link" title={fly.tying_video_title || 'Fly tying video'}>
+            ▶ Tie it
+          </a>
+        )}
       </div>
       <SaveButton item={{
         type: 'fly',

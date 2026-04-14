@@ -56,7 +56,14 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: 4px 0; font-size: 12px;
 }
-.curated-fly-name { font-weight: 500; }
+.curated-fly-name { font-weight: 500; flex: 1; }
+
+.fly-video-link {
+  font-size: 10px; color: var(--accent); text-decoration: none;
+  font-weight: 600; white-space: nowrap; padding: 2px 6px;
+  border: 1px solid var(--accent); border-radius: 4px;
+}
+.fly-video-link:hover { background: var(--accent-light); }
 
 /* Fly cards */
 .hatch-flies { display: flex; flex-direction: column; gap: 6px; }
