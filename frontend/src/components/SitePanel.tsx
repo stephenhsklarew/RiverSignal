@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Markdown from 'react-markdown'
 
-const API_BASE = 'http://localhost:8001/api/v1'
+const API_BASE = '/api/v1'
 
 interface SitePanelProps {
   site: any

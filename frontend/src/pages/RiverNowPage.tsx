@@ -9,7 +9,7 @@ import { tempF } from '../utils/temp'
 const dtMark = '/favicon-deeptrail.svg'
 import './RiverNowPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = '/api/v1'
 
 const TYPE_ICONS: Record<string, string> = {
   campground: '⛺', trailhead: '🥾', boat_ramp: '🚣', day_use: '☀',
@@ -321,7 +321,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     try {
       // Try cached audio first
       let audioUrl: string
-      const audioResp = await fetch(`http://localhost:8001/api/v1/sites/${watershed}/campfire-audio?reading_level=${campfireLevel}`)
+      const audioResp = await fetch(`/api/v1/sites/${watershed}/campfire-audio?reading_level=${campfireLevel}`)
       if (audioResp.ok) {
         const blob = await audioResp.blob()
         audioUrl = URL.createObjectURL(blob)

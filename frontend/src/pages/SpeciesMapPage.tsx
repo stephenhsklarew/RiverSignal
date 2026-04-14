@@ -6,7 +6,7 @@ import WatershedHeader from '../components/WatershedHeader'
 import { getSelectedWatershed } from '../components/WatershedHeader'
 import './SpeciesMapPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = '/api/v1'
 
 const CATEGORIES = [
   { key: 'Actinopterygii', label: 'Fish' },

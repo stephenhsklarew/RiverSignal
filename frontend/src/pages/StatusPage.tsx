@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './StatusPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = '/api/v1'
 
 // Static metadata about each pipeline adapter
 const SOURCE_META: Record<string, { description: string; upstream: string; refresh: string }> = {

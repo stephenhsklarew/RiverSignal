@@ -6,7 +6,7 @@ import WatershedHeader from '../components/WatershedHeader'
 import { getSelectedWatershed } from '../components/WatershedHeader'
 import './ExploreMapPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = '/api/v1'
 
 const FILTERS = [
   { key: 'all', label: 'All' },

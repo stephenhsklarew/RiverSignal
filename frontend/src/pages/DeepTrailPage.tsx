@@ -6,7 +6,7 @@ import Markdown from 'react-markdown'
 import logo from '../assets/deeptrail-logo.svg'
 import './DeepTrailPage.css'
 
-const API_BASE = 'http://localhost:8001/api/v1'
+const API_BASE = '/api/v1'
 
 // Watershed centers as curated locations with landscape photos
 const WATERSHEDS = [
