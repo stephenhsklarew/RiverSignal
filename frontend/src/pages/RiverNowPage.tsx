@@ -567,7 +567,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Fish Near You (Species by Reach) ── */}
           {uniqueFishByReach.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🐟 Fish Near You</div>
+              <div className="rnow-section-title">🐟 Fish Present</div>
               <div className="rnow-fish-carousel">
                 {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
                   <div key={i} className="rnow-fish-card">
