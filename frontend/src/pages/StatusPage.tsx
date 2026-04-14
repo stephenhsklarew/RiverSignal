@@ -73,8 +73,13 @@ export default function StatusPage() {
         }))
 
         setSources(combined)
-        setViewCount((data.silver?.views || 0) + (data.gold?.views || 0))
-        setTotalRecords(data.bronze?.observations || 0)
+        const sv = data.silver?.views || 0
+        const gv = data.gold?.views || 0
+        setViewCount(sv + gv)
+        const obs = data.bronze?.observations || 0
+        const ts = data.bronze?.time_series || 0
+        const interventions = data.bronze?.interventions || 0
+        setTotalRecords(obs + ts + interventions)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -97,9 +102,33 @@ export default function StatusPage() {
     <div className="status-page">
       <div className="status-header">
         <h1 className="status-title">Data Pipeline Status</h1>
-        <p className="status-sub">
-          {totalRecords.toLocaleString()} observations · {viewCount} materialized views · 5 watersheds
+        <p className="status-summary">
+          {sources.length + LIVE_SOURCES.length} data sources feeding {totalRecords.toLocaleString()} records across 5 Oregon watersheds
         </p>
+        <div className="status-stats">
+          <div className="status-stat">
+            <span className="status-stat-value">{sources.length + LIVE_SOURCES.length}</span>
+            <span className="status-stat-label">Data Sources</span>
+          </div>
+          <div className="status-stat">
+            <span className="status-stat-value">{totalRecords.toLocaleString()}</span>
+            <span className="status-stat-label">Total Records</span>
+          </div>
+          <div className="status-stat">
+            <span className="status-stat-value">{viewCount}</span>
+            <span className="status-stat-label">Materialized Views</span>
+          </div>
+          <div className="status-stat">
+            <span className="status-stat-value">5</span>
+            <span className="status-stat-label">Watersheds</span>
+          </div>
+        </div>
+        <div className="status-legend">
+          <span className="status-legend-item"><span className="status-badge healthy">healthy</span> Last sync completed successfully</span>
+          <span className="status-legend-item"><span className="status-badge warning">warning</span> Last sync had some failures</span>
+          <span className="status-legend-item"><span className="status-badge unknown">unknown</span> No sync record found</span>
+          <span className="status-legend-item"><span className="status-badge live">live</span> Real-time API (not stored in database)</span>
+        </div>
       </div>
 
       {loading ? (
