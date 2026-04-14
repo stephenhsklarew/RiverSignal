@@ -1,0 +1,68 @@
+# RiverSignal / RiverPath / DeepTrail — Data Pipeline Cron Schedule
+# Install: crontab pipeline/crontab
+# Assumes: working directory is the project root, .venv exists
+#
+# All times are local (Pacific). Stagger start times to avoid API rate limits.
+# Materialized view refresh runs after all ingestion completes.
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+PROJECT=/Users/admin/Development/RiverSignal
+PYTHON=$PROJECT/.venv/bin/python
+LOG=$PROJECT/logs/pipeline.log
+
+# ── Daily (high-value, frequently updated) ──
+# iNaturalist: new citizen science observations every day
+0 2 * * *   cd $PROJECT && $PYTHON -m pipeline.cli ingest inaturalist --watershed all >> $LOG 2>&1
+# SNOTEL: daily snowpack readings (critical Nov-Jun)
+30 2 * * *  cd $PROJECT && $PYTHON -m pipeline.cli ingest snotel --watershed all >> $LOG 2>&1
+# USGS: daily stream gauge values (flow, temp, DO)
+0 3 * * *   cd $PROJECT && $PYTHON -m pipeline.cli ingest usgs --watershed all >> $LOG 2>&1
+
+# ── Weekly (moderate update frequency, Monday 4am) ──
+# ODFW: sport catch, stocking schedules
+0 4 * * 1   cd $PROJECT && $PYTHON -m pipeline.cli ingest fishing --watershed all >> $LOG 2>&1
+# Water quality chemistry (lab results)
+30 4 * * 1  cd $PROJECT && $PYTHON -m pipeline.cli ingest wqp --watershed all >> $LOG 2>&1
+
+# ── Monthly (1st of month at 5am) ──
+# Professional bio surveys
+0 5 1 * *   cd $PROJECT && $PYTHON -m pipeline.cli ingest biodata --watershed all >> $LOG 2>&1
+# Aquatic macroinvertebrates
+15 5 1 * *  cd $PROJECT && $PYTHON -m pipeline.cli ingest wqp_bugs --watershed all >> $LOG 2>&1
+# GBIF fossil specimens
+30 5 1 * *  cd $PROJECT && $PYTHON -m pipeline.cli ingest gbif --watershed all >> $LOG 2>&1
+# Recreation sites (USFS + OSMB)
+45 5 1 * *  cd $PROJECT && $PYTHON -m pipeline.cli ingest recreation --watershed all >> $LOG 2>&1
+# Paleobiology Database
+0 6 1 * *   cd $PROJECT && $PYTHON -m pipeline.cli ingest pbdb --watershed all >> $LOG 2>&1
+# Restoration projects (OWRI + NOAA + PCSRF)
+15 6 1 * *  cd $PROJECT && $PYTHON -m pipeline.cli ingest restoration --watershed all >> $LOG 2>&1
+# PRISM climate grids
+30 6 1 * *  cd $PROJECT && $PYTHON -m pipeline.cli ingest prism --watershed all >> $LOG 2>&1
+# StreamNet fish monitoring
+45 6 1 * *  cd $PROJECT && $PYTHON -m pipeline.cli ingest streamnet --watershed all >> $LOG 2>&1
+# iDigBio museum specimens
+0 7 1 * *   cd $PROJECT && $PYTHON -m pipeline.cli ingest idigbio --watershed all >> $LOG 2>&1
+
+# ── Quarterly (1st of Jan/Apr/Jul/Oct) ──
+# Static/slow-changing spatial data
+0 8 1 1,4,7,10 *  cd $PROJECT && $PYTHON -m pipeline.cli ingest mtbs --watershed all >> $LOG 2>&1
+0 8 1 1,4,7,10 *  cd $PROJECT && $PYTHON -m pipeline.cli ingest fish_passage --watershed all >> $LOG 2>&1
+0 8 1 1,4,7,10 *  cd $PROJECT && $PYTHON -m pipeline.cli ingest impaired --watershed all >> $LOG 2>&1
+0 8 1 1,4,7,10 *  cd $PROJECT && $PYTHON -m pipeline.cli ingest blm_sma --watershed all >> $LOG 2>&1
+
+# ── Annually (Jan 1) ──
+# Very static data: stream network, wetlands, watersheds, geology
+0 9 1 1 *   cd $PROJECT && $PYTHON -m pipeline.cli ingest nhdplus --watershed all >> $LOG 2>&1
+0 9 1 1 *   cd $PROJECT && $PYTHON -m pipeline.cli ingest wetlands --watershed all >> $LOG 2>&1
+0 9 1 1 *   cd $PROJECT && $PYTHON -m pipeline.cli ingest wbd --watershed all >> $LOG 2>&1
+0 9 1 1 *   cd $PROJECT && $PYTHON -m pipeline.cli ingest macrostrat --watershed all >> $LOG 2>&1
+0 9 1 1 *   cd $PROJECT && $PYTHON -m pipeline.cli ingest mrds --watershed all >> $LOG 2>&1
+0 9 1 1 *   cd $PROJECT && $PYTHON -m pipeline.cli ingest dogami --watershed all >> $LOG 2>&1
+
+# ── Refresh materialized views (daily after ingestion) ──
+0 10 * * *  cd $PROJECT && $PYTHON -m pipeline.cli refresh >> $LOG 2>&1
+
+# ── Seed curated hatch chart (run manually when updated) ──
+# $PYTHON -m pipeline.seed_hatch_chart
