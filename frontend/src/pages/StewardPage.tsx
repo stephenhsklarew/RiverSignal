@@ -4,7 +4,7 @@ import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
 import './StewardPage.css'
 
-const API = '/api/v1'
+const API = 'http://localhost:8001/api/v1'
 
 const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   mckenzie: { name: 'McKenzie Watershed Council', url: 'https://www.mckenziewc.org/' },

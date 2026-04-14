@@ -5,7 +5,7 @@ import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
 import './HatchPage.css'
 
-const API = '/api/v1'
+const API = 'http://localhost:8001/api/v1'
 const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const LIFECYCLE_STAGES = ['nymph', 'emerger', 'adult']

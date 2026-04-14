@@ -5,7 +5,7 @@ import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
 import './ExplorePage.css'
 
-const API = '/api/v1'
+const API = 'http://localhost:8001/api/v1'
 
 const FILTERS = [
   { key: 'campground', label: 'Camping', icon: '⛺' },

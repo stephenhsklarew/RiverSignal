@@ -6,7 +6,7 @@ import { cToF, tempF } from '../utils/temp'
 import { getSelectedWatershed } from '../components/WatershedHeader'
 import './FishRefugePage.css'
 
-const API = '/api/v1'
+const API = 'http://localhost:8001/api/v1'
 
 const THERMAL_COLORS: Record<string, string> = {
   cold_water_refuge: '#2563eb', cool_water: '#0d9488', warm_water: '#d97706', thermal_stress: '#dc2626',
