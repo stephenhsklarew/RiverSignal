@@ -861,49 +861,278 @@ CREATE MATERIALIZED VIEW gold.swim_safety AS
 
 -- gold.river_story_timeline
 DROP MATERIALIZED VIEW IF EXISTS gold.river_story_timeline CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.river_story_timeline AS
+ SELECT fp.site_id,
+    s.watershed,
+    fp.fire_year AS event_year,
+    'fire'::text AS event_type,
+    fp.fire_name AS event_name,
+    ('Wildfire burned '::text || round(fp.acres)) || ' acres'::text AS description,
+    fp.acres AS magnitude
+   FROM fire_perimeters fp
+     JOIN sites s ON s.id = fp.site_id
+  WHERE fp.fire_year IS NOT NULL AND fp.acres > 100::double precision
+UNION ALL
+ SELECT i.site_id,
+    i.watershed,
+    i.intervention_year AS event_year,
+    'restoration'::text AS event_type,
+    i.intervention_category AS event_name,
+    ((count(*) || ' '::text) || i.intervention_category) || ' projects'::text AS description,
+    count(*)::double precision AS magnitude
+   FROM silver.interventions_enriched i
+  WHERE i.intervention_year IS NOT NULL
+  GROUP BY i.site_id, i.watershed, i.intervention_year, i.intervention_category
+UNION ALL
+ SELECT iw.site_id,
+    s.watershed,
+    iw.listing_year AS event_year,
+    'regulatory'::text AS event_type,
+    iw.water_name AS event_name,
+    'Listed as impaired: '::text || COALESCE(iw.parameter, iw.category)::text AS description,
+    1.0 AS magnitude
+   FROM impaired_waters iw
+     JOIN sites s ON s.id = iw.site_id
+  WHERE iw.listing_year IS NOT NULL
+  ORDER BY 3 DESC;;
 
 -- gold.species_gallery
 DROP MATERIALIZED VIEW IF EXISTS gold.species_gallery CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.species_gallery AS
+ SELECT DISTINCT ON (s.watershed, o.taxon_name) o.site_id,
+    s.watershed,
+    o.taxon_name,
+    o.iconic_taxon AS taxonomic_group,
+    o.data_payload ->> 'common_name'::text AS common_name,
+    o.data_payload ->> 'photo_url'::text AS photo_url,
+    o.data_payload ->> 'photo_license'::text AS photo_license,
+    o.data_payload ->> 'user'::text AS observer,
+    o.data_payload ->> 'conservation_status'::text AS conservation_status,
+    o.quality_grade,
+    o.observed_at::date AS photo_date
+   FROM observations o
+     JOIN sites s ON s.id = o.site_id
+  WHERE o.source_type::text = 'inaturalist'::text AND o.taxon_name IS NOT NULL AND (o.data_payload ->> 'photo_url'::text) IS NOT NULL AND (o.data_payload ->> 'photo_license'::text) IS NOT NULL
+  ORDER BY s.watershed, o.taxon_name, (
+        CASE
+            WHEN o.quality_grade::text = 'research'::text THEN 0
+            ELSE 1
+        END), o.observed_at DESC;;
 
 -- gold.hatch_chart
 DROP MATERIALIZED VIEW IF EXISTS gold.hatch_chart CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.hatch_chart AS
+ SELECT site_id,
+    watershed,
+    taxon_name,
+    common_name,
+    obs_month,
+    count(*) AS observation_count,
+    count(DISTINCT obs_year) AS years_observed,
+    rank() OVER (PARTITION BY site_id, taxon_name ORDER BY (count(*)) DESC) AS month_rank,
+        CASE
+            WHEN rank() OVER (PARTITION BY site_id, taxon_name ORDER BY (count(*)) DESC) <= 2 THEN 'peak'::text
+            ELSE 'present'::text
+        END AS activity_level,
+    ( SELECT g.photo_url
+           FROM gold.species_gallery g
+          WHERE g.taxon_name::text = o.taxon_name::text AND g.watershed::text = o.watershed::text
+         LIMIT 1) AS photo_url
+   FROM silver.species_observations o
+  WHERE taxonomic_group::text = 'Insecta'::text AND taxon_name IS NOT NULL AND (taxon_rank::text = ANY (ARRAY['species'::character varying, 'genus'::character varying, 'subfamily'::character varying]::text[]))
+  GROUP BY site_id, watershed, taxon_name, common_name, obs_month
+ HAVING count(*) >= 3;;
 
 -- gold.species_by_river_mile
 DROP MATERIALIZED VIEW IF EXISTS gold.species_by_river_mile CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.species_by_river_mile AS
+ WITH named_rivers AS (
+         SELECT DISTINCT river_miles.river_name
+           FROM gold.river_miles
+          WHERE river_miles.river_name IS NOT NULL AND river_miles.length_km > 0.5::double precision
+        ), river_obs AS (
+         SELECT rm.watershed,
+            rm.river_name,
+            (floor(rm.segment_start_mile / 5::numeric) * 5::numeric)::integer AS mile_section_start,
+            (floor(rm.segment_start_mile / 5::numeric) * 5::numeric + 5::numeric)::integer AS mile_section_end,
+            o.taxon_name,
+            o.iconic_taxon,
+            o.data_payload ->> 'common_name'::text AS common_name,
+            o.observed_at,
+            o.quality_grade
+           FROM gold.river_miles rm
+             JOIN named_rivers nr ON nr.river_name::text = rm.river_name::text
+             JOIN observations o ON st_dwithin(o.location, rm.flowline, 0.005::double precision)
+          WHERE o.taxon_name IS NOT NULL AND o.source_type::text = 'inaturalist'::text
+        )
+ SELECT watershed,
+    river_name,
+    mile_section_start,
+    mile_section_end,
+    taxon_name,
+    common_name,
+    iconic_taxon AS taxonomic_group,
+    count(*) AS observation_count,
+    count(
+        CASE
+            WHEN quality_grade::text = 'research'::text THEN 1
+            ELSE NULL::integer
+        END) AS research_grade_count,
+    min(observed_at)::date AS first_seen,
+    max(observed_at)::date AS last_seen,
+    ( SELECT g.photo_url
+           FROM gold.species_gallery g
+          WHERE g.taxon_name::text = ro.taxon_name::text AND g.watershed::text = ro.watershed::text
+         LIMIT 1) AS photo_url
+   FROM river_obs ro
+  GROUP BY watershed, river_name, mile_section_start, mile_section_end, taxon_name, common_name, iconic_taxon
+ HAVING count(*) >= 2;;
 
 -- gold.geologic_age_at_location
 DROP MATERIALIZED VIEW IF EXISTS gold.geologic_age_at_location CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.geologic_age_at_location AS
+ SELECT id,
+    unit_name,
+    formation,
+    rock_type,
+    lithology,
+    age_min_ma,
+    age_max_ma,
+    age_midpoint_ma,
+    period,
+    description,
+    geometry
+   FROM silver.geologic_context gc;;
 
 -- gold.fossils_nearby
 DROP MATERIALIZED VIEW IF EXISTS gold.fossils_nearby CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.fossils_nearby AS
+ SELECT id,
+    source_id,
+    taxon_name,
+    common_name,
+    phylum,
+    class_name,
+    order_name,
+    family,
+    age_min_ma,
+    age_max_ma,
+    age_midpoint_ma,
+    period,
+    formation,
+    latitude,
+    longitude,
+    location,
+    collector,
+    reference,
+    museum,
+    image_url
+   FROM silver.fossil_records;;
 
 -- gold.legal_collecting_sites
 DROP MATERIALIZED VIEW IF EXISTS gold.legal_collecting_sites CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.legal_collecting_sites AS
+ SELECT id,
+    agency,
+    designation,
+    admin_unit,
+    collecting_status,
+    collecting_rules,
+    status_color,
+    geometry
+   FROM silver.land_access la
+  WHERE collecting_status::text = ANY (ARRAY['permitted'::character varying, 'restricted'::character varying]::text[]);;
 
 -- gold.deep_time_story
 DROP MATERIALIZED VIEW IF EXISTS gold.deep_time_story CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.deep_time_story AS
+ SELECT id AS geologic_unit_id,
+    unit_name,
+    formation,
+    rock_type,
+    lithology,
+    period,
+    age_min_ma,
+    age_max_ma,
+    description
+   FROM silver.geologic_context gc
+  ORDER BY age_max_ma DESC NULLS LAST;;
 
 -- gold.formation_species_history
 DROP MATERIALIZED VIEW IF EXISTS gold.formation_species_history CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.formation_species_history AS
+ SELECT gc.formation,
+    gc.period,
+    gc.rock_type,
+    gc.age_min_ma,
+    gc.age_max_ma,
+    fr.taxon_name,
+    fr.phylum,
+    fr.class_name,
+    fr.order_name,
+    fr.family,
+    fr.age_midpoint_ma,
+    fr.period AS fossil_period,
+    count(*) AS occurrence_count
+   FROM silver.geologic_context gc
+     JOIN silver.fossil_records fr ON fr.period::text = gc.period::text
+  WHERE gc.formation IS NOT NULL AND gc.formation::text <> ''::text
+  GROUP BY gc.formation, gc.period, gc.rock_type, gc.age_min_ma, gc.age_max_ma, fr.taxon_name, fr.phylum, fr.class_name, fr.order_name, fr.family, fr.age_midpoint_ma, fr.period
+  ORDER BY gc.age_max_ma DESC NULLS LAST, (count(*)) DESC;;
 
 -- gold.geology_watershed_link
 DROP MATERIALIZED VIEW IF EXISTS gold.geology_watershed_link CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.geology_watershed_link AS
+ SELECT s.watershed,
+    gc.unit_name,
+    gc.formation,
+    gc.rock_type,
+    gc.lithology,
+    gc.period,
+    gc.age_min_ma,
+    gc.age_max_ma,
+    gc.description,
+    count(DISTINCT gc.id) AS unit_count
+   FROM silver.geologic_context gc
+     JOIN sites s ON gc.geometry && st_makeenvelope((s.bbox ->> 'west'::text)::double precision, (s.bbox ->> 'south'::text)::double precision, (s.bbox ->> 'east'::text)::double precision, (s.bbox ->> 'north'::text)::double precision, 4326)
+  GROUP BY s.watershed, gc.unit_name, gc.formation, gc.rock_type, gc.lithology, gc.period, gc.age_min_ma, gc.age_max_ma, gc.description
+  ORDER BY s.watershed, gc.age_max_ma DESC NULLS LAST;;
 
 -- gold.mineral_sites_nearby
 DROP MATERIALIZED VIEW IF EXISTS gold.mineral_sites_nearby CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.mineral_sites_nearby AS
+ SELECT id,
+    site_name,
+    commodity,
+    dev_status,
+    latitude,
+    longitude,
+    location
+   FROM silver.mineral_sites ms;;
 
 -- gold.hatch_fly_recommendations
 DROP MATERIALIZED VIEW IF EXISTS gold.hatch_fly_recommendations CASCADE;
--- VIEW NOT FOUND IN DATABASE
+CREATE MATERIALIZED VIEW gold.hatch_fly_recommendations AS
+ SELECT s.watershed,
+    o.taxon_name AS insect_taxon,
+    o.data_payload ->> 'common_name'::text AS insect_common_name,
+    EXTRACT(month FROM o.observed_at)::integer AS obs_month,
+    count(*) AS observation_count,
+    max(o.data_payload ->> 'photo_url'::text) AS insect_photo_url,
+    fp.fly_pattern_name,
+    fp.fly_size,
+    fp.fly_type,
+    fp.fly_image_url,
+    fp.life_stage,
+    fp.time_of_day,
+    fp.water_type,
+    fp.notes AS fly_notes,
+    fp.insect_common_name AS pattern_insect_name,
+    fp.oregon_rivers
+   FROM observations o
+     JOIN sites s ON o.site_id = s.id
+     CROSS JOIN silver.insect_fly_patterns fp
+  WHERE o.iconic_taxon::text = 'Insecta'::text AND fp.season_start::numeric <= EXTRACT(month FROM o.observed_at) AND fp.season_end::numeric >= EXTRACT(month FROM o.observed_at) AND (fp.insect_genus IS NOT NULL AND o.taxon_name::text ~~* (fp.insect_genus::text || '%'::text) OR fp.insect_family IS NOT NULL AND o.taxon_name::text ~~* (fp.insect_family::text || '%'::text) OR fp.insect_order IS NOT NULL AND fp.insect_genus IS NULL AND fp.insect_family IS NULL AND o.taxon_name::text ~~* (fp.insect_order::text || '%'::text) OR fp.insect_common_name IS NOT NULL AND (o.data_payload ->> 'common_name'::text) ~~* (('%'::text || fp.insect_common_name::text) || '%'::text))
+  GROUP BY s.watershed, o.taxon_name, (o.data_payload ->> 'common_name'::text), (EXTRACT(month FROM o.observed_at)), fp.fly_pattern_name, fp.fly_size, fp.fly_type, fp.fly_image_url, fp.life_stage, fp.time_of_day, fp.water_type, fp.notes, fp.insect_common_name, fp.oregon_rivers
+  ORDER BY s.watershed, (EXTRACT(month FROM o.observed_at)::integer), (count(*)) DESC;;
 
