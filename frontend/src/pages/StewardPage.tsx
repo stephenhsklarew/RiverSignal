@@ -27,11 +27,13 @@ export default function StewardPage() {
   const ws = useWatershed('/path/steward') || 'mckenzie'
   const [data, setData] = useState<any>(null)
   const [story, setStory] = useState<any>(null)
+  const [impact, setImpact] = useState<any>(null)
 
   useEffect(() => {
-    setData(null); setStory(null)
+    setData(null); setStory(null); setImpact(null)
     fetch(`${API}/sites/${ws}/stewardship`).then(r => r.json()).then(setData)
     fetch(`${API}/sites/${ws}/story`).then(r => r.json()).then(setStory)
+    fetch(`${API}/sites/${ws}/restoration-impact`).then(r => r.json()).then(setImpact).catch(() => {})
   }, [ws])
 
   const timeline = story?.timeline || []
@@ -52,6 +54,53 @@ export default function StewardPage() {
     <div className="steward-page">
       <WatershedHeader watershed={ws} basePath="/path/steward" />
       <h1 className="steward-title">Stewardship</h1>
+
+      {/* ── Restoration Impact Hero ── */}
+      {impact && (
+        <section className="steward-impact">
+          <div className="steward-impact-grid">
+            <div className="steward-impact-stat">
+              <span className="steward-impact-value">{impact.total_species?.toLocaleString()}</span>
+              <span className="steward-impact-label">species documented</span>
+            </div>
+            <div className="steward-impact-stat">
+              <span className="steward-impact-value">{impact.total_projects?.toLocaleString()}</span>
+              <span className="steward-impact-label">restoration projects</span>
+            </div>
+            <div className="steward-impact-stat">
+              <span className="steward-impact-value">{impact.total_observations?.toLocaleString()}</span>
+              <span className="steward-impact-label">observations</span>
+            </div>
+          </div>
+          {impact.fire_recovery?.length > 0 && (
+            <div className="steward-impact-recovery">
+              {impact.fire_recovery.map((f: any, i: number) => (
+                <div key={i} className="steward-recovery-item">
+                  <span className="steward-recovery-icon">🔥</span>
+                  <div>
+                    <div className="steward-recovery-name">{f.fire} ({f.year})</div>
+                    <div className="steward-recovery-stat">
+                      +{f.species_gained} species recovered over {f.years_tracked} years
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {impact.top_interventions?.length > 0 && (
+            <div className="steward-impact-interventions">
+              <div className="steward-impact-subtitle">Most Effective Approaches</div>
+              {impact.top_interventions.slice(0, 3).map((t: any, i: number) => (
+                <div key={i} className="steward-intervention-row">
+                  <span className="steward-intervention-cat">{CATEGORY_ICONS[t.category?.toLowerCase()] || '♻'} {t.category}</span>
+                  <span className="steward-intervention-gain">+{t.avg_species_gain} species avg</span>
+                  <span className="steward-intervention-count">{t.projects} projects</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── Restoration Timeline ── */}
       {timeline.length > 0 && (

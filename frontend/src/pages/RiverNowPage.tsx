@@ -183,6 +183,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [catchProb, setCatchProb] = useState<any>(null)
   const [spotter, setSpotter] = useState<any>(null)
   const [replay, setReplay] = useState<any>(null)
+  const [timeMachine, setTimeMachine] = useState<any>(null)
+  const [tmYear, setTmYear] = useState<number | null>(null)
+  const [compareWs, setCompareWs] = useState<string | null>(null)
+  const [compareData, setCompareData] = useState<any>(null)
   const [campfireStory, setCampfireStory] = useState<string | null>(null)
   const [campfireLoading, setCampfireLoading] = useState(false)
   const [campfireAudio, setCampfireAudio] = useState<HTMLAudioElement | null>(null)
@@ -215,6 +219,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/catch-probability`).then(r => r.json()).then(setCatchProb).catch(() => {})
     fetch(`${API}/sites/${watershed}/species-spotter`).then(r => r.json()).then(setSpotter).catch(() => {})
     fetch(`${API}/sites/${watershed}/replay?days_ago=30`).then(r => r.json()).then(setReplay).catch(() => {})
+    fetch(`${API}/sites/${watershed}/time-machine`).then(r => r.json()).then(d => { setTimeMachine(d); if (d.years?.length) setTmYear(d.years[d.years.length - 1].year) }).catch(() => {})
     // Geology + fossils for Deep Time card
     const center = WS_CENTERS[watershed]
     if (center) {
@@ -234,9 +239,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     setChatQuestion(question)
     setChatLoading(true)
     setChatAnswer(null)
-    fetch(`${API}/sites/${watershed}/chat`, {
+    // Use River Oracle for richer, trip-planning-aware answers
+    fetch(`${API}/river-oracle`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, watershed }),
     })
       .then(r => r.json())
       .then(data => setChatAnswer(data.answer || data.detail || 'Unable to answer.'))
@@ -589,6 +595,88 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               </div>
             </section>
           )}
+
+          {/* ── Time Machine ── */}
+          {timeMachine && timeMachine.years?.length > 2 && (() => {
+            const years = timeMachine.years
+            const selected = years.find((y: any) => y.year === tmYear) || years[years.length - 1]
+            return (
+              <section className="rnow-section">
+                <div className="rnow-section-title">🕰️ Time Machine — Species Through the Years</div>
+                <div className="rnow-tm-slider-row">
+                  <span className="rnow-tm-year-label">{years[0].year}</span>
+                  <input type="range" className="rnow-tm-slider"
+                    min={years[0].year} max={years[years.length - 1].year} step={1}
+                    value={tmYear || years[years.length - 1].year}
+                    onChange={e => setTmYear(parseInt(e.target.value))} />
+                  <span className="rnow-tm-year-label">{years[years.length - 1].year}</span>
+                </div>
+                <div className="rnow-tm-stat">
+                  <span className="rnow-tm-stat-year">{selected.year}</span>
+                  <span className="rnow-tm-stat-count">{selected.species_count} species</span>
+                  <span className="rnow-tm-stat-obs">{selected.observations?.toLocaleString()} observations</span>
+                </div>
+                {selected.top_species?.length > 0 && (
+                  <div className="rnow-tm-species">
+                    {selected.top_species.map((s: any, i: number) => (
+                      <div key={i} className="rnow-tm-species-item">
+                        {s.photo && <img src={s.photo} alt="" className="rnow-tm-species-img" loading="lazy" />}
+                        <div>
+                          <div className="rnow-tm-species-name">{s.common || s.taxon}</div>
+                          <div className="rnow-tm-species-count">{s.count} obs</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )
+          })()}
+
+          {/* ── Compare Rivers ── */}
+          <section className="rnow-section">
+            <div className="rnow-section-title">⚖️ Compare Rivers</div>
+            <div className="rnow-compare-picker">
+              <span className="rnow-compare-label">Compare {site.name} with:</span>
+              <div className="rnow-compare-btns">
+                {['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
+                  .filter(w => w !== watershed)
+                  .map(w => (
+                    <button key={w} className={`rnow-compare-btn${compareWs === w ? ' active' : ''}`}
+                      onClick={() => {
+                        setCompareWs(w)
+                        setCompareData(null)
+                        fetch(`${API}/compare?ws1=${watershed}&ws2=${w}`).then(r => r.json()).then(setCompareData)
+                      }}>
+                      {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[w]}
+                    </button>
+                  ))}
+              </div>
+            </div>
+            {compareData && (
+              <div className="rnow-compare-table">
+                <div className="rnow-compare-row header">
+                  <span></span>
+                  <span>{compareData.river1.name?.replace(' River', '')}</span>
+                  <span>{compareData.river2.name?.replace(' River', '')}</span>
+                </div>
+                {[
+                  ['Species', compareData.river1.species?.toLocaleString(), compareData.river2.species?.toLocaleString()],
+                  ['Health', compareData.river1.health_score || '—', compareData.river2.health_score || '—'],
+                  ['Water Temp', compareData.river1.water_temp_c ? `${compareData.river1.water_temp_c}°C` : '—', compareData.river2.water_temp_c ? `${compareData.river2.water_temp_c}°C` : '—'],
+                  ['DO (mg/L)', compareData.river1.do_mg_l || '—', compareData.river2.do_mg_l || '—'],
+                  ['Hatch Activity', compareData.river1.hatch_activity, compareData.river2.hatch_activity],
+                  ['Projects', compareData.river1.projects?.toLocaleString(), compareData.river2.projects?.toLocaleString()],
+                ].map(([label, v1, v2], i) => (
+                  <div key={i} className="rnow-compare-row">
+                    <span className="rnow-compare-label-cell">{label}</span>
+                    <span className="rnow-compare-val">{v1}</span>
+                    <span className="rnow-compare-val">{v2}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           {/* ── Weather Forecast ── */}
           {weather?.periods?.length > 0 && (

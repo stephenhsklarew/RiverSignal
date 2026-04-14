@@ -358,6 +358,41 @@
   max-height: 200px; overflow-y: auto;
 }
 
+/* ── Time Machine ── */
+.rnow-tm-slider-row { display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+.rnow-tm-year-label { font-size: 11px; color: #999; font-family: monospace; min-width: 32px; }
+.rnow-tm-slider { flex: 1; accent-color: #1a6b4a; height: 6px; }
+.rnow-tm-stat {
+  display: flex; align-items: baseline; gap: 12px; padding: 8px 16px;
+}
+.rnow-tm-stat-year { font-size: 24px; font-weight: 700; color: #1a6b4a; }
+.rnow-tm-stat-count { font-size: 14px; font-weight: 600; color: #2a2a2a; }
+.rnow-tm-stat-obs { font-size: 12px; color: #888; }
+.rnow-tm-species { display: flex; gap: 8px; padding: 4px 16px; overflow-x: auto; scrollbar-width: none; }
+.rnow-tm-species::-webkit-scrollbar { display: none; }
+.rnow-tm-species-item { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.rnow-tm-species-img { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }
+.rnow-tm-species-name { font-size: 11px; font-weight: 500; color: #333; }
+.rnow-tm-species-count { font-size: 10px; color: #999; }
+
+/* ── Compare Rivers ── */
+.rnow-compare-picker { padding: 0 16px; }
+.rnow-compare-label { font-size: 12px; color: #666; display: block; margin-bottom: 6px; }
+.rnow-compare-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.rnow-compare-btn {
+  padding: 6px 12px; border: 1px solid #e8e5de; border-radius: 16px;
+  background: #fff; font-size: 12px; cursor: pointer; font-family: inherit; color: #555;
+}
+.rnow-compare-btn.active { background: #1a6b4a; color: #fff; border-color: #1a6b4a; }
+.rnow-compare-btn:hover { border-color: #1a6b4a; }
+
+.rnow-compare-table { margin: 12px 16px 0; border: 1px solid #e8e5de; border-radius: 8px; overflow: hidden; }
+.rnow-compare-row { display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 12px; }
+.rnow-compare-row.header { background: #f8f6f1; font-weight: 600; color: #2a2a2a; }
+.rnow-compare-row span { padding: 6px 10px; border-bottom: 1px solid #f0ede6; }
+.rnow-compare-label-cell { color: #888; }
+.rnow-compare-val { font-family: monospace; font-weight: 500; color: #333; }
+
 /* ── Harvest delta badge ── */
 .rnow-delta {
   font-size: 10px; font-weight: 600; margin-left: 4px;

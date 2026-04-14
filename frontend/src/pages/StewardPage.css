@@ -84,3 +84,27 @@
   font-size: 14px; font-weight: 600; font-family: inherit;
 }
 .steward-cta-btn:hover { opacity: 0.9; }
+
+/* ── Restoration Impact Hero ── */
+.steward-impact {
+  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+  border: 1px solid #c8e6c9; border-radius: 12px;
+  padding: 16px; margin-bottom: 20px;
+}
+.steward-impact-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; margin-bottom: 12px; }
+.steward-impact-stat { display: flex; flex-direction: column; }
+.steward-impact-value { font-size: 22px; font-weight: 700; color: #2e7d32; }
+.steward-impact-label { font-size: 10px; color: #558b2f; text-transform: uppercase; letter-spacing: 0.03em; }
+
+.steward-impact-recovery { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.steward-recovery-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.steward-recovery-icon { font-size: 16px; }
+.steward-recovery-name { font-weight: 600; color: #333; }
+.steward-recovery-stat { font-size: 11px; color: #558b2f; }
+
+.steward-impact-subtitle { font-size: 12px; font-weight: 600; color: #333; margin-bottom: 6px; }
+.steward-impact-interventions { border-top: 1px solid #c8e6c9; padding-top: 10px; }
+.steward-intervention-row { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; }
+.steward-intervention-cat { flex: 1; color: #444; }
+.steward-intervention-gain { font-weight: 600; color: #2e7d32; }
+.steward-intervention-count { font-size: 11px; color: #888; }
