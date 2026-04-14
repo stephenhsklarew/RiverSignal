@@ -370,21 +370,7 @@ export default function DeepTrailPage() {
 
           {/* Deep Time Timeline */}
           {timeline.length > 0 && (
-            <section className="dt-timeline-section">
-              <h3>Deep Time Timeline</h3>
-              <div className="dt-timeline">
-                {timeline.map((item, i) => (
-                  <div key={i} className={`dt-tl-item ${item.type}`}>
-                    <div className="dt-tl-dot"></div>
-                    <div className="dt-tl-content">
-                      <span className="dt-tl-age">{item.age_max_ma ? `${item.age_max_ma} Ma` : ''}</span>
-                      <span className="dt-tl-name">{item.type === 'fossil' ? item.taxon_name : item.name}</span>
-                      <span className="dt-tl-meta">{item.type === 'fossil' ? `${item.phylum} — ${item.period}` : `${item.rock_type || ''} — ${item.period}`}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <TimelineSection items={timeline} />
           )}
 
           {/* Navigation links to fossil/mineral screens */}
@@ -643,5 +629,99 @@ function StoryCard({ narrative, loading, readingLevel, onChangeLevel, speaking, 
         )}
       </section>
     </>
+  )
+}
+
+// ── Deep Time Timeline with cleanup + pagination ──
+
+const ERA_CONTEXT: Record<string, string> = {
+  'Quaternary': 'Ice ages and early humans',
+  'Holocene': 'Modern era — last 11,700 years',
+  'Pleistocene': 'Ice ages, mammoths, saber-toothed cats',
+  'Neogene': 'Grasslands spread, modern mammals appear',
+  'Pliocene': 'Climate cooling, Panama land bridge forms',
+  'Miocene': 'Grasslands, horses, and great apes evolve',
+  'Paleogene': 'Mammals diversify after dinosaur extinction',
+  'Oligocene': 'Cooling climate, open woodlands',
+  'Eocene': 'Subtropical forests, early horses and whales',
+  'Paleocene': 'Recovery from mass extinction, mammals rise',
+  'Cretaceous': 'Dinosaurs rule, flowering plants appear',
+  'Jurassic': 'Age of dinosaurs, first birds',
+  'Triassic': 'First dinosaurs and mammals',
+  'Permian': 'Before the Great Dying — largest extinction',
+  'Carboniferous': 'Giant insects, coal swamp forests',
+  'Devonian': 'Age of fishes, first land plants',
+}
+
+function TimelineSection({ items }: { items: any[] }) {
+  const [page, setPage] = useState(0)
+  const ITEMS_PER_PAGE = 5
+
+  // Clean and deduplicate timeline
+  const cleaned = (() => {
+    const seen = new Set<string>()
+    return items
+      .filter(item => {
+        // Must have a name and a period or age
+        const name = item.type === 'fossil' ? item.taxon_name : item.name
+        if (!name || name === 'null') return false
+        if (!item.period && !item.age_max_ma) return false
+        // For fossils, must have phylum or period
+        if (item.type === 'fossil' && !item.phylum && !item.period) return false
+        // Deduplicate
+        const key = `${item.type}|${name}|${item.period || ''}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .sort((a, b) => (b.age_max_ma || 0) - (a.age_max_ma || 0))
+  })()
+
+  const totalPages = Math.max(1, Math.ceil(cleaned.length / ITEMS_PER_PAGE))
+  const pageItems = cleaned.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE)
+
+  useEffect(() => { setPage(0) }, [items])
+
+  if (cleaned.length === 0) return null
+
+  return (
+    <section className="dt-timeline-section">
+      <h3>Deep Time Timeline</h3>
+      <div className="dt-timeline">
+        {pageItems.map((item, i) => {
+          const isRock = item.type === 'geologic_unit'
+          const name = isRock ? (item.name || item.formation || 'Unknown unit') : (item.taxon_name || '?')
+          const age = item.age_max_ma ? `${item.age_max_ma} Ma` : ''
+          const period = item.period || ''
+          const context = ERA_CONTEXT[period] || ''
+          const meta = isRock
+            ? [item.rock_type, item.lithology, period].filter(Boolean).join(' · ')
+            : [item.phylum, item.class_name, period].filter(Boolean).join(' · ')
+
+          return (
+            <div key={i} className={`dt-tl-item ${item.type}`}>
+              <div className="dt-tl-dot">{isRock ? '🪨' : '🦴'}</div>
+              <div className="dt-tl-content">
+                <div className="dt-tl-header">
+                  {age && <span className="dt-tl-age">{age}</span>}
+                  {period && <span className="dt-tl-period">{period}</span>}
+                </div>
+                <div className="dt-tl-name">{name}</div>
+                <div className="dt-tl-meta">{meta}</div>
+                {context && <div className="dt-tl-context">{context}</div>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="dt-story-pagination">
+          <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="dt-page-btn">← Older</button>
+          <span className="dt-page-info">{page + 1} / {totalPages}</span>
+          <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="dt-page-btn">Newer →</button>
+        </div>
+      )}
+    </section>
   )
 }
