@@ -51,7 +51,7 @@ def river_oracle(req: OracleRequest):
         """), {"ws": ws}).fetchall()
 
         stocking = conn.execute(text("""
-            SELECT waterbody_name, stocking_date, total_fish FROM gold.stocking_schedule
+            SELECT waterbody, stocking_date, total_fish FROM gold.stocking_schedule
             WHERE watershed = :ws ORDER BY stocking_date DESC LIMIT 5
         """), {"ws": ws}).fetchall()
 
@@ -133,7 +133,7 @@ def river_replay(watershed: str, days_ago: int = Query(30, ge=7, le=365)):
 
         # Harvest
         harvest = conn.execute(text("""
-            SELECT species, harvest_year, harvest, harvest_delta_pct
+            SELECT species, harvest_year, annual_harvest, harvest_pct_change
             FROM gold.harvest_trends WHERE watershed = :ws
             ORDER BY harvest_year DESC LIMIT 2
         """), {"ws": watershed}).fetchall()
@@ -192,7 +192,7 @@ def catch_probability(watershed: str):
 
         # Species by reach
         species = conn.execute(text("""
-            SELECT DISTINCT common_name, species, use_type FROM gold.species_by_reach
+            SELECT DISTINCT common_name, scientific_name, use_type FROM gold.species_by_reach
             WHERE watershed = :ws AND common_name IS NOT NULL
             LIMIT 10
         """), {"ws": watershed}).fetchall()
@@ -294,9 +294,10 @@ def species_spotter(watershed: str):
     with engine.connect() as conn:
         # Seasonal patterns — what's typically observed this month
         patterns = conn.execute(text("""
-            SELECT taxon_group, peak_month, avg_observations
+            SELECT taxonomic_group, obs_month, observation_count
             FROM gold.seasonal_observation_patterns
-            WHERE watershed = :ws ORDER BY avg_observations DESC
+            WHERE watershed = :ws AND is_peak_month = true
+            ORDER BY observation_count DESC
         """), {"ws": watershed}).fetchall()
 
         # Species with photos observed recently
@@ -432,7 +433,7 @@ def compare_rivers(ws1: str = Query(...), ws2: str = Query(...)):
                 WHERE watershed = :ws AND obs_month = :m
             """), {"ws": ws, "m": datetime.now().month}).scalar() or 0
             harvest = conn.execute(text("""
-                SELECT species, harvest, harvest_delta_pct FROM gold.harvest_trends
+                SELECT species, annual_harvest, harvest_pct_change FROM gold.harvest_trends
                 WHERE watershed = :ws ORDER BY harvest_year DESC LIMIT 1
             """), {"ws": ws}).fetchone()
 
@@ -446,7 +447,7 @@ def compare_rivers(ws1: str = Query(...), ws2: str = Query(...)):
             "water_temp_c": float(health[1]) if health and health[1] else None,
             "do_mg_l": float(health[2]) if health and health[2] else None,
             "hatch_activity": hatch,
-            "harvest": {"species": harvest[0], "count": harvest[1], "delta_pct": harvest[2]} if harvest else None,
+            "harvest": {"species": harvest[0], "count": harvest[1], "delta_pct": float(harvest[2]) if harvest[2] else None} if harvest else None,
         }
 
     return {"river1": get_stats(ws1), "river2": get_stats(ws2)}
