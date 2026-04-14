@@ -77,6 +77,20 @@
 .confidence-medium { color: var(--warm); }
 .confidence-low { color: var(--text-muted); }
 
+/* Header row with customize button */
+.rnow-header-row { display: flex; align-items: flex-start; }
+.rnow-header-row .ws-header { flex: 1; }
+.rnow-customize-btn {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  width: 32px; height: 32px; font-size: 16px; cursor: pointer;
+  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+.rnow-customize-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Card container for reordering */
+.rnow-card-container { display: flex; flex-direction: column; }
+
 /* Loading state */
 .rnow .rnow-loading { text-align: center; color: var(--text-muted); font-style: italic; padding: 40px 16px; }
 

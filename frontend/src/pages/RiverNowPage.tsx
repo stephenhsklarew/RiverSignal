@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
+import { CardSettingsPanel, loadCardSettings, type CardConfig } from '../components/CardSettings'
 import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
 const dtMark = '/favicon-deeptrail.svg'
@@ -192,6 +193,17 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [campfireAudio, setCampfireAudio] = useState<HTMLAudioElement | null>(null)
   const [campfirePlaying, setCampfirePlaying] = useState(false)
 
+  // Card customization
+  const [cardConfig, setCardConfig] = useState<CardConfig[]>(loadCardSettings)
+  const [showSettings, setShowSettings] = useState(false)
+
+  // Generate dynamic CSS to hide/reorder cards
+  const cardStyle = cardConfig.map((c, i) => {
+    const rules = [`[data-card="${c.id}"] { order: ${i}; }`]
+    if (!c.visible) rules.push(`[data-card="${c.id}"] { display: none !important; }`)
+    return rules.join('\n')
+  }).join('\n')
+
   // Inline chat state
   const [askInput, setAskInput] = useState('')
   const [chatQuestion, setChatQuestion] = useState<string | null>(null)
@@ -331,7 +343,14 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
   return (
     <div className="rnow">
-      <WatershedHeader watershed={watershed} basePath="/path/now" />
+      <style dangerouslySetInnerHTML={{ __html: cardStyle }} />
+      <div className="rnow-header-row">
+        <WatershedHeader watershed={watershed} basePath="/path/now" />
+        <button className="rnow-customize-btn" onClick={() => setShowSettings(true)} title="Customize cards">⚙</button>
+      </div>
+      {showSettings && (
+        <CardSettingsPanel cards={cardConfig} onChange={setCardConfig} onClose={() => setShowSettings(false)} />
+      )}
 
       {siteLoading && !site && (
         <div className="rnow-loading">Loading {watershed} river data...</div>
@@ -425,6 +444,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             )}
           </div>
 
+          <div className="rnow-card-container">
+          <div data-card="river_replay">
           {/* ── River Replay (what changed) ── */}
           {replay && replay.changes?.length > 0 && (
             <div className="rnow-replay">
@@ -437,6 +458,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </div>
           )}
 
+          </div>
+          <div data-card="catch_probability">
           {/* ── Catch Probability ── */}
           {catchProb && (
             <div className="rnow-catch-prob">
@@ -458,6 +481,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </div>
           )}
 
+          </div>
+          <div data-card="species_spotter">
           {/* ── Species Spotter ── */}
           {spotter && spotter.species?.length > 0 && (
             <section className="rnow-section">
@@ -475,6 +500,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </section>
           )}
 
+          </div>
+          <div data-card="campfire_story">
           {/* ── Campfire Story ── */}
           <section className="rnow-section">
             <button className={`rnow-campfire-btn${campfirePlaying ? ' playing' : ''}`} onClick={playCampfireStory} disabled={campfireLoading}>
@@ -485,6 +512,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             )}
           </section>
 
+          </div>
+          <div data-card="current_activity">
           {/* ── Swipeable Condition Cards ── */}
           <div className="rnow-cards-label">Current Activity</div>
           <div className="rnow-cards">
@@ -564,6 +593,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             )}
           </div>
 
+          </div>
+          <div data-card="fish_present">
           {/* ── Fish Near You (Species by Reach) ── */}
           {uniqueFishByReach.length > 0 && (
             <section className="rnow-section">
@@ -580,6 +611,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </section>
           )}
 
+          </div>
+          <div data-card="barriers">
           {/* ── Fish Passage Barriers ── */}
           {barriers.length > 0 && (
             <section className="rnow-section">
@@ -596,6 +629,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </section>
           )}
 
+          </div>
+          <div data-card="time_machine">
           {/* ── Time Machine ── */}
           {timeMachine && timeMachine.years?.length > 2 && (() => {
             const years = timeMachine.years
@@ -633,6 +668,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             )
           })()}
 
+          </div>
+          <div data-card="compare_rivers">
           {/* ── Compare Rivers ── */}
           <section className="rnow-section">
             <div className="rnow-section-title">⚖️ Compare Rivers</div>
@@ -678,6 +715,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             )}
           </section>
 
+          </div>
+          <div data-card="weather">
           {/* ── Weather Forecast ── */}
           {weather?.periods?.length > 0 && (
             <section className="rnow-section">
@@ -695,6 +734,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </section>
           )}
 
+          </div>
+          <div data-card="snowpack">
           {/* ── Snowpack Card ── */}
           {snowpack && (snowpack.stations_with_snow > 0 || snowpack.station_count > 0) && (
             <section className="rnow-section">
@@ -738,6 +779,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </section>
           )}
 
+          </div>
+          <div data-card="stocking">
           {/* ── Stocking Alerts ── */}
           {(upcomingStocking.length > 0 || recentStocking.length > 0) && (
             <section className="rnow-section">
@@ -772,6 +815,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </section>
           )}
 
+          </div>
+          <div data-card="whats_here">
           {/* ── What's Here Now ── */}
           {whatsAlive.length > 0 && (
             <section className="rnow-section">
@@ -790,6 +835,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             </section>
           )}
 
+          </div>
+          <div data-card="nearby_access">
           {/* ── Nearby Access Points ── */}
           {accessPoints.length > 0 && (
             <section className="rnow-section">
@@ -815,6 +862,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <Link to="/path/explore" className="rnow-more-link">View all in Explore →</Link>
             </section>
           )}
+          </div>
+          </div>{/* end rnow-card-container */}
         </>
       )}
     </div>

@@ -1,0 +1,65 @@
+.card-settings-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4); z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.card-settings-modal {
+  background: var(--surface); border-radius: 16px 16px 0 0;
+  width: 100%; max-width: 600px; max-height: 80vh;
+  overflow-y: auto; padding: 20px 16px 80px;
+  animation: ws-slide-up 0.2s ease-out;
+}
+.card-settings-header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 16px; font-weight: 600; margin-bottom: 4px;
+}
+.card-settings-close {
+  background: none; border: none; font-size: 18px; cursor: pointer;
+  color: var(--text-muted); padding: 4px 8px;
+}
+.card-settings-hint { font-size: 12px; color: var(--text-muted); margin: 0 0 12px; }
+
+.card-settings-list { display: flex; flex-direction: column; gap: 4px; }
+.card-settings-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface);
+}
+.card-settings-item.hidden { opacity: 0.5; }
+
+.card-settings-arrows { display: flex; flex-direction: column; gap: 1px; }
+.card-settings-arrows button {
+  background: none; border: 1px solid var(--border); border-radius: 3px;
+  width: 22px; height: 18px; font-size: 10px; cursor: pointer;
+  color: var(--text-secondary); padding: 0; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.card-settings-arrows button:disabled { opacity: 0.2; cursor: default; }
+.card-settings-arrows button:hover:not(:disabled) { border-color: var(--accent); }
+
+.card-settings-icon { font-size: 16px; width: 24px; text-align: center; }
+.card-settings-label { flex: 1; font-size: 13px; font-weight: 500; }
+
+.card-settings-toggle {
+  padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  font-family: inherit; cursor: pointer; min-width: 36px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text-muted);
+}
+.card-settings-toggle.on {
+  background: var(--accent-light); color: var(--accent); border-color: var(--accent);
+}
+
+.card-settings-actions {
+  display: flex; justify-content: space-between; margin-top: 16px; gap: 10px;
+}
+.card-settings-reset {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 16px; font-family: inherit; font-size: 13px; cursor: pointer;
+  color: var(--text-muted);
+}
+.card-settings-apply {
+  flex: 1; background: var(--accent); color: white; border: none; border-radius: 6px;
+  padding: 8px 16px; font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.card-settings-apply:hover { opacity: 0.9; }
