@@ -12,6 +12,8 @@ const FILTERS = [
   { key: 'trailhead', label: 'Trails', icon: '🥾' },
   { key: 'boat_ramp', label: 'Boat Ramps', icon: '🚣' },
   { key: 'fishing_access', label: 'Fishing', icon: '🎣' },
+  { key: 'fly_shop', label: 'Fly Shops', icon: '🏪' },
+  { key: 'guide_service', label: 'Guides', icon: '🚣' },
   { key: 'day_use', label: 'Day Use', icon: '☀' },
   { key: 'swim_area', label: 'Swimming', icon: '🏊' },
 ]
@@ -19,6 +21,7 @@ const FILTERS = [
 const TYPE_ICONS: Record<string, string> = {
   campground: '⛺', trailhead: '🥾', boat_ramp: '🚣', day_use: '☀',
   fishing_access: '🎣', swim_area: '🏊', waterfall: '💧', swim_advisory: '⚠',
+  fly_shop: '🏪', guide_service: '🚣', both: '🏪',
 }
 
 interface RecSite {
@@ -50,23 +53,41 @@ export default function ExplorePage() {
     )
   }, [])
 
-  // Fetch recreation sites
+  // Fetch recreation sites + fly shops
   useEffect(() => {
     setLoading(true)
-    fetch(`${API}/sites/${ws}/recreation`)
-      .then(r => r.json())
-      .then((data: RecSite[]) => {
-        // Calculate distance if we have user location
-        if (userLoc) {
-          data.forEach(s => {
-            s.distance_km = haversine(userLoc.lat, userLoc.lon, s.latitude, s.longitude)
-          })
-          data.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999))
-        }
-        setSites(data)
-        setLoading(false)
-      })
-      .catch(() => { setSites([]); setLoading(false) })
+    Promise.all([
+      fetch(`${API}/sites/${ws}/recreation`).then(r => r.json()).catch(() => []),
+      fetch(`${API}/sites/${ws}/fly-shops`).then(r => r.json()).catch(() => []),
+    ]).then(([recData, shopData]) => {
+      // Convert fly shops to RecSite format
+      const shops: RecSite[] = (shopData || []).map((s: any, i: number) => ({
+        id: 90000 + i,
+        name: s.name,
+        rec_type: s.type === 'both' ? 'fly_shop' : s.type,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        amenities: {
+          phone: s.phone,
+          website: s.website,
+          address: s.address,
+          description: s.description,
+        },
+        watershed: ws,
+      }))
+
+      const all = [...(recData || []), ...shops]
+
+      // Calculate distance if we have user location
+      if (userLoc) {
+        all.forEach(s => {
+          s.distance_km = haversine(userLoc.lat, userLoc.lon, s.latitude, s.longitude)
+        })
+        all.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999))
+      }
+      setSites(all)
+      setLoading(false)
+    })
   }, [ws, userLoc])
 
   const toggleFilter = (key: string) => {
@@ -79,7 +100,12 @@ export default function ExplorePage() {
 
   // Filter and search
   const filtered = sites.filter(s => {
-    if (activeFilters.size > 0 && !activeFilters.has(s.rec_type)) return false
+    if (activeFilters.size > 0) {
+      const matches = activeFilters.has(s.rec_type)
+        || (s.rec_type === 'fly_shop' && (activeFilters.has('fly_shop') || activeFilters.has('guide_service')))
+        || (s.rec_type === 'guide_service' && activeFilters.has('guide_service'))
+      if (!matches) return false
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       if (!s.name.toLowerCase().includes(q) && !s.rec_type.toLowerCase().includes(q)) return false
@@ -173,6 +199,15 @@ function AdventureCard({ site, ws }: { site: RecSite; ws: string }) {
             <span className="amenity-badge closed">⚠ {amenities.status}</span>
           )}
         </div>
+        {amenities.description && (
+          <div className="adventure-desc">{amenities.description}</div>
+        )}
+        {(amenities.phone || amenities.website) && (
+          <div className="adventure-contact">
+            {amenities.phone && <a href={`tel:${amenities.phone}`} className="adventure-link">📞 {amenities.phone}</a>}
+            {amenities.website && <a href={amenities.website} target="_blank" rel="noopener noreferrer" className="adventure-link">🌐 Website</a>}
+          </div>
+        )}
       </div>
       <SaveButton item={{
         type: 'recreation',
