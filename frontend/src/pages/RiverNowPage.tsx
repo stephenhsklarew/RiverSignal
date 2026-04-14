@@ -177,6 +177,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [liveConditions, setLiveConditions] = useState<any>(null)
   const [stocking, setStocking] = useState<any[]>([])
   const [snowpack, setSnowpack] = useState<any>(null)
+  const [harvest, setHarvest] = useState<any[]>([])
+  const [speciesByReach, setSpeciesByReach] = useState<any[]>([])
+  const [barriers, setBarriers] = useState<any[]>([])
 
   // Inline chat state
   const [askInput, setAskInput] = useState('')
@@ -199,6 +202,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/conditions/live`).then(r => r.json()).then(setLiveConditions).catch(() => {})
     fetch(`${API}/sites/${watershed}/fishing/stocking`).then(r => r.json()).then(setStocking).catch(() => {})
     fetch(`${API}/sites/${watershed}/snowpack`).then(r => r.json()).then(setSnowpack).catch(() => {})
+    fetch(`${API}/sites/${watershed}/fishing/harvest`).then(r => r.json()).then(setHarvest).catch(() => {})
+    fetch(`${API}/sites/${watershed}/fishing/species`).then(r => r.json()).then(setSpeciesByReach).catch(() => {})
+    fetch(`${API}/sites/${watershed}/fishing/barriers`).then(r => r.json()).then(setBarriers).catch(() => {})
     // Geology + fossils for Deep Time card
     const center = WS_CENTERS[watershed]
     if (center) {
@@ -251,6 +257,24 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const displayDO = liveDO ? liveDO.value.toFixed(1) : health.dissolved_oxygen_mg_l
   const isLive = !!(liveTemp || liveFlow)
 
+  // Harvest trend — latest year vs prior
+  const latestHarvest = harvest[0]
+  const priorHarvest = harvest[1]
+  const harvestDelta = latestHarvest && priorHarvest
+    ? Math.round(((latestHarvest.harvest - priorHarvest.harvest) / priorHarvest.harvest) * 100)
+    : null
+
+  // Deduplicate species by reach for carousel
+  const uniqueFishByReach: any[] = []
+  const seenFish = new Set<string>()
+  for (const s of speciesByReach) {
+    const key = s.common_name || s.species
+    if (!seenFish.has(key)) {
+      seenFish.add(key)
+      uniqueFishByReach.push(s)
+    }
+  }
+
   // Upcoming stocking
   const upcomingStocking = stocking.filter((s: any) => new Date(s.date) > new Date()).slice(0, 3)
   const recentStocking = stocking.filter((s: any) => new Date(s.date) <= new Date()).slice(0, 3)
@@ -291,6 +315,19 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 <div className="rnow-metric">
                   <span className="rnow-metric-value">{displayDO}</span>
                   <span className="rnow-metric-label">DO (mg/L)</span>
+                </div>
+              )}
+              {latestHarvest && (
+                <div className="rnow-metric">
+                  <span className="rnow-metric-value">
+                    {latestHarvest.harvest?.toLocaleString()}
+                    {harvestDelta != null && (
+                      <span className={`rnow-delta ${harvestDelta >= 0 ? 'up' : 'down'}`}>
+                        {harvestDelta >= 0 ? '↑' : '↓'}{Math.abs(harvestDelta)}%
+                      </span>
+                    )}
+                  </span>
+                  <span className="rnow-metric-label">{latestHarvest.species} '{String(latestHarvest.year).slice(2)}</span>
                 </div>
               )}
               {hatchConfidence && (
@@ -419,6 +456,38 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <DeepTimeCard geology={geology} fossils={fossils} watershed={watershed} />
             )}
           </div>
+
+          {/* ── Fish Near You (Species by Reach) ── */}
+          {uniqueFishByReach.length > 0 && (
+            <section className="rnow-section">
+              <div className="rnow-section-title">🐟 Fish Near You</div>
+              <div className="rnow-fish-carousel">
+                {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
+                  <div key={i} className="rnow-fish-card">
+                    <div className="rnow-fish-name">{s.common_name || s.species}</div>
+                    <div className="rnow-fish-stream">{s.stream}</div>
+                    <div className="rnow-fish-use">{s.use_type}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Fish Passage Barriers ── */}
+          {barriers.length > 0 && (
+            <section className="rnow-section">
+              <div className="rnow-section-title">⚠ Fish Passage Barriers ({barriers.length})</div>
+              <div className="rnow-barriers">
+                {barriers.slice(0, 5).map((b: any, i: number) => (
+                  <div key={i} className="rnow-barrier-item">
+                    <span className={`rnow-barrier-dot ${b.passage_status === 'Passable' ? 'pass' : 'block'}`}></span>
+                    <span className="rnow-barrier-stream">{b.stream_name || b.barrier_name || '—'}</span>
+                    <span className="rnow-barrier-status">{b.passage_status || '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* ── Weather Forecast ── */}
           {weather?.periods?.length > 0 && (
