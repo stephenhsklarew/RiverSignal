@@ -27,6 +27,7 @@ const MapPage = lazy(() => import('./pages/MapPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const DeepSignalPage = lazy(() => import('./pages/DeepSignalPage'))
 const DeepTrailPage = lazy(() => import('./pages/DeepTrailPage'))
+const StatusPage = lazy(() => import('./pages/StatusPage'))
 
 // RiverPath mobile tab pages
 const RiverNowPage = lazy(() => import('./pages/RiverNowPage'))
@@ -102,6 +103,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/map" element={<MapPage />} />
             <Route path="/map/:watershed" element={<MapPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/status" element={<StatusPage />} />
           </Routes>
           <ConditionalBottomNav />
         </Suspense>
