@@ -14,6 +14,8 @@ const FILTERS = [
   { key: 'trailhead', label: '🥾 Trails' },
   { key: 'boat_ramp', label: '🚣 Boats' },
   { key: 'fishing_access', label: '🎣 Fishing' },
+  { key: 'fly_shop', label: '🏪 Fly Shops' },
+  { key: 'guide_service', label: '🚣 Guides' },
   { key: 'day_use', label: '☀ Day Use' },
 ]
 
@@ -22,6 +24,9 @@ const PIN_COLORS: Record<string, string> = {
   trailhead: '#92400e',
   boat_ramp: '#2563eb',
   fishing_access: '#d97706',
+  fly_shop: '#9333ea',
+  guide_service: '#9333ea',
+  both: '#9333ea',
   day_use: '#7c3aed',
   swim_area: '#0891b2',
   waterfall: '#0d9488',
@@ -56,13 +61,24 @@ export default function ExploreMapPage() {
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
 
-  // Fetch sites
+  // Fetch sites + fly shops
   useEffect(() => {
     setLoading(true)
-    fetch(`${API}/sites/${ws}/recreation`)
-      .then(r => r.json())
-      .then((data: RecSite[]) => { setSites(Array.isArray(data) ? data : []); setLoading(false) })
-      .catch(() => { setSites([]); setLoading(false) })
+    Promise.all([
+      fetch(`${API}/sites/${ws}/recreation`).then(r => r.json()).catch(() => []),
+      fetch(`${API}/sites/${ws}/fly-shops`).then(r => r.json()).catch(() => []),
+    ]).then(([recData, shopData]) => {
+      const shops: RecSite[] = (shopData || []).map((s: any, i: number) => ({
+        id: 90000 + i,
+        name: s.name,
+        rec_type: s.type === 'both' ? 'fly_shop' : s.type,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        amenities: { phone: s.phone, website: s.website, description: s.description },
+      }))
+      setSites([...(Array.isArray(recData) ? recData : []), ...shops])
+      setLoading(false)
+    })
   }, [ws])
 
   // Init map
@@ -81,7 +97,11 @@ export default function ExploreMapPage() {
   }, [])
 
   // Filtered sites
-  const filtered = filter === 'all' ? sites : sites.filter(s => s.rec_type === filter)
+  const filtered = filter === 'all' ? sites : sites.filter(s =>
+    s.rec_type === filter
+    || (filter === 'fly_shop' && s.rec_type === 'both')
+    || (filter === 'guide_service' && (s.rec_type === 'guide_service' || s.rec_type === 'both'))
+  )
 
   // Update markers
   useEffect(() => {
@@ -130,6 +150,9 @@ export default function ExploreMapPage() {
               <div class="explore-popup-type" style="color:${color}">${s.rec_type.replace(/_/g, ' ')}</div>
               ${badges ? `<div class="explore-popup-badges">${badges}</div>` : ''}
               ${amenities.forest ? `<div class="explore-popup-forest">${amenities.forest}</div>` : ''}
+              ${amenities.description ? `<div style="font-size:10px;color:#666;margin-top:3px">${amenities.description}</div>` : ''}
+              ${amenities.phone ? `<div style="font-size:11px;margin-top:3px"><a href="tel:${amenities.phone}" style="color:#1a6b4a">📞 ${amenities.phone}</a></div>` : ''}
+              ${amenities.website ? `<div style="font-size:11px"><a href="${amenities.website}" target="_blank" style="color:#1a6b4a">🌐 Website</a></div>` : ''}
             </div>
           `)
           .addTo(map)
