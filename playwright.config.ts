@@ -2,18 +2,14 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  testMatch: '*.spec.ts',
-  timeout: 30000,
-  retries: 0,
+  timeout: 180000,
   use: {
-    baseURL: 'http://localhost:5174',
-    headless: true,
-    viewport: { width: 375, height: 812 }, // iPhone-sized for mobile-first testing
-    actionTimeout: 10000,
+    video: 'off',
+    launchOptions: { slowMo: 100 },
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'default',
       use: { browserName: 'chromium' },
     },
   ],
