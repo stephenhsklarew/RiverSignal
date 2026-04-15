@@ -248,6 +248,7 @@ def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=20
                image_url, image_license
         FROM mineral_deposits
         WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+          AND site_name NOT ILIKE 'Unnamed%'
         ORDER BY distance_km
         LIMIT 1000
     """)
