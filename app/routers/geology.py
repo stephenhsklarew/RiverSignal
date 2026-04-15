@@ -113,14 +113,25 @@ def get_geology_watershed_link(watershed: str):
 def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200)):
     """Return fossil occurrences within radius of a point."""
     sql = text("""
+        WITH ranked AS (
+            SELECT source_id, taxon_name, phylum, class_name, order_name, family,
+                   age_min_ma, age_max_ma, period, formation,
+                   latitude, longitude, collector, reference, museum,
+                   ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km,
+                   image_url, image_license, common_name,
+                   data_payload->>'morphosource_url' as morphosource_url,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY taxon_name, round(latitude::numeric, 3), round(longitude::numeric, 3)
+                       ORDER BY CASE WHEN image_url IS NOT NULL THEN 0 ELSE 1 END
+                   ) as rn
+            FROM fossil_occurrences
+            WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+        )
         SELECT source_id, taxon_name, phylum, class_name, order_name, family,
                age_min_ma, age_max_ma, period, formation,
                latitude, longitude, collector, reference, museum,
-               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km,
-               image_url, image_license, common_name,
-               data_payload->>'morphosource_url' as morphosource_url
-        FROM fossil_occurrences
-        WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+               distance_km, image_url, image_license, common_name, morphosource_url
+        FROM ranked WHERE rn = 1
         ORDER BY
             CASE WHEN image_url IS NOT NULL THEN 0 ELSE 1 END,
             distance_km
