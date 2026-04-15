@@ -14,8 +14,8 @@ set -euo pipefail
 DB_NAME="riversignal"
 DB_PORT="5433"
 DB_HOST="localhost"
-PG_DUMP="/opt/homebrew/opt/postgresql@17/bin/"$PG_DUMP""
-PSQL="/opt/homebrew/opt/postgresql@17/bin/"$PSQL""
+PG_DUMP="/opt/homebrew/opt/postgresql@17/bin/pg_dump"
+PSQL="/opt/homebrew/opt/postgresql@17/bin/psql"
 BACKUP_DIR="$(cd "$(dirname "$0")/.." && pwd)/backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
