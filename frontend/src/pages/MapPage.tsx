@@ -179,6 +179,14 @@ export default function MapPage() {
             onClose={() => setSelectedSite(null)}
             initialQuestion={pendingQuestion}
             onQuestionConsumed={() => setPendingQuestion(null)}
+            onShowSpeciesOnMap={(taxonName) => {
+              setObsSearch(taxonName)
+              setObsSearching(true)
+              fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonName)}&limit=500`)
+                .then(r => r.json())
+                .then(data => { setObsOverlay(data); setObsSearching(false) })
+                .catch(() => setObsSearching(false))
+            }}
           />
         )}
       </div>

@@ -9,6 +9,7 @@ interface SitePanelProps {
   onClose: () => void
   initialQuestion?: string | null
   onQuestionConsumed?: () => void
+  onShowSpeciesOnMap?: (taxonName: string) => void
 }
 
 interface ChatMessage {
@@ -16,11 +17,14 @@ interface ChatMessage {
   content: string
 }
 
-export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed }: SitePanelProps) {
+export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed, onShowSpeciesOnMap }: SitePanelProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'recs' | 'predict' | 'ask'>(
     initialQuestion ? 'ask' : 'overview'
   )
+  // Note: 'fishing' and 'recs' tabs are hidden but state type kept for backward compatibility
   const [species, setSpecies] = useState<any[]>([])
+  const [speciesPage, setSpeciesPage] = useState(0)
+  const SPECIES_PER_PAGE = 12
   const [fishingBrief, setFishingBrief] = useState<any>(null)
   const [recommendations, setRecommendations] = useState<any>(null)
   const [recsLoading, setRecsLoading] = useState(false)
@@ -49,8 +53,10 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
   }, [initialQuestion, site])
 
   useEffect(() => {
-    if (activeTab === 'species' && species.length === 0)
-      fetch(`${API_BASE}/sites/${watershed}/species?limit=30`).then(r => r.json()).then(setSpecies).catch(console.error)
+    if (activeTab === 'species' && species.length === 0) {
+      setSpeciesPage(0)
+      fetch(`${API_BASE}/sites/${watershed}/species?limit=200`).then(r => r.json()).then(setSpecies).catch(console.error)
+    }
     if (activeTab === 'fishing' && !fishingBrief)
       fetch(`${API_BASE}/sites/${watershed}/fishing/brief`).then(r => r.json()).then(setFishingBrief).catch(console.error)
     if (activeTab === 'story' && !story)
@@ -97,7 +103,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
 
       {/* Tabs */}
       <div className="panel-tabs">
-        {(['overview', 'species', 'fishing', 'story', 'recs', 'predict', 'ask'] as const).map(tab => (
+        {(['overview', 'story', 'species', 'predict', 'ask'] as const).map(tab => (
           <button key={tab} className={`panel-tab${activeTab === tab ? ' active' : ''}`} onClick={() => setActiveTab(tab)}>
             {tab}
           </button>
@@ -161,23 +167,37 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
           </>
         )}
 
-        {activeTab === 'species' && (
+        {activeTab === 'species' && (() => {
+          const totalPages = Math.max(1, Math.ceil(species.length / SPECIES_PER_PAGE))
+          const pageSpecies = species.slice(speciesPage * SPECIES_PER_PAGE, (speciesPage + 1) * SPECIES_PER_PAGE)
+          return (
           <div className="section">
-            <div className="section-title">Species Gallery · {sc.total_species?.toLocaleString()} species</div>
+            <div className="section-title">Species Gallery · {species.length} of {sc.total_species?.toLocaleString()} species</div>
             <div className="species-grid">
-              {species.map((s: any, i: number) => (
-                <div key={i} className="species-card">
+              {pageSpecies.map((s: any, i: number) => (
+                <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}`}
+                  onClick={() => onShowSpeciesOnMap?.(s.taxon_name)}
+                  title={onShowSpeciesOnMap ? `Show ${s.common_name || s.taxon_name} on map` : undefined}>
                   {s.photo_url && <img src={s.photo_url} alt={s.common_name || s.taxon_name} loading="lazy" />}
                   <div className="sp-info">
                     <div className="sp-common">{s.common_name || s.taxon_name}</div>
                     <div className="sp-sci">{s.taxon_name}</div>
                     {s.conservation_status && <span className="conservation-tag">{s.conservation_status}</span>}
                   </div>
+                  {onShowSpeciesOnMap && <div className="sp-map-hint">📍 Show on map</div>}
                 </div>
               ))}
             </div>
+            {totalPages > 1 && (
+              <div className="species-pagination">
+                <button disabled={speciesPage === 0} onClick={() => setSpeciesPage(p => p - 1)}>← Prev</button>
+                <span>{speciesPage + 1} / {totalPages}</span>
+                <button disabled={speciesPage >= totalPages - 1} onClick={() => setSpeciesPage(p => p + 1)}>Next →</button>
+              </div>
+            )}
           </div>
-        )}
+          )
+        })()}
 
         {activeTab === 'fishing' && (
           <>
