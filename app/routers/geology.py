@@ -131,6 +131,7 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200
             "lat": lat, "lon": lon, "radius_m": radius_km * 1000
         }).fetchall()
 
+    from app.image_cache import get_cached_url
     fossils = []
     for r in rows:
         fossils.append({
@@ -142,7 +143,7 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200
             "latitude": r[10], "longitude": r[11],
             "collector": r[12], "reference": r[13], "museum": r[14],
             "distance_km": round(r[15], 1) if r[15] else None,
-            "image_url": r[16],
+            "image_url": get_cached_url(r[16], 'fossils'),
             "image_license": r[17],
             "common_name": r[18],
             "morphosource_url": r[19],
@@ -244,11 +245,12 @@ def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=20
             "lat": lat, "lon": lon, "radius_m": radius_km * 1000
         }).fetchall()
 
+    from app.image_cache import get_cached_url
     minerals = [{
         "source_id": r[0], "site_name": r[1], "commodity": r[2],
         "dev_status": r[3], "latitude": r[4], "longitude": r[5],
         "distance_km": round(r[6], 1) if r[6] else None,
-        "image_url": r[7], "image_license": r[8],
+        "image_url": get_cached_url(r[7], 'minerals'), "image_license": r[8],
     } for r in rows]
 
     return {"minerals": minerals, "count": len(minerals), "radius_km": radius_km}

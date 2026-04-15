@@ -11,3 +11,5 @@ frontend/dist/
 .tts_cache/
 .campfire_cache/
 .deeptrail_cache/
+# Image cache (downloaded at runtime, not committed)
+/frontend/public/images/cache/

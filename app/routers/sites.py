@@ -344,12 +344,13 @@ def get_site_species(watershed: str, taxonomic_group: str = None, limit: int = 5
             LIMIT :limit
         """), params).fetchall()
 
+    from app.image_cache import get_cached_url
     return [
         {
             "taxon_name": r[0],
             "common_name": r[1],
             "taxonomic_group": r[2],
-            "photo_url": r[3],
+            "photo_url": get_cached_url(r[3], 'species'),
             "photo_license": r[4],
             "observer": r[5],
             "conservation_status": r[6],
