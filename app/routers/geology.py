@@ -117,15 +117,14 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200
                age_min_ma, age_max_ma, period, formation,
                latitude, longitude, collector, reference, museum,
                ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km,
-               data_payload->>'image_url' as image_url
+               image_url, image_license, common_name,
+               data_payload->>'morphosource_url' as morphosource_url
         FROM fossil_occurrences
         WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
         ORDER BY
-            CASE WHEN data_payload->>'image_url' IS NOT NULL
-                      AND data_payload->>'image_url' NOT IN ('null', '')
-                 THEN 0 ELSE 1 END,
+            CASE WHEN image_url IS NOT NULL THEN 0 ELSE 1 END,
             distance_km
-        LIMIT 200
+        LIMIT 2000
     """)
     with engine.connect() as conn:
         rows = conn.execute(sql, {
@@ -134,11 +133,6 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200
 
     fossils = []
     for r in rows:
-        img = r[16]
-        if img and img != "null":
-            image_url = img
-        else:
-            image_url = None
         fossils.append({
             "source_id": r[0], "taxon_name": r[1],
             "phylum": r[2], "class_name": r[3],
@@ -148,7 +142,10 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200
             "latitude": r[10], "longitude": r[11],
             "collector": r[12], "reference": r[13], "museum": r[14],
             "distance_km": round(r[15], 1) if r[15] else None,
-            "image_url": image_url,
+            "image_url": r[16],
+            "image_license": r[17],
+            "common_name": r[18],
+            "morphosource_url": r[19],
         })
 
     return {"fossils": fossils, "count": len(fossils), "radius_km": radius_km}
@@ -235,11 +232,12 @@ def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=20
     sql = text("""
         SELECT source_id, site_name, commodity, dev_status,
                latitude, longitude,
-               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km
+               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km,
+               image_url, image_license
         FROM mineral_deposits
         WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
         ORDER BY distance_km
-        LIMIT 100
+        LIMIT 1000
     """)
     with engine.connect() as conn:
         rows = conn.execute(sql, {
@@ -250,6 +248,7 @@ def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=20
         "source_id": r[0], "site_name": r[1], "commodity": r[2],
         "dev_status": r[3], "latitude": r[4], "longitude": r[5],
         "distance_km": round(r[6], 1) if r[6] else None,
+        "image_url": r[7], "image_license": r[8],
     } for r in rows]
 
     return {"minerals": minerals, "count": len(minerals), "radius_km": radius_km}
