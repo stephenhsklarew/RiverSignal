@@ -79,13 +79,14 @@ export function loadDeepTrailCardSettings(): CardConfig[] {
 }
 
 // ── Reusable settings panel ──
-export function CardSettingsPanel({ cards, onChange, onClose, storageKey, defaults, title }: {
+export function CardSettingsPanel({ cards, onChange, onClose, storageKey, defaults, title, dark }: {
   cards: CardConfig[]
   onChange: (cards: CardConfig[]) => void
   onClose: () => void
   storageKey?: string
   defaults?: CardConfig[]
   title?: string
+  dark?: boolean
 }) {
   const key = storageKey || RIVERPATH_STORAGE_KEY
   const defs = defaults || RIVERPATH_DEFAULT_CARDS
@@ -119,7 +120,7 @@ export function CardSettingsPanel({ cards, onChange, onClose, storageKey, defaul
 
   return (
     <div className="card-settings-overlay" onClick={onClose}>
-      <div className="card-settings-modal" onClick={e => e.stopPropagation()}>
+      <div className={`card-settings-modal${dark ? ' dark' : ''}`} onClick={e => e.stopPropagation()}>
         <div className="card-settings-header">
           <span>{title || 'Customize'}</span>
           <button className="card-settings-close" onClick={onClose}>✕</button>

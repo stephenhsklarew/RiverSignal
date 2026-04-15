@@ -309,6 +309,7 @@ export default function DeepTrailPage() {
           storageKey="deeptrail-card-settings"
           defaults={DEEPTRAIL_DEFAULT_CARDS}
           title="Customize Deep Trail"
+          dark
         />
       )}
 
