@@ -100,7 +100,7 @@ def cache_species_images():
     console.print(f"  [green]Cached: {cached}, Skipped: {skipped}, Failed: {failed}[/green]")
 
     # Update database with cached URLs
-    _update_cached_urls('species_gallery', 'photo_url', SPECIES_DIR, f'{CACHE_URL_PREFIX}/species')
+    # No DB update needed — get_cached_url() checks filesystem directly
 
 
 def cache_fossil_images():
