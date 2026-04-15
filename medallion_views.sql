@@ -180,7 +180,9 @@ CREATE MATERIALIZED VIEW silver.fossil_records AS
             WHEN age_max_ma IS NOT NULL AND age_min_ma IS NOT NULL THEN round(((age_max_ma + age_min_ma) / 2::double precision)::numeric, 2)::double precision
             ELSE age_max_ma
         END AS age_midpoint_ma,
-    data_payload ->> 'image_url'::text AS image_url,
+    image_url,
+    image_license,
+    data_payload ->> 'morphosource_url'::text AS morphosource_url,
     ingested_at
    FROM fossil_occurrences
   WHERE taxon_name IS NOT NULL AND taxon_name::text <> ''::text;;
@@ -218,6 +220,9 @@ CREATE MATERIALIZED VIEW silver.mineral_sites AS
     location,
     latitude,
     longitude,
+    image_url,
+    image_license,
+    image_source,
     ingested_at
    FROM mineral_deposits md
   WHERE site_name IS NOT NULL AND site_name::text <> ''::text;;
@@ -1026,7 +1031,9 @@ CREATE MATERIALIZED VIEW gold.fossils_nearby AS
     collector,
     reference,
     museum,
-    image_url
+    image_url,
+    image_license,
+    morphosource_url
    FROM silver.fossil_records;;
 
 -- gold.legal_collecting_sites
@@ -1107,7 +1114,10 @@ CREATE MATERIALIZED VIEW gold.mineral_sites_nearby AS
     dev_status,
     latitude,
     longitude,
-    location
+    location,
+    image_url,
+    image_license,
+    image_source
    FROM silver.mineral_sites ms;;
 
 -- gold.hatch_fly_recommendations

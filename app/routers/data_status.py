@@ -122,6 +122,32 @@ def get_data_status():
             "source": "Hand-curated lookup table (~60 genera)",
         })
 
+        # Fossil images by type
+        fossil_img_stats = conn.execute(text("""
+            SELECT COALESCE(image_source, 'none') as src, count(*)
+            FROM fossil_occurrences GROUP BY 1 ORDER BY 2 DESC
+        """)).fetchall()
+        img_breakdown = {r[0]: r[1] for r in fossil_img_stats}
+        fossil_total = conn.execute(text("SELECT count(*) FROM fossil_occurrences")).scalar()
+        fossil_with_img = conn.execute(text("SELECT count(*) FROM fossil_occurrences WHERE image_url IS NOT NULL")).scalar()
+        fossil_3d = conn.execute(text(
+            "SELECT count(*) FROM fossil_occurrences WHERE data_payload ? 'morphosource_url'"
+        )).scalar()
+        pct = round(100 * fossil_with_img / fossil_total, 1) if fossil_total else 0
+        curated.append({
+            "name": "Fossil Images",
+            "table": "fossil_occurrences.image_url",
+            "records": fossil_with_img,
+            "description": (
+                f"{pct}% coverage ({fossil_with_img}/{fossil_total}): "
+                f"{img_breakdown.get('specimen', 0)} specimen photos, "
+                f"{img_breakdown.get('wikimedia', 0)} Wikimedia Commons, "
+                f"{img_breakdown.get('phylopic', 0)} PhyloPic silhouettes. "
+                f"Plus {fossil_3d} MorphoSource 3D links."
+            ),
+            "source": "iDigBio, Smithsonian NMNH, GBIF, Wikimedia Commons, PhyloPic, MorphoSource",
+        })
+
         # Mineral commodity code expansion
         mineral_expanded = conn.execute(text(
             "SELECT count(*) FROM mineral_deposits WHERE commodity NOT SIMILAR TO '%[A-Z]{2,}%'"
@@ -132,6 +158,18 @@ def get_data_status():
             "records": mineral_expanded,
             "description": "MRDS abbreviations expanded to human-readable names (SDG → Sand & Gravel, PGE_PT → Platinum)",
             "source": "Hand-curated code-to-name mapping (~16 codes)",
+        })
+
+        # Mineral images
+        mineral_total = conn.execute(text("SELECT count(*) FROM mineral_deposits")).scalar()
+        mineral_with_img = conn.execute(text("SELECT count(*) FROM mineral_deposits WHERE image_url IS NOT NULL")).scalar()
+        mineral_pct = round(100 * mineral_with_img / mineral_total, 1) if mineral_total else 0
+        curated.append({
+            "name": "Mineral Deposit Images",
+            "table": "mineral_deposits.image_url",
+            "records": mineral_with_img,
+            "description": f"{mineral_pct}% coverage ({mineral_with_img}/{mineral_total}): representative mineral/ore photos from Wikimedia Commons matched by commodity type",
+            "source": "Wikimedia Commons (CC-BY-SA, CC0, Public Domain)",
         })
 
         # Fly tying videos

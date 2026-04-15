@@ -203,7 +203,7 @@ def get_site(watershed: str):
 def search_observations(
     watershed: str,
     q: str = Query(..., description="Search term (taxon name or common name)"),
-    limit: int = Query(500, le=2000),
+    limit: int = Query(5000, le=10000),
 ):
     """Search observations by species name, returning GeoJSON for map display.
 
@@ -239,7 +239,7 @@ def search_observations(
               AND (o.taxon_name ILIKE :q
                    OR o.data_payload->>'common_name' ILIKE :q
                    OR o.iconic_taxon ILIKE :q)
-            ORDER BY o.observed_at DESC
+            ORDER BY o.observed_at
             LIMIT :limit
         """), {"site_id": site[0], "q": pattern, "limit": limit}).fetchall()
 

@@ -41,7 +41,7 @@ const BRONZE_DESCRIPTIONS: Record<string, string> = {
   wetlands: 'National Wetlands Inventory polygons',
   watershed_boundaries: 'USGS HUC watershed boundary polygons',
   geologic_units: 'Rock formations from Macrostrat + DOGAMI with age and lithology',
-  fossil_occurrences: 'Fossil specimens from PBDB, iDigBio, and GBIF',
+  fossil_occurrences: 'Fossil specimens from PBDB, iDigBio, and GBIF — 99.5% with images (specimen photos, Wikimedia, PhyloPic)',
   mineral_deposits: 'USGS MRDS mineral deposit locations',
   land_ownership: 'BLM Surface Management Agency land parcels',
   recreation_sites: 'Campgrounds, trailheads, boat ramps from USFS + OSMB',
@@ -54,9 +54,9 @@ const SILVER_DESCRIPTIONS: Record<string, string> = {
   water_conditions: 'Standardized water/climate time series with normalized parameters',
   interventions_enriched: 'Restoration records with standardized categories and sites',
   geologic_context: 'Standardized geologic unit metadata with geometry',
-  fossil_records: 'Cleaned fossil records with age midpoints and image URLs',
+  fossil_records: 'Cleaned fossil records with age midpoints, specimen images, and MorphoSource 3D links',
   land_access: 'Land ownership with collecting status and rules',
-  mineral_sites: 'Mineral deposits with normalized commodity names',
+  mineral_sites: 'Mineral deposits with normalized commodity names and representative images',
 }
 
 const GOLD_DESCRIPTIONS: Record<string, string> = {
@@ -66,7 +66,7 @@ const GOLD_DESCRIPTIONS: Record<string, string> = {
   deep_time_story: 'Geologic narrative synthesis per formation',
   fishing_conditions: 'Monthly water conditions for angler decision support',
   formation_species_history: 'Fossil species found in each geologic formation',
-  fossils_nearby: 'Fossil occurrences enriched with distance and images',
+  fossils_nearby: 'Fossil occurrences with distance, specimen photos (Smithsonian, Yale Peabody), and 3D models',
   geologic_age_at_location: 'Geologic unit metadata at survey coordinates',
   geology_watershed_link: 'Geologic units within watershed boundaries',
   harvest_trends: 'Year-over-year sport catch with delta tracking',
@@ -75,7 +75,7 @@ const GOLD_DESCRIPTIONS: Record<string, string> = {
   indicator_species_status: 'Presence/absence checklist of indicator species',
   invasive_detections: 'Invasive species tracker with trends',
   legal_collecting_sites: 'Public lands with permitted fossil/mineral collecting',
-  mineral_sites_nearby: 'Mineral deposits with distance from query point',
+  mineral_sites_nearby: 'Mineral deposits with distance, commodity images from Wikimedia Commons',
   post_fire_recovery: 'Species trajectory pre/post fire events',
   restoration_outcomes: 'Before/after species counts at intervention sites',
   river_health_score: 'Composite monthly health score (0-100)',
@@ -96,9 +96,20 @@ const GOLD_DESCRIPTIONS: Record<string, string> = {
   whats_alive_now: 'Species observed in current month',
 }
 
+const ENRICHMENT_SOURCES: Record<string, { description: string; upstream: string; refresh: string }> = {
+  idigbio_media: { description: 'Museum specimen photos resolved from iDigBio media records (Smithsonian, Yale Peabody, UO Condon)', upstream: 'Monthly', refresh: 'Monthly' },
+  morphosource: { description: 'MorphoSource 3D fossil scans and CT imagery linked by taxon genus', upstream: 'Monthly', refresh: 'Monthly' },
+  smithsonian_nmnh: { description: 'Smithsonian National Museum of Natural History specimen images (CC0)', upstream: 'Monthly', refresh: 'Monthly' },
+  wikimedia_commons: { description: 'Representative fossil photographs from Wikimedia Commons matched by genus (CC-BY-SA)', upstream: 'Continuously', refresh: 'Monthly' },
+  phylopic: { description: 'Taxonomic silhouette illustrations from PhyloPic matched by genus/family/class (CC0)', upstream: 'Monthly', refresh: 'Monthly' },
+}
+
 const LIVE_SOURCES = [
   { name: 'NWS Weather Forecast', description: '7-day weather forecast by watershed from api.weather.gov', upstream: 'Hourly', cache: '30 min' },
   { name: 'USGS Instantaneous Values', description: 'Real-time stream flow and water temperature', upstream: '15 minutes', cache: '15 min' },
+  { name: 'BLM Land Ownership', description: 'Real-time point query for land agency and collecting legality', upstream: 'On-demand', cache: 'None' },
+  { name: 'Anthropic Claude AI', description: 'LLM reasoning for river stories, campfire stories, deep time narration, species analysis', upstream: 'On-demand', cache: 'Disk' },
+  { name: 'OpenAI TTS', description: 'Text-to-speech narration for campfire stories and deep time narratives (nova voice)', upstream: 'On-demand', cache: 'Disk' },
 ]
 
 interface SourceInfo {
@@ -155,7 +166,8 @@ export default function StatusPage() {
     return { label: `${Math.round(days)}d ago`, cls: 'stale' }
   }
 
-  const sourceCount = sources.length + LIVE_SOURCES.length
+  const enrichmentCount = Object.keys(ENRICHMENT_SOURCES).length
+  const sourceCount = sources.length + enrichmentCount + LIVE_SOURCES.length + curated.length
   const viewCount = Object.keys(silverTables).length + Object.keys(goldTables).length
 
   return (
@@ -227,6 +239,30 @@ export default function StatusPage() {
                       </tr>
                     )
                   })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* ── Enrichment Pipelines ── */}
+          <section className="status-section">
+            <h2>Enrichment Pipelines ({enrichmentCount})</h2>
+            <p className="status-layer-desc">Post-ingestion pipelines that resolve images, 3D models, and media from museum collections.</p>
+            <div className="status-table-wrap">
+              <table className="status-table">
+                <thead>
+                  <tr><th>Source</th><th>Description</th><th>Upstream</th><th>Refresh</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {Object.entries(ENRICHMENT_SOURCES).map(([key, meta]) => (
+                    <tr key={key}>
+                      <td className="status-source">{key}</td>
+                      <td className="status-desc">{meta.description}</td>
+                      <td className="status-freq">{meta.upstream}</td>
+                      <td className="status-freq">{meta.refresh}</td>
+                      <td><span className="status-badge healthy">healthy</span></td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

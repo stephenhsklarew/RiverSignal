@@ -58,6 +58,9 @@ class FossilOccurrence(Base):
     collector: Mapped[str | None] = mapped_column(String(255), nullable=True)
     reference: Mapped[str | None] = mapped_column(Text, nullable=True)
     museum: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_license: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    image_source: Mapped[str | None] = mapped_column(String(20), nullable=True)  # specimen, wikimedia, phylopic
     data_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -99,6 +102,9 @@ class MineralDeposit(Base):
     location = mapped_column(Geometry("POINT", srid=4326), nullable=True)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_license: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    image_source: Mapped[str | None] = mapped_column(String(20), nullable=True)  # wikimedia, phylopic
     data_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

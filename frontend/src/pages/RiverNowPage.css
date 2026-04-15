@@ -474,10 +474,18 @@
 .rnow-fish-carousel::-webkit-scrollbar { display: none; }
 
 .rnow-fish-card {
-  flex-shrink: 0; width: 130px;
+  flex-shrink: 0; width: 140px;
   background: #fff; border: 1px solid #e8e5de; border-radius: 10px;
-  padding: 12px; text-align: center;
+  overflow: hidden; text-align: center;
 }
+.rnow-fish-photo {
+  width: 100%; height: 90px; object-fit: cover; display: block;
+}
+.rnow-fish-photo-placeholder {
+  width: 100%; height: 90px; display: flex; align-items: center; justify-content: center;
+  background: #f0ede6; font-size: 2rem;
+}
+.rnow-fish-info { padding: 8px 10px 10px; }
 .rnow-fish-name { font-size: 13px; font-weight: 600; color: #2a2a2a; }
 .rnow-fish-stream { font-size: 10px; color: #888; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rnow-fish-use {

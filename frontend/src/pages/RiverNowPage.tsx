@@ -661,9 +661,16 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <div className="rnow-fish-carousel">
                 {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
                   <div key={i} className="rnow-fish-card">
-                    <div className="rnow-fish-name">{s.common_name || s.species}</div>
-                    <div className="rnow-fish-stream">{s.stream}</div>
-                    <div className="rnow-fish-use">{s.use_type}</div>
+                    {s.photo_url ? (
+                      <img src={s.photo_url} alt={s.common_name || s.species} className="rnow-fish-photo" loading="lazy" />
+                    ) : (
+                      <div className="rnow-fish-photo-placeholder">🐟</div>
+                    )}
+                    <div className="rnow-fish-info">
+                      <div className="rnow-fish-name">{s.common_name || s.species}</div>
+                      <div className="rnow-fish-stream">{s.stream}</div>
+                      <div className="rnow-fish-use">{s.use_type}</div>
+                    </div>
                   </div>
                 ))}
               </div>

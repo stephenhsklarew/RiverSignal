@@ -17,7 +17,7 @@ def fishing_brief(watershed: str, month: int = None):
 
 @router.get("/sites/{watershed}/fishing/species")
 def fishing_species(watershed: str):
-    """Get fish species distribution by stream reach."""
+    """Get fish species distribution by stream reach with photos."""
     with engine.connect() as conn:
         site = conn.execute(text(
             "SELECT id FROM sites WHERE watershed = :ws"
@@ -25,12 +25,62 @@ def fishing_species(watershed: str):
         if not site:
             raise HTTPException(404, f"Watershed '{watershed}' not found")
 
+        # Get species by reach
         rows = conn.execute(text("""
             SELECT stream_name, scientific_name, common_name, use_type, origin,
                    inat_observation_count, last_inat_observation
             FROM gold.species_by_reach WHERE watershed = :ws
             ORDER BY stream_name, scientific_name
         """), {"ws": watershed}).fetchall()
+
+        # Build a photo lookup from species_gallery (same watershed, then any watershed)
+        gallery = conn.execute(text("""
+            SELECT common_name, taxon_name, photo_url
+            FROM gold.species_gallery
+            WHERE taxonomic_group = 'Actinopterygii'
+              AND photo_url IS NOT NULL
+            ORDER BY CASE WHEN watershed = :ws THEN 0 ELSE 1 END
+        """), {"ws": watershed}).fetchall()
+
+        photo_map: dict[str, str] = {}
+        for g in gallery:
+            cn = (g[0] or "").lower()
+            tn = (g[1] or "").lower()
+            if cn and cn not in photo_map:
+                photo_map[cn] = g[2]
+            if tn and tn not in photo_map:
+                photo_map[tn] = g[2]
+
+        # ODFW-to-iNaturalist name aliases
+        aliases = {
+            "spring chinook": "chinook salmon",
+            "fall chinook": "chinook salmon",
+            "summer steelhead": "rainbow trout",
+            "winter steelhead": "rainbow trout",
+            "redband trout": "rainbow trout",
+            "coho": "coho salmon",
+            "sockeye": "sockeye salmon",
+            "chum": "chum salmon",
+        }
+
+        def find_photo(common_name: str, scientific_name: str) -> str | None:
+            cn = (common_name or "").lower()
+            sn = (scientific_name or "").lower()
+            # Exact match
+            if cn in photo_map:
+                return photo_map[cn]
+            if sn in photo_map:
+                return photo_map[sn]
+            # Alias match
+            if cn in aliases and aliases[cn] in photo_map:
+                return photo_map[aliases[cn]]
+            # Partial match on first word of scientific name (genus)
+            genus = sn.split()[0] if sn else ""
+            if genus:
+                for key, url in photo_map.items():
+                    if key.startswith(genus):
+                        return url
+            return None
 
     return [
         {
@@ -41,6 +91,7 @@ def fishing_species(watershed: str):
             "origin": r[4],
             "observation_count": r[5],
             "last_observed": str(r[6]) if r[6] else None,
+            "photo_url": find_photo(r[2], r[1]),
         }
         for r in rows
     ]

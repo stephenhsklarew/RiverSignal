@@ -93,7 +93,7 @@ export default function MapPage() {
     e.preventDefault()
     if (!obsSearch.trim() || !selectedSite) return
     setObsSearching(true)
-    fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(obsSearch.trim())}`)
+    fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(obsSearch.trim())}&limit=5000`)
       .then(r => r.json())
       .then(data => { setObsOverlay(data); setObsSearching(false) })
       .catch(() => setObsSearching(false))
@@ -185,13 +185,13 @@ export default function MapPage() {
               // Handle multi-species: split on " OR " and merge results
               const taxa = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
               if (taxa.length <= 1) {
-                fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonQuery)}&limit=500`)
+                fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonQuery)}&limit=5000`)
                   .then(r => r.json())
                   .then(data => { setObsOverlay(data); setObsSearching(false) })
                   .catch(() => setObsSearching(false))
               } else {
                 Promise.all(taxa.map(t =>
-                  fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(t)}&limit=200`)
+                  fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(t)}&limit=2000`)
                     .then(r => r.json()).catch(() => ({ features: [] }))
                 )).then(results => {
                   const merged = {

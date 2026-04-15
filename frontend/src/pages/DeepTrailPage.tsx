@@ -32,11 +32,13 @@ interface Location { id: string; name: string; lat: number; lon: number; photo?:
 interface Fossil {
   taxon_name: string; common_name: string | null; phylum: string; class_name: string; period: string;
   age_max_ma: number | null; distance_km: number | null; source_id: string | null;
-  image_url: string | null; museum: string | null; latitude: number; longitude: number;
+  image_url: string | null; image_license: string | null; museum: string | null;
+  latitude: number; longitude: number; morphosource_url?: string | null;
 }
 interface Mineral {
   site_name: string; commodity: string; dev_status: string;
   distance_km: number | null; latitude: number; longitude: number;
+  image_url?: string | null; image_license?: string | null;
 }
 interface TimelineItem {
   type: string; name: string; period: string; age_max_ma: number | null;
@@ -1001,7 +1003,11 @@ function FossilCard({ fossil: f }: { fossil: any }) {
           {f.museum && <span className="dt-fossil-museum">{f.museum}</span>}
           {f.distance_km != null && <span className="dt-fossil-dist">{f.distance_km} km</span>}
           {sid && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="dt-fossil-source">{sourceLabel} ↗</a>}
+          {f.morphosource_url && <a href={f.morphosource_url} target="_blank" rel="noopener noreferrer" className="dt-fossil-source">3D Model ↗</a>}
         </div>
+        {f.image_url && f.image_license && (
+          <div className="dt-fossil-license">{f.image_license}</div>
+        )}
       </div>
     </div>
   )
@@ -1058,6 +1064,11 @@ function MineralGroupedList({ minerals }: { minerals: any[] }) {
             <div className="dt-group-items">
               {visible.map((m, i) => (
                 <div key={i} className="dt-mineral-card">
+                  {m.image_url && (
+                    <div className="dt-mineral-thumb">
+                      <img src={m.image_url} alt={m.commodity} loading="lazy" />
+                    </div>
+                  )}
                   <div className="dt-mineral-body">
                     <div className="dt-mineral-name">{m.site_name}</div>
                     <div className="dt-mineral-meta">{m.commodity}</div>

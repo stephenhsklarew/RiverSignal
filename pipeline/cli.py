@@ -191,6 +191,13 @@ def status():
 
 
 @main.command()
+def fossil_images():
+    """Backfill fossil specimen images from iDigBio, MorphoSource, and Smithsonian."""
+    from pipeline.ingest.fossil_images import backfill_all_fossil_images
+    backfill_all_fossil_images()
+
+
+@main.command()
 def compare():
     """Generate detailed comparison report across all watersheds."""
     from sqlalchemy import func, distinct

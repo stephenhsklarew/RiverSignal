@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Site } from '../pages/MapPage'
+import TimelineSlider from './TimelineSlider'
 
 interface MapViewProps {
   sites: Site[]
@@ -240,7 +241,23 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     }
   }, [selectedSite, sites])
 
+  const handleTimelineFilter = useCallback((startDate: string | null, endDate: string | null) => {
+    const map = mapRef.current
+    if (!map || !mapLoadedRef.current) return
+    if (!startDate || !endDate) {
+      // Remove filter — show all
+      map.setFilter(OBS_LAYER_ID, null)
+    } else {
+      map.setFilter(OBS_LAYER_ID, [
+        'all',
+        ['>=', ['get', 'observed_at'], startDate],
+        ['<=', ['get', 'observed_at'], endDate],
+      ])
+    }
+  }, [])
+
   const totalObs = sites.reduce((a, s) => a + s.observations, 0)
+  const obsFeatures = observationOverlay?.features || []
 
   return (
     <div className="map-container">
@@ -274,6 +291,13 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
       </div>
 
       <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+
+      {obsFeatures.length > 0 && (
+        <TimelineSlider
+          features={obsFeatures}
+          onFilterChange={handleTimelineFilter}
+        />
+      )}
     </div>
   )
 }
