@@ -392,10 +392,25 @@ def hatch_confidence(watershed: str, month: int = None):
             obs_rows = []
 
         # Add observation entries not already covered by curated data
-        curated_names = {i["taxon_name"].lower() for i in insects}
+        # Build dedup set from curated taxon names (match genus level too)
+        curated_names = set()
+        for i in insects:
+            tn = i["taxon_name"].lower()
+            curated_names.add(tn)
+            # Also add genus (first word) for genus-level matching
+            genus = tn.split()[0] if ' ' in tn else tn
+            curated_names.add(genus)
+
+        seen_obs = set()
         for r in obs_rows:
-            if r[0].lower() in curated_names:
+            obs_taxon = r[0].lower()
+            obs_genus = obs_taxon.split()[0] if ' ' in obs_taxon else obs_taxon
+            # Skip if already covered by curated data or already seen
+            if obs_taxon in curated_names or obs_genus in curated_names:
                 continue
+            if obs_taxon in seen_obs:
+                continue
+            seen_obs.add(obs_taxon)
             obs = r[3] or 0
             activity = r[4] or 'present'
             years = r[6] or 1
