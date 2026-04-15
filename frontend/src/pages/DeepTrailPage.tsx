@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import Markdown from 'react-markdown'
+import { CardSettingsPanel, loadDeepTrailCardSettings, DEEPTRAIL_DEFAULT_CARDS, type CardConfig } from '../components/CardSettings'
 import logo from '../assets/deeptrail-logo.svg'
 import './DeepTrailPage.css'
 
@@ -54,6 +55,16 @@ export default function DeepTrailPage() {
   const [screen, setScreen] = useState<Screen>('pick')
   const [loc, setLoc] = useState<Location | null>(null)
   const [customLat, setCustomLat] = useState('')
+
+  // Card customization
+  const [dtCardConfig, setDtCardConfig] = useState<CardConfig[]>(loadDeepTrailCardSettings)
+  const [showDtSettings, setShowDtSettings] = useState(false)
+
+  // Page title
+  useEffect(() => {
+    document.title = 'Deep Trail'
+    return () => { document.title = 'RiverSignal' }
+  }, [])
   const [customLon, setCustomLon] = useState('')
   const [gpsLoading, setGpsLoading] = useState(false)
 
@@ -289,16 +300,41 @@ export default function DeepTrailPage() {
         <img src={logo} alt="DeepTrail" className="dt-logo" />
       </header>
 
+      {/* Card settings panel */}
+      {showDtSettings && (
+        <CardSettingsPanel
+          cards={dtCardConfig}
+          onChange={setDtCardConfig}
+          onClose={() => setShowDtSettings(false)}
+          storageKey="deeptrail-card-settings"
+          defaults={DEEPTRAIL_DEFAULT_CARDS}
+          title="Customize Deep Trail"
+        />
+      )}
+
       {loading ? <div className="dt-loading">Loading geology data...</div> : (
         <main className="dt-content">
+          {/* Dynamic CSS for card ordering/visibility */}
+          <style>{dtCardConfig.map((c, i) => {
+            const rules = [`[data-dtcard="${c.id}"] { order: ${i}; }`]
+            if (!c.visible) rules.push(`[data-dtcard="${c.id}"] { display: none !important; }`)
+            return rules.join('\n')
+          }).join('\n')}</style>
+
           <section className="dt-loc-hero">
-            <h1>{loc!.name}</h1>
+            <div className="dt-hero-top-row">
+              <h1>{loc!.name}</h1>
+              <button className="dt-settings-btn" onClick={() => setShowDtSettings(true)} title="Customize sections">⚙</button>
+            </div>
             <p className="dt-loc-coords">{loc!.lat.toFixed(4)}°N, {Math.abs(loc!.lon).toFixed(4)}°W</p>
             {loc!.photo && (
               <img src={loc!.photo} alt={loc!.name} className="dt-hero-img" />
             )}
           </section>
 
+          <div className="dt-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
+
+          <div data-dtcard="deep_time_story">
           {/* Deep Time Story */}
           <StoryCard
             narrative={storyNarrative}
@@ -310,6 +346,8 @@ export default function DeepTrailPage() {
             onSpeak={speakStory}
           />
 
+          </div>
+          <div data-dtcard="ask_place">
           {/* Ask About This Place */}
           <section className="dt-chat-section">
             <h3>Ask About This Place</h3>
@@ -330,6 +368,8 @@ export default function DeepTrailPage() {
             </div>
           </section>
 
+          </div>
+          <div data-dtcard="geologic_context">
           {/* Geologic Context (deduplicated) */}
           {geoContext?.units?.length > 0 && (() => {
             const seen = new Set<string>()
@@ -355,6 +395,8 @@ export default function DeepTrailPage() {
             ) : null
           })()}
 
+          </div>
+          <div data-dtcard="legal_collecting">
           {/* Legal Collecting */}
           {landStatus && (
             <section className="dt-legal-card">
@@ -368,12 +410,16 @@ export default function DeepTrailPage() {
             </section>
           )}
 
+          </div>
+          <div data-dtcard="deep_time_timeline">
           {/* Deep Time Timeline */}
           {timeline.length > 0 && (
             <TimelineSection items={timeline} />
           )}
 
-          {/* Navigation links to fossil/mineral screens */}
+          </div>
+          <div data-dtcard="fossils_nearby">
+          {/* Fossils navigation */}
           <section className="dt-nav-cards">
             <button className="dt-nav-card" onClick={() => setScreen('fossils')}>
               <span className="dt-nav-card-icon">🦴</span>
@@ -381,13 +427,23 @@ export default function DeepTrailPage() {
               <span className="dt-nav-card-count">{fossils.length}</span>
               <span className="dt-nav-card-arrow">→</span>
             </button>
+          </section>
+          </div>
+          <div data-dtcard="minerals_nearby">
+          {/* Minerals navigation */}
+          <section className="dt-nav-cards">
             <button className="dt-nav-card" onClick={() => setScreen('minerals')}>
               <span className="dt-nav-card-icon">💎</span>
               <span className="dt-nav-card-label">Mineral Sites Nearby</span>
               <span className="dt-nav-card-count">{minerals.length}</span>
               <span className="dt-nav-card-arrow">→</span>
             </button>
-            {riverData && (
+          </section>
+          </div>
+          <div data-dtcard="living_river">
+          {/* Living River link */}
+          {riverData && (
+            <section className="dt-nav-cards">
               <a href={`/path/now/${riverData.watershed}`} target="_blank" rel="noopener noreferrer" className="dt-nav-card dt-nav-card-river">
                 <span className="dt-nav-card-icon">🐟</span>
                 <span className="dt-nav-card-label">
@@ -400,8 +456,11 @@ export default function DeepTrailPage() {
                 </span>
                 <span className="dt-nav-card-arrow">↗</span>
               </a>
-            )}
-          </section>
+            </section>
+          )}
+          </div>
+
+          </div>{/* end dt-card-container */}
         </main>
       )}
     </div>

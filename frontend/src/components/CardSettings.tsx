@@ -8,14 +8,14 @@ export interface CardConfig {
   visible: boolean
 }
 
-const STORAGE_KEY = 'riverpath-card-settings'
+// ── RiverPath defaults ──
+const RIVERPATH_STORAGE_KEY = 'riverpath-card-settings'
 
-// Default card order and visibility
-const DEFAULT_CARDS: CardConfig[] = [
+const RIVERPATH_DEFAULT_CARDS: CardConfig[] = [
   { id: 'river_replay', label: 'River Replay — What Changed', icon: '🔄', visible: true },
   { id: 'catch_probability', label: 'Catch Probability', icon: '🎯', visible: true },
   { id: 'species_spotter', label: 'Likely Sightings Today', icon: '👀', visible: true },
-  { id: 'campfire_story', label: 'Campfire Story', icon: '🔥', visible: true },
+  { id: 'campfire_story', label: 'River Story', icon: '🔥', visible: true },
   { id: 'current_activity', label: 'Current Activity Cards', icon: '📊', visible: true },
   { id: 'fish_present', label: 'Fish Present', icon: '🐟', visible: true },
   { id: 'barriers', label: 'Fish Passage Barriers', icon: '⚠', visible: true },
@@ -29,36 +29,66 @@ const DEFAULT_CARDS: CardConfig[] = [
   { id: 'nearby_access', label: 'Nearby Access', icon: '📍', visible: true },
 ]
 
-export function loadCardSettings(): CardConfig[] {
+// ── DeepTrail defaults ──
+const DEEPTRAIL_STORAGE_KEY = 'deeptrail-card-settings'
+
+export const DEEPTRAIL_DEFAULT_CARDS: CardConfig[] = [
+  { id: 'deep_time_story', label: 'Deep Time Story', icon: '📖', visible: true },
+  { id: 'ask_place', label: 'Ask About This Place', icon: '💬', visible: true },
+  { id: 'geologic_context', label: 'Geologic Context', icon: '🪨', visible: true },
+  { id: 'legal_collecting', label: 'Legal Collecting Status', icon: '⚖️', visible: true },
+  { id: 'deep_time_timeline', label: 'Deep Time Timeline', icon: '🕰️', visible: true },
+  { id: 'fossils_nearby', label: 'Fossils Found Nearby', icon: '🦴', visible: true },
+  { id: 'minerals_nearby', label: 'Mineral Sites Nearby', icon: '💎', visible: true },
+  { id: 'living_river', label: 'Living River Link', icon: '🐟', visible: true },
+]
+
+// ── Generic loader ──
+export function loadCardSettingsGeneric(storageKey: string, defaults: CardConfig[]): CardConfig[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULT_CARDS
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) return defaults
     const saved: CardConfig[] = JSON.parse(raw)
-    // Merge with defaults to handle new cards added after save
     const savedMap = new Map(saved.map(c => [c.id, c]))
     const merged: CardConfig[] = []
-    // Keep saved order for known cards
     for (const s of saved) {
-      const def = DEFAULT_CARDS.find(d => d.id === s.id)
+      const def = defaults.find(d => d.id === s.id)
       if (def) merged.push({ ...def, visible: s.visible })
     }
-    // Append any new cards not in saved
-    for (const d of DEFAULT_CARDS) {
+    for (const d of defaults) {
       if (!savedMap.has(d.id)) merged.push(d)
     }
     return merged
   } catch {
-    return DEFAULT_CARDS
+    return defaults
   }
 }
 
-function saveCardSettings(cards: CardConfig[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards.map(c => ({ id: c.id, visible: c.visible }))))
+function saveCardSettingsGeneric(storageKey: string, cards: CardConfig[]) {
+  localStorage.setItem(storageKey, JSON.stringify(cards.map(c => ({ id: c.id, visible: c.visible }))))
 }
 
-export function CardSettingsPanel({ cards, onChange, onClose }: {
-  cards: CardConfig[]; onChange: (cards: CardConfig[]) => void; onClose: () => void
+// ── RiverPath convenience (backwards compat) ──
+export function loadCardSettings(): CardConfig[] {
+  return loadCardSettingsGeneric(RIVERPATH_STORAGE_KEY, RIVERPATH_DEFAULT_CARDS)
+}
+
+// ── DeepTrail convenience ──
+export function loadDeepTrailCardSettings(): CardConfig[] {
+  return loadCardSettingsGeneric(DEEPTRAIL_STORAGE_KEY, DEEPTRAIL_DEFAULT_CARDS)
+}
+
+// ── Reusable settings panel ──
+export function CardSettingsPanel({ cards, onChange, onClose, storageKey, defaults, title }: {
+  cards: CardConfig[]
+  onChange: (cards: CardConfig[]) => void
+  onClose: () => void
+  storageKey?: string
+  defaults?: CardConfig[]
+  title?: string
 }) {
+  const key = storageKey || RIVERPATH_STORAGE_KEY
+  const defs = defaults || RIVERPATH_DEFAULT_CARDS
   const [local, setLocal] = useState<CardConfig[]>(cards)
 
   const toggle = (id: string) => {
@@ -74,15 +104,15 @@ export function CardSettingsPanel({ cards, onChange, onClose }: {
   }
 
   const apply = () => {
-    saveCardSettings(local)
+    saveCardSettingsGeneric(key, local)
     onChange(local)
     onClose()
   }
 
   const reset = () => {
-    const fresh = [...DEFAULT_CARDS]
+    const fresh = [...defs]
     setLocal(fresh)
-    saveCardSettings(fresh)
+    saveCardSettingsGeneric(key, fresh)
     onChange(fresh)
     onClose()
   }
@@ -91,10 +121,10 @@ export function CardSettingsPanel({ cards, onChange, onClose }: {
     <div className="card-settings-overlay" onClick={onClose}>
       <div className="card-settings-modal" onClick={e => e.stopPropagation()}>
         <div className="card-settings-header">
-          <span>Customize River Now</span>
+          <span>{title || 'Customize'}</span>
           <button className="card-settings-close" onClick={onClose}>✕</button>
         </div>
-        <p className="card-settings-hint">Toggle cards on/off and reorder with arrows.</p>
+        <p className="card-settings-hint">Toggle sections on/off and reorder with arrows.</p>
 
         <div className="card-settings-list">
           {local.map((card, i) => (

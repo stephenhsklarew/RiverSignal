@@ -83,6 +83,16 @@
 .dt-loading { padding: 60px 20px; text-align: center; color: #8a7e6e; font-style: italic; }
 
 .dt-loc-hero { margin-bottom: 20px; }
+.dt-hero-top-row { display: flex; align-items: flex-start; }
+.dt-hero-top-row h1 { flex: 1; }
+.dt-settings-btn {
+  background: none; border: 1px solid #3d3328; border-radius: 6px;
+  width: 32px; height: 32px; font-size: 16px; cursor: pointer;
+  color: #8a7e6e; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 4px;
+}
+.dt-settings-btn:hover { border-color: #d4a96a; color: #d4a96a; }
+.dt-card-container { display: flex; flex-direction: column; }
 .dt-loc-hero h1 { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 500; color: #f0e6d6; margin: 0 0 4px; }
 .dt-loc-coords { font-size: 0.78rem; color: #8a7e6e; margin: 0 0 12px; font-family: monospace; }
 .dt-hero-img {
