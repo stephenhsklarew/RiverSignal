@@ -14,6 +14,8 @@ set -euo pipefail
 DB_NAME="riversignal"
 DB_PORT="5433"
 DB_HOST="localhost"
+PG_DUMP="/opt/homebrew/opt/postgresql@17/bin/"$PG_DUMP""
+PSQL="/opt/homebrew/opt/postgresql@17/bin/"$PSQL""
 BACKUP_DIR="$(cd "$(dirname "$0")/.." && pwd)/backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
@@ -23,7 +25,7 @@ case "${1:-full}" in
   --schema-only)
     FILE="$BACKUP_DIR/schema-${TIMESTAMP}.sql"
     echo "Backing up schema only to $FILE..."
-    pg_dump -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" \
+    "$PG_DUMP" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" \
       --schema-only --no-owner --no-privileges \
       > "$FILE"
     echo "Done: $(du -h "$FILE" | cut -f1)"
@@ -32,7 +34,7 @@ case "${1:-full}" in
   --data-only)
     FILE="$BACKUP_DIR/data-${TIMESTAMP}.sql.gz"
     echo "Backing up data only to $FILE..."
-    pg_dump -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" \
+    "$PG_DUMP" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" \
       --data-only --no-owner \
       | gzip > "$FILE"
     echo "Done: $(du -h "$FILE" | cut -f1)"
@@ -40,7 +42,7 @@ case "${1:-full}" in
 
   --tables)
     echo "Table sizes in $DB_NAME:"
-    psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -c "
+    "$PSQL" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -c "
       SELECT schemaname || '.' || tablename AS table,
              pg_size_pretty(pg_total_relation_size(schemaname || '.' || tablename)) AS size
       FROM pg_tables
@@ -48,7 +50,7 @@ case "${1:-full}" in
       ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC;
     "
     echo ""
-    psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -c "
+    "$PSQL" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -c "
       SELECT schemaname || '.' || matviewname AS view,
              pg_size_pretty(pg_total_relation_size(schemaname || '.' || matviewname)) AS size
       FROM pg_matviews
@@ -57,7 +59,7 @@ case "${1:-full}" in
       LIMIT 15;
     "
     echo ""
-    psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -c "
+    "$PSQL" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -c "
       SELECT pg_size_pretty(pg_database_size('$DB_NAME')) AS total_database_size;
     "
     ;;
@@ -76,9 +78,9 @@ case "${1:-full}" in
     fi
     echo "Restoring from $FILE..."
     if [[ "$FILE" == *.gz ]]; then
-      gunzip -c "$FILE" | psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME"
+      gunzip -c "$FILE" | "$PSQL" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME"
     else
-      psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" < "$FILE"
+      "$PSQL" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" < "$FILE"
     fi
     echo "Done."
     ;;
@@ -87,7 +89,7 @@ case "${1:-full}" in
     FILE="$BACKUP_DIR/full-${TIMESTAMP}.sql.gz"
     echo "Full backup to $FILE..."
     echo "This may take a few minutes for a 2.5M+ record database."
-    pg_dump -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" \
+    "$PG_DUMP" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" \
       --no-owner --no-privileges \
       --format=plain \
       | gzip > "$FILE"
