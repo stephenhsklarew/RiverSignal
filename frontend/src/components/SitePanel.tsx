@@ -74,8 +74,8 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
         fetch(`${API_BASE}/fossils/near/${lat}/${lon}?radius_km=75`).then(r => r.json()).catch(() => ({ fossils: [] })),
         fetch(`${API_BASE}/minerals/near/${lat}/${lon}?radius_km=75`).then(r => r.json()).catch(() => ({ minerals: [] })),
       ]).then(([fossilData, mineralData]) => {
-        const fossils = (fossilData.fossils || []).map((f: any) => ({ ...f, rock_type: 'fossil', display_name: f.taxon_name, category: f.phylum || 'Fossil' }))
-        const minerals = (mineralData.minerals || []).map((m: any) => ({ ...m, rock_type: 'mineral', display_name: m.site_name || m.commodity, category: m.commodity?.split(',')[0]?.trim() || 'Mineral' }))
+        const fossils = (fossilData.fossils || []).map((f: any, idx: number) => ({ ...f, rock_type: 'fossil', display_name: f.taxon_name, _uid: `f-${f.source_id || idx}`, category: f.phylum || 'Fossil' }))
+        const minerals = (mineralData.minerals || []).map((m: any, idx: number) => ({ ...m, rock_type: 'mineral', display_name: m.site_name || m.commodity, _uid: `m-${m.source_id || idx}`, category: m.commodity?.split(',')[0]?.trim() || 'Mineral' }))
         setRocks([...fossils, ...minerals])
       })
     }
@@ -261,13 +261,18 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 const isSelected = selectedSpecies.has(s.taxon_name)
                 return (
                 <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
-                  onClick={() => onShowSpeciesOnMap?.(s.taxon_name)}
-                  title={`Show ${s.common_name || s.taxon_name} on map`}>
-                  {onShowSpeciesOnMap && (
-                    <div className="sp-select-check" onClick={(e) => toggleSelect(s.taxon_name, e)}>
-                      {isSelected ? '☑' : '☐'}
-                    </div>
-                  )}
+                  onClick={() => {
+                    if (onShowSpeciesOnMap) {
+                      // Toggle selection on card click
+                      setSelectedSpecies(prev => {
+                        const next = new Set(prev)
+                        if (next.has(s.taxon_name)) next.delete(s.taxon_name); else next.add(s.taxon_name)
+                        return next
+                      })
+                    }
+                  }}
+                  title={`Tap to select ${s.common_name || s.taxon_name}`}>
+                  {isSelected && <div className="sp-selected-badge">✓</div>}
                   {s.photo_url && <img src={s.photo_url} alt={s.common_name || s.taxon_name} loading="lazy" />}
                   <div className="sp-info">
                     <div className="sp-common">{s.common_name || s.taxon_name}</div>
@@ -355,7 +360,11 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
             {selectedRocks.size > 0 && onShowSpeciesOnMap && (
               <div className="species-select-bar">
                 <span>{selectedRocks.size} selected</span>
-                <button className="sp-show-map-btn" onClick={() => onShowSpeciesOnMap(Array.from(selectedRocks).join(' OR '))}>📍 Show on map</button>
+                <button className="sp-show-map-btn" onClick={() => {
+                  const names = rocks.filter(r => selectedRocks.has(r._uid)).map(r => r.display_name)
+                  const unique = [...new Set(names)]
+                  onShowSpeciesOnMap(unique.join(' OR '))
+                }}>📍 Show on map</button>
                 <button className="sp-clear-btn" onClick={() => setSelectedRocks(new Set())}>Clear</button>
               </div>
             )}
@@ -363,17 +372,19 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
             {/* Grid */}
             <div className="species-grid">
               {pageRocks.map((r: any, i: number) => {
-                const isSelected = selectedRocks.has(r.display_name)
+                const isSelected = selectedRocks.has(r._uid)
                 const icon = r.rock_type === 'fossil' ? '🦴' : '💎'
                 return (
                 <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
-                  onClick={() => onShowSpeciesOnMap?.(r.display_name)}
-                  title={`Show ${r.display_name} on map`}>
-                  {onShowSpeciesOnMap && (
-                    <div className="sp-select-check" onClick={(e) => toggleRockSelect(r.display_name, e)}>
-                      {isSelected ? '☑' : '☐'}
-                    </div>
-                  )}
+                  onClick={() => {
+                    if (onShowSpeciesOnMap) {
+                      setSelectedRocks(prev => {
+                        const n = new Set(prev); if (n.has(r._uid)) n.delete(r._uid); else n.add(r._uid); return n
+                      })
+                    }
+                  }}
+                  title={`Tap to select ${r.display_name}`}>
+                  {isSelected && <div className="sp-selected-badge">✓</div>}
                   {r.image_url ? (
                     <img src={r.image_url} alt={r.display_name} loading="lazy" />
                   ) : (
