@@ -13,3 +13,4 @@ frontend/dist/
 .deeptrail_cache/
 # Image cache (downloaded at runtime, not committed)
 /frontend/public/images/cache/
+/backups/
