@@ -34,12 +34,17 @@ const DEEPTRAIL_STORAGE_KEY = 'deeptrail-card-settings'
 
 export const DEEPTRAIL_DEFAULT_CARDS: CardConfig[] = [
   { id: 'deep_time_story', label: 'Deep Time Story', icon: '📖', visible: true },
+  { id: 'kid_quiz', label: 'Kid Quiz Mode', icon: '🧩', visible: true },
   { id: 'ask_place', label: 'Ask About This Place', icon: '💬', visible: true },
   { id: 'geologic_context', label: 'Geologic Context', icon: '🪨', visible: true },
+  { id: 'cross_domain', label: 'Why This River?', icon: '🌋', visible: true },
+  { id: 'formation_explorer', label: 'Formation Explorer', icon: '🗺️', visible: true },
   { id: 'legal_collecting', label: 'Legal Collecting Status', icon: '⚖️', visible: true },
   { id: 'deep_time_timeline', label: 'Deep Time Timeline', icon: '🕰️', visible: true },
+  { id: 'compare_eras', label: 'Compare Eras', icon: '⚖️', visible: true },
   { id: 'fossils_nearby', label: 'Fossils Found Nearby', icon: '🦴', visible: true },
   { id: 'minerals_nearby', label: 'Mineral Sites Nearby', icon: '💎', visible: true },
+  { id: 'mineral_shops', label: 'Mineral Shops Nearby', icon: '🏪', visible: true },
   { id: 'living_river', label: 'Living River Link', icon: '🐟', visible: true },
 ]
 

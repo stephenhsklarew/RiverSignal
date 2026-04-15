@@ -98,6 +98,18 @@ def get_data_status():
         except Exception:
             conn.rollback()
 
+        try:
+            mineral_shop_count = conn.execute(text("SELECT count(*) FROM mineral_shops")).scalar()
+            curated.append({
+                "name": "Mineral & Rock Shops",
+                "table": "mineral_shops",
+                "records": mineral_shop_count,
+                "description": "Oregon mineral shops, rock ranches, and paleontology museums with contact info and coordinates",
+                "source": "Hand-curated from web research (verified businesses)",
+            })
+        except Exception:
+            conn.rollback()
+
         # Fossil common names
         fossil_common = conn.execute(text(
             "SELECT count(*) FROM fossil_occurrences WHERE common_name IS NOT NULL AND common_name != ''"

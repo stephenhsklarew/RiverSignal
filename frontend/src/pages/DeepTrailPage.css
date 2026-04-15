@@ -397,6 +397,84 @@
 .dt-mineral-dist { color: #6b5f4f; }
 
 /* Responsive */
+/* ── Kid Quiz ── */
+.dt-quiz-section h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500; color: #d4a96a; margin: 0 0 12px; }
+.dt-quiz-q { margin-bottom: 16px; }
+.dt-quiz-question { font-size: 0.9rem; color: #e8e0d4; font-weight: 500; margin-bottom: 8px; }
+.dt-quiz-choices { display: flex; flex-direction: column; gap: 6px; }
+.dt-quiz-choice {
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
+  padding: 10px 14px; font-size: 0.85rem; color: #e8e0d4; cursor: pointer;
+  font-family: inherit; text-align: left; transition: border-color 0.15s;
+}
+.dt-quiz-choice:hover:not(:disabled) { border-color: #d4a96a; }
+.dt-quiz-choice.correct { border-color: #4caf50; background: #1b3a1b; color: #4caf50; }
+.dt-quiz-choice.wrong { border-color: #f44336; background: #3a1b1b; color: #f44336; }
+.dt-quiz-hint { font-size: 0.78rem; margin-top: 6px; line-height: 1.4; }
+.dt-quiz-hint.right { color: #4caf50; }
+.dt-quiz-hint.wrong-hint { color: #f44336; }
+
+/* ── Cross-Domain Connector ── */
+.dt-cross-section h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500; color: #d4a96a; margin: 0 0 12px; }
+.dt-cross-card { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #3d3328; }
+.dt-cross-card:last-child { border-bottom: none; }
+.dt-cross-icon { font-size: 1.2rem; flex-shrink: 0; }
+.dt-cross-geo { font-size: 0.82rem; font-weight: 600; color: #d4a96a; }
+.dt-cross-text { font-size: 0.82rem; color: #c4b8a4; line-height: 1.4; margin-top: 2px; }
+.dt-cross-link { display: block; margin-top: 10px; font-size: 0.82rem; color: #1a6b4a; text-decoration: none; }
+.dt-cross-link:hover { text-decoration: underline; }
+.dt-cross-section { margin-bottom: 20px; }
+
+/* ── Formation Explorer ── */
+.dt-formation-section h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500; color: #d4a96a; margin: 0 0 12px; }
+.dt-formation-list { display: flex; flex-direction: column; gap: 6px; }
+.dt-formation-btn {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
+  padding: 12px 14px; cursor: pointer; font-family: inherit; color: #e8e0d4;
+  transition: border-color 0.15s;
+}
+.dt-formation-btn:hover { border-color: #d4a96a; }
+.dt-formation-name { font-size: 0.88rem; font-weight: 500; }
+.dt-formation-period { font-size: 0.72rem; color: #8a7e6e; }
+.dt-formation-section { margin-bottom: 20px; }
+
+/* ── Compare Eras ── */
+.dt-compare-section h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500; color: #d4a96a; margin: 0 0 12px; }
+.dt-compare-pickers { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.dt-compare-vs { color: #8a7e6e; font-size: 0.78rem; }
+.dt-compare-go {
+  background: #d4a96a; color: #1a1612; border: none; border-radius: 6px;
+  padding: 8px 14px; font-size: 0.78rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.dt-compare-results { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dt-compare-col { background: #2a2318; border: 1px solid #3d3328; border-radius: 8px; padding: 12px; }
+.dt-compare-era-name { font-size: 0.92rem; font-weight: 600; color: #d4a96a; margin-bottom: 4px; }
+.dt-compare-stat { font-size: 0.78rem; color: #8a7e6e; margin-bottom: 8px; }
+.dt-compare-fossil { font-size: 0.78rem; color: #c4b8a4; padding: 2px 0; }
+.dt-compare-section { margin-bottom: 20px; }
+
+/* ── Mineral Shops ── */
+.dt-mineral-shops h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500; color: #d4a96a; margin: 0 0 12px; }
+.dt-shop-card { padding: 10px 0; border-bottom: 1px solid #3d3328; }
+.dt-shop-card:last-child { border-bottom: none; }
+.dt-shop-name { font-size: 0.88rem; font-weight: 600; color: #e8e0d4; }
+.dt-shop-city { font-size: 0.72rem; color: #8a7e6e; }
+.dt-shop-desc { font-size: 0.78rem; color: #c4b8a4; margin-top: 3px; line-height: 1.3; }
+.dt-shop-links { display: flex; gap: 12px; margin-top: 6px; }
+.dt-shop-link { font-size: 0.78rem; color: #d4a96a; text-decoration: none; }
+.dt-shop-link:hover { text-decoration: underline; }
+.dt-mineral-shops { margin-bottom: 20px; }
+
+/* ── Fossil Rarity Badge ── */
+.dt-rarity-badge {
+  font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; font-weight: 600;
+}
+.dt-rarity-badge.very_rare { background: #4a1a4a; color: #ce93d8; }
+.dt-rarity-badge.rare { background: #4a3a1a; color: #ffd54f; }
+.dt-rarity-badge.uncommon { background: #2a3a2a; color: #81c784; }
+.dt-rarity-badge.common { background: #2a2a2a; color: #8a7e6e; }
+
 @media (min-width: 768px) {
   .dt-title { font-size: 2rem; }
   .dt-content { padding: 0 40px 60px; }

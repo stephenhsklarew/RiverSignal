@@ -130,6 +130,16 @@ export default function DeepTrailPage() {
     }
   }
 
+  // AI features state
+  const [crossDomain, setCrossDomain] = useState<any>(null)
+  const [quiz, setQuiz] = useState<any>(null)
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({})
+  const [compareEra1, setCompareEra1] = useState('Eocene')
+  const [compareEra2, setCompareEra2] = useState('Miocene')
+  const [compareData, setCompareData] = useState<any>(null)
+  const [mineralShops, setMineralShops] = useState<any[]>([])
+  const [rarityScores, setRarityScores] = useState<Record<string, any>>({})
+
   // Fossil/mineral filters
   const [periodFilter, setPeriodFilter] = useState('')
   const [phylumFilter, setPhylumFilter] = useState('')
@@ -184,6 +194,12 @@ export default function DeepTrailPage() {
       setGeoContext(g)
       setLoading(false)
     }).catch(() => setLoading(false))
+
+    // AI features
+    fetch(`${API_BASE}/deep-time/geology-ecology/${loc.lat}/${loc.lon}`).then(r => r.json()).then(setCrossDomain).catch(() => {})
+    fetch(`${API_BASE}/deep-time/quiz?lat=${loc.lat}&lon=${loc.lon}`).then(r => r.json()).then(setQuiz).catch(() => {})
+    fetch(`${API_BASE}/deep-time/rarity`).then(r => r.json()).then(d => setRarityScores(d.scores || {})).catch(() => {})
+    fetch(`${API_BASE}/deep-time/mineral-shops`).then(r => r.json()).then(setMineralShops).catch(() => {})
 
     // Fetch nearest river data for Living River card
     setRiverData(null)
@@ -348,6 +364,40 @@ export default function DeepTrailPage() {
           />
 
           </div>
+          <div data-dtcard="kid_quiz">
+          {/* Kid Quiz Mode */}
+          {quiz && quiz.questions?.length > 0 && (
+            <section className="dt-quiz-section">
+              <h3>🧩 Quiz Me!</h3>
+              {quiz.questions.map((q: any, i: number) => (
+                <div key={i} className="dt-quiz-q">
+                  <div className="dt-quiz-question">{q.question}</div>
+                  <div className="dt-quiz-choices">
+                    {q.choices.map((c: string, j: number) => {
+                      const answered = quizAnswers[i] !== undefined
+                      const isCorrect = c === q.correct
+                      const isChosen = quizAnswers[i] === c
+                      return (
+                        <button key={j}
+                          className={`dt-quiz-choice${answered ? (isCorrect ? ' correct' : isChosen ? ' wrong' : '') : ''}`}
+                          onClick={() => !answered && setQuizAnswers(prev => ({...prev, [i]: c}))}
+                          disabled={answered}>
+                          {c}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {quizAnswers[i] !== undefined && (
+                    <div className={`dt-quiz-hint ${quizAnswers[i] === q.correct ? 'right' : 'wrong-hint'}`}>
+                      {quizAnswers[i] === q.correct ? '✅ Correct!' : `❌ The answer is: ${q.correct}`}
+                      {q.hint && <span> — {q.hint}</span>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+          </div>
           <div data-dtcard="ask_place">
           {/* Ask About This Place */}
           <section className="dt-chat-section">
@@ -397,6 +447,49 @@ export default function DeepTrailPage() {
           })()}
 
           </div>
+          <div data-dtcard="cross_domain">
+          {/* Cross-Domain Connector */}
+          {crossDomain && crossDomain.connections?.length > 0 && (
+            <section className="dt-cross-section">
+              <h3>🌋 Why This River?</h3>
+              {crossDomain.connections.map((c: any, i: number) => (
+                <div key={i} className="dt-cross-card">
+                  <span className="dt-cross-icon">{c.icon}</span>
+                  <div>
+                    <div className="dt-cross-geo">{c.geology}</div>
+                    <div className="dt-cross-text">{c.connection}</div>
+                  </div>
+                </div>
+              ))}
+              {crossDomain.ecology?.river_name && (
+                <a href={`/path/now/${crossDomain.ecology.watershed}`} className="dt-cross-link">
+                  See the {crossDomain.ecology.river_name} →
+                </a>
+              )}
+            </section>
+          )}
+          </div>
+          <div data-dtcard="formation_explorer">
+          {/* Formation Explorer */}
+          {geoContext?.units?.length > 0 && (
+            <section className="dt-formation-section">
+              <h3>🗺️ Formation Explorer</h3>
+              <div className="dt-formation-list">
+                {geoContext.units.slice(0, 3).map((u: any, i: number) => (
+                  <button key={i} className="dt-formation-btn"
+                    onClick={() => {
+                      fetch(`${API_BASE}/deep-time/formation/${encodeURIComponent(u.formation || u.unit_name)}`)
+                        .then(r => r.json())
+                        .then(d => alert(`${d.formation}: ${d.fossil_count} fossils found\n\n${d.fossils.slice(0, 5).map((f: any) => `• ${f.common_name || f.taxon} (${f.period})`).join('\n')}`))
+                    }}>
+                    <span className="dt-formation-name">{u.formation || u.unit_name}</span>
+                    <span className="dt-formation-period">{u.period}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          </div>
           <div data-dtcard="legal_collecting">
           {/* Legal Collecting */}
           {landStatus && (
@@ -419,6 +512,47 @@ export default function DeepTrailPage() {
           )}
 
           </div>
+          <div data-dtcard="compare_eras">
+          {/* Compare Eras */}
+          <section className="dt-compare-section">
+            <h3>⚖️ Compare Eras</h3>
+            <div className="dt-compare-pickers">
+              <select className="dt-filter-select" value={compareEra1} onChange={e => setCompareEra1(e.target.value)}>
+                {['Eocene', 'Oligocene', 'Miocene', 'Pliocene', 'Pleistocene', 'Holocene'].map(e => (
+                  <option key={e} value={e}>{e}</option>
+                ))}
+              </select>
+              <span className="dt-compare-vs">vs</span>
+              <select className="dt-filter-select" value={compareEra2} onChange={e => setCompareEra2(e.target.value)}>
+                {['Eocene', 'Oligocene', 'Miocene', 'Pliocene', 'Pleistocene', 'Holocene', 'Today'].map(e => (
+                  <option key={e} value={e}>{e}</option>
+                ))}
+              </select>
+              <button className="dt-compare-go" onClick={() => {
+                fetch(`${API_BASE}/deep-time/compare-eras?lat=${loc!.lat}&lon=${loc!.lon}&era1=${compareEra1}&era2=${compareEra2}`)
+                  .then(r => r.json()).then(setCompareData)
+              }}>Compare</button>
+            </div>
+            {compareData && (
+              <div className="dt-compare-results">
+                <div className="dt-compare-col">
+                  <div className="dt-compare-era-name">{compareData.era1.era}</div>
+                  <div className="dt-compare-stat">{compareData.era1.fossil_count} fossils</div>
+                  {compareData.era1.fossils?.slice(0, 3).map((f: any, i: number) => (
+                    <div key={i} className="dt-compare-fossil">{f.name} ({f.phylum})</div>
+                  ))}
+                </div>
+                <div className="dt-compare-col">
+                  <div className="dt-compare-era-name">{compareData.era2.era}</div>
+                  <div className="dt-compare-stat">{compareData.era2.fossil_count} fossils</div>
+                  {compareData.era2.fossils?.slice(0, 3).map((f: any, i: number) => (
+                    <div key={i} className="dt-compare-fossil">{f.name} ({f.phylum})</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+          </div>
           <div data-dtcard="fossils_nearby">
           {/* Fossils navigation */}
           <section className="dt-nav-cards">
@@ -440,6 +574,25 @@ export default function DeepTrailPage() {
               <span className="dt-nav-card-arrow">→</span>
             </button>
           </section>
+          </div>
+          <div data-dtcard="mineral_shops">
+          {/* Mineral Shops */}
+          {mineralShops.length > 0 && (
+            <section className="dt-mineral-shops">
+              <h3>🏪 Mineral Shops Nearby</h3>
+              {mineralShops.map((s: any, i: number) => (
+                <div key={i} className="dt-shop-card">
+                  <div className="dt-shop-name">{s.name}</div>
+                  <div className="dt-shop-city">{s.city}</div>
+                  <div className="dt-shop-desc">{s.description}</div>
+                  <div className="dt-shop-links">
+                    {s.phone && <a href={`tel:${s.phone}`} className="dt-shop-link">📞 {s.phone}</a>}
+                    {s.website && <a href={s.website} target="_blank" rel="noopener noreferrer" className="dt-shop-link">🌐 Website</a>}
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
           </div>
           <div data-dtcard="living_river">
           {/* Living River link */}
@@ -490,7 +643,11 @@ export default function DeepTrailPage() {
       </div>
 
       {/* Grouped by period */}
-      <FossilGroupedList fossils={filteredFossils} />
+      <FossilGroupedList fossils={filteredFossils.map(f => ({
+        ...f,
+        rarity: rarityScores[f.taxon_name]?.rarity || null,
+        rarity_count: rarityScores[f.taxon_name]?.occurrences || null,
+      }))} />
     </div>
   )
 
@@ -836,6 +993,11 @@ function FossilCard({ fossil: f }: { fossil: any }) {
           {f.age_max_ma && <span> · {f.age_max_ma} Ma</span>}
         </div>
         <div className="dt-fossil-bottom">
+          {f.rarity && (
+            <span className={`dt-rarity-badge ${f.rarity}`}>
+              {f.rarity === 'very_rare' ? '💎 Very Rare' : f.rarity === 'rare' ? '⭐ Rare' : f.rarity === 'uncommon' ? 'Uncommon' : 'Common'}
+            </span>
+          )}
           {f.museum && <span className="dt-fossil-museum">{f.museum}</span>}
           {f.distance_km != null && <span className="dt-fossil-dist">{f.distance_km} km</span>}
           {sid && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="dt-fossil-source">{sourceLabel} ↗</a>}
