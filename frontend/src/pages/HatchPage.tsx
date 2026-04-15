@@ -128,14 +128,7 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
       {/* Matching flies with images (primary), curated names as fallback */}
       {expanded && (
         <div className="insect-flies">
-          {matchingFlies.length > 0 ? (
-            <>
-              <div className="insect-flies-label">Matching flies:</div>
-              {matchingFlies.slice(0, 4).map((fly, i) => (
-                <FlyCard key={i} fly={fly} ws={ws} compact />
-              ))}
-            </>
-          ) : insect.fly_patterns?.length > 0 ? (
+          {insect.fly_patterns?.length > 0 ? (
             <>
               <div className="insect-flies-label">Recommended flies:</div>
               {insect.fly_patterns.map((fp: any, i: number) => {
@@ -154,6 +147,13 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
                   </div>
                 )
               })}
+            </>
+          ) : matchingFlies.length > 0 ? (
+            <>
+              <div className="insect-flies-label">Matching flies:</div>
+              {matchingFlies.slice(0, 4).map((fly, i) => (
+                <FlyCard key={i} fly={fly} ws={ws} compact />
+              ))}
             </>
           ) : (
             <div className="insect-flies-empty">No specific fly match — try a general attractor pattern.</div>
