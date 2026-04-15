@@ -18,13 +18,20 @@ interface ChatMessage {
 }
 
 export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed, onShowSpeciesOnMap }: SitePanelProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'fishing' | 'story' | 'recs' | 'predict' | 'ask'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'rocks' | 'fishing' | 'story' | 'recs' | 'predict' | 'ask'>(
     initialQuestion ? 'ask' : 'overview'
   )
   // Note: 'fishing' and 'recs' tabs are hidden but state type kept for backward compatibility
   const [species, setSpecies] = useState<any[]>([])
   const [speciesPage, setSpeciesPage] = useState(0)
+  const [speciesClassFilter, setSpeciesClassFilter] = useState('')
+  const [selectedSpecies, setSelectedSpecies] = useState<Set<string>>(new Set())
   const SPECIES_PER_PAGE = 12
+  const [rocks, setRocks] = useState<any[]>([])
+  const [rocksPage, setRocksPage] = useState(0)
+  const [rocksTypeFilter, setRocksTypeFilter] = useState('')
+  const [selectedRocks, setSelectedRocks] = useState<Set<string>>(new Set())
+  const ROCKS_PER_PAGE = 12
   const [fishingBrief, setFishingBrief] = useState<any>(null)
   const [recommendations, setRecommendations] = useState<any>(null)
   const [recsLoading, setRecsLoading] = useState(false)
@@ -56,6 +63,21 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
     if (activeTab === 'species' && species.length === 0) {
       setSpeciesPage(0)
       fetch(`${API_BASE}/sites/${watershed}/species?limit=200`).then(r => r.json()).then(setSpecies).catch(console.error)
+    }
+    if (activeTab === 'rocks' && rocks.length === 0) {
+      setRocksPage(0)
+      // Fetch fossils and minerals, merge into one list
+      const bbox = site.bbox || {}
+      const lat = ((bbox.south || 0) + (bbox.north || 0)) / 2
+      const lon = ((bbox.west || 0) + (bbox.east || 0)) / 2
+      Promise.all([
+        fetch(`${API_BASE}/fossils/near/${lat}/${lon}?radius_km=75`).then(r => r.json()).catch(() => ({ fossils: [] })),
+        fetch(`${API_BASE}/minerals/near/${lat}/${lon}?radius_km=75`).then(r => r.json()).catch(() => ({ minerals: [] })),
+      ]).then(([fossilData, mineralData]) => {
+        const fossils = (fossilData.fossils || []).map((f: any) => ({ ...f, rock_type: 'fossil', display_name: f.taxon_name, category: f.phylum || 'Fossil' }))
+        const minerals = (mineralData.minerals || []).map((m: any) => ({ ...m, rock_type: 'mineral', display_name: m.site_name || m.commodity, category: m.commodity?.split(',')[0]?.trim() || 'Mineral' }))
+        setRocks([...fossils, ...minerals])
+      })
     }
     if (activeTab === 'fishing' && !fishingBrief)
       fetch(`${API_BASE}/sites/${watershed}/fishing/brief`).then(r => r.json()).then(setFishingBrief).catch(console.error)
@@ -103,7 +125,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
 
       {/* Tabs */}
       <div className="panel-tabs">
-        {(['overview', 'story', 'species', 'predict', 'ask'] as const).map(tab => (
+        {(['overview', 'story', 'species', 'rocks', 'predict', 'ask'] as const).map(tab => (
           <button key={tab} className={`panel-tab${activeTab === tab ? ' active' : ''}`} onClick={() => setActiveTab(tab)}>
             {tab}
           </button>
@@ -168,31 +190,211 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
         )}
 
         {activeTab === 'species' && (() => {
-          const totalPages = Math.max(1, Math.ceil(species.length / SPECIES_PER_PAGE))
-          const pageSpecies = species.slice(speciesPage * SPECIES_PER_PAGE, (speciesPage + 1) * SPECIES_PER_PAGE)
+          const CLASS_LABELS: Record<string, string> = {
+            Plantae: 'Plants', Insecta: 'Insects', Fungi: 'Fungi', Aves: 'Birds',
+            Arachnida: 'Arachnids', Mammalia: 'Mammals', Animalia: 'Animals',
+            Reptilia: 'Reptiles', Actinopterygii: 'Fish', Mollusca: 'Mollusks',
+            Amphibia: 'Amphibians', Chromista: 'Algae', Protozoa: 'Protozoa',
+          }
+          // Get available classes with counts
+          const classCounts: Record<string, number> = {}
+          for (const s of species) {
+            const cls = s.taxonomic_group || 'Other'
+            classCounts[cls] = (classCounts[cls] || 0) + 1
+          }
+          const classes = Object.entries(classCounts).sort((a, b) => b[1] - a[1])
+
+          // Filter and sort alphabetically
+          const filtered = species
+            .filter(s => !speciesClassFilter || s.taxonomic_group === speciesClassFilter)
+            .sort((a, b) => (a.common_name || a.taxon_name).localeCompare(b.common_name || b.taxon_name))
+
+          const totalPages = Math.max(1, Math.ceil(filtered.length / SPECIES_PER_PAGE))
+          const pageSpecies = filtered.slice(speciesPage * SPECIES_PER_PAGE, (speciesPage + 1) * SPECIES_PER_PAGE)
+
+          const toggleSelect = (taxon: string, e: React.MouseEvent) => {
+            e.stopPropagation()
+            setSelectedSpecies(prev => {
+              const next = new Set(prev)
+              if (next.has(taxon)) next.delete(taxon); else next.add(taxon)
+              return next
+            })
+          }
+
+          const showSelectedOnMap = () => {
+            if (selectedSpecies.size === 0 || !onShowSpeciesOnMap) return
+            // Search for all selected species
+            const query = Array.from(selectedSpecies).join(' OR ')
+            onShowSpeciesOnMap(query)
+          }
+
           return (
           <div className="section">
-            <div className="section-title">Species Gallery · {species.length} of {sc.total_species?.toLocaleString()} species</div>
+            <div className="section-title">Species Gallery · {filtered.length} species</div>
+
+            {/* Class filter chips */}
+            <div className="species-class-filters">
+              <button className={`sp-class-chip${!speciesClassFilter ? ' active' : ''}`}
+                onClick={() => { setSpeciesClassFilter(''); setSpeciesPage(0) }}>
+                All ({species.length})
+              </button>
+              {classes.map(([cls, count]) => (
+                <button key={cls} className={`sp-class-chip${speciesClassFilter === cls ? ' active' : ''}`}
+                  onClick={() => { setSpeciesClassFilter(speciesClassFilter === cls ? '' : cls); setSpeciesPage(0) }}>
+                  {CLASS_LABELS[cls] || cls} ({count})
+                </button>
+              ))}
+            </div>
+
+            {/* Multi-select actions */}
+            {selectedSpecies.size > 0 && onShowSpeciesOnMap && (
+              <div className="species-select-bar">
+                <span>{selectedSpecies.size} selected</span>
+                <button className="sp-show-map-btn" onClick={showSelectedOnMap}>📍 Show on map</button>
+                <button className="sp-clear-btn" onClick={() => setSelectedSpecies(new Set())}>Clear</button>
+              </div>
+            )}
+
+            {/* Species grid */}
             <div className="species-grid">
-              {pageSpecies.map((s: any, i: number) => (
-                <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}`}
+              {pageSpecies.map((s: any, i: number) => {
+                const isSelected = selectedSpecies.has(s.taxon_name)
+                return (
+                <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
                   onClick={() => onShowSpeciesOnMap?.(s.taxon_name)}
-                  title={onShowSpeciesOnMap ? `Show ${s.common_name || s.taxon_name} on map` : undefined}>
+                  title={`Show ${s.common_name || s.taxon_name} on map`}>
+                  {onShowSpeciesOnMap && (
+                    <div className="sp-select-check" onClick={(e) => toggleSelect(s.taxon_name, e)}>
+                      {isSelected ? '☑' : '☐'}
+                    </div>
+                  )}
                   {s.photo_url && <img src={s.photo_url} alt={s.common_name || s.taxon_name} loading="lazy" />}
                   <div className="sp-info">
                     <div className="sp-common">{s.common_name || s.taxon_name}</div>
                     <div className="sp-sci">{s.taxon_name}</div>
+                    <div className="sp-class-label">{CLASS_LABELS[s.taxonomic_group] || s.taxonomic_group}</div>
                     {s.conservation_status && <span className="conservation-tag">{s.conservation_status}</span>}
                   </div>
-                  {onShowSpeciesOnMap && <div className="sp-map-hint">📍 Show on map</div>}
                 </div>
-              ))}
+              )})}
             </div>
+
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="species-pagination">
                 <button disabled={speciesPage === 0} onClick={() => setSpeciesPage(p => p - 1)}>← Prev</button>
                 <span>{speciesPage + 1} / {totalPages}</span>
                 <button disabled={speciesPage >= totalPages - 1} onClick={() => setSpeciesPage(p => p + 1)}>Next →</button>
+              </div>
+            )}
+          </div>
+          )
+        })()}
+
+        {activeTab === 'rocks' && (() => {
+          const ROCK_LABELS: Record<string, string> = {
+            Tracheophyta: 'Fossil Plants', Mollusca: 'Fossil Mollusks', Chordata: 'Fossil Vertebrates',
+            Arthropoda: 'Fossil Arthropods', Ochrophyta: 'Fossil Algae', Bryozoa: 'Fossil Bryozoans',
+            Fossil: 'Other Fossils',
+            Gold: 'Gold', Silver: 'Silver', Copper: 'Copper', Mercury: 'Mercury',
+            'Sand and Gravel': 'Sand & Gravel', Stone: 'Decorative Stone',
+            Mineral: 'Other Minerals',
+          }
+          const typeCounts: Record<string, number> = {}
+          for (const r of rocks) {
+            const cat = r.category || (r.rock_type === 'fossil' ? 'Fossil' : 'Mineral')
+            typeCounts[cat] = (typeCounts[cat] || 0) + 1
+          }
+          const types = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])
+
+          const filtered = rocks
+            .filter(r => {
+              if (!rocksTypeFilter) return true
+              if (rocksTypeFilter === '_fossils') return r.rock_type === 'fossil'
+              if (rocksTypeFilter === '_minerals') return r.rock_type === 'mineral'
+              const cat = r.category || (r.rock_type === 'fossil' ? 'Fossil' : 'Mineral')
+              return cat === rocksTypeFilter
+            })
+            .sort((a, b) => (a.display_name || '').localeCompare(b.display_name || ''))
+
+          const totalPages = Math.max(1, Math.ceil(filtered.length / ROCKS_PER_PAGE))
+          const pageRocks = filtered.slice(rocksPage * ROCKS_PER_PAGE, (rocksPage + 1) * ROCKS_PER_PAGE)
+
+          const toggleRockSelect = (name: string, e: React.MouseEvent) => {
+            e.stopPropagation()
+            setSelectedRocks(prev => { const n = new Set(prev); if (n.has(name)) n.delete(name); else n.add(name); return n })
+          }
+
+          return (
+          <div className="section">
+            <div className="section-title">Rocks Gallery · {filtered.length} items</div>
+
+            {/* Type filter chips */}
+            <div className="species-class-filters">
+              <button className={`sp-class-chip${!rocksTypeFilter ? ' active' : ''}`}
+                onClick={() => { setRocksTypeFilter(''); setRocksPage(0) }}>
+                All ({rocks.length})
+              </button>
+              <button className={`sp-class-chip${rocksTypeFilter === '_fossils' ? ' active' : ''}`}
+                onClick={() => { setRocksTypeFilter(rocksTypeFilter === '_fossils' ? '' : '_fossils'); setRocksPage(0) }}>
+                🦴 Fossils ({rocks.filter(r => r.rock_type === 'fossil').length})
+              </button>
+              <button className={`sp-class-chip${rocksTypeFilter === '_minerals' ? ' active' : ''}`}
+                onClick={() => { setRocksTypeFilter(rocksTypeFilter === '_minerals' ? '' : '_minerals'); setRocksPage(0) }}>
+                💎 Minerals ({rocks.filter(r => r.rock_type === 'mineral').length})
+              </button>
+              {types.slice(0, 8).map(([cat, count]) => (
+                <button key={cat} className={`sp-class-chip${rocksTypeFilter === cat ? ' active' : ''}`}
+                  onClick={() => { setRocksTypeFilter(rocksTypeFilter === cat ? '' : cat); setRocksPage(0) }}>
+                  {ROCK_LABELS[cat] || cat} ({count})
+                </button>
+              ))}
+            </div>
+
+            {/* Multi-select bar */}
+            {selectedRocks.size > 0 && onShowSpeciesOnMap && (
+              <div className="species-select-bar">
+                <span>{selectedRocks.size} selected</span>
+                <button className="sp-show-map-btn" onClick={() => onShowSpeciesOnMap(Array.from(selectedRocks).join(' OR '))}>📍 Show on map</button>
+                <button className="sp-clear-btn" onClick={() => setSelectedRocks(new Set())}>Clear</button>
+              </div>
+            )}
+
+            {/* Grid */}
+            <div className="species-grid">
+              {pageRocks.map((r: any, i: number) => {
+                const isSelected = selectedRocks.has(r.display_name)
+                const icon = r.rock_type === 'fossil' ? '🦴' : '💎'
+                return (
+                <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
+                  onClick={() => onShowSpeciesOnMap?.(r.display_name)}
+                  title={`Show ${r.display_name} on map`}>
+                  {onShowSpeciesOnMap && (
+                    <div className="sp-select-check" onClick={(e) => toggleRockSelect(r.display_name, e)}>
+                      {isSelected ? '☑' : '☐'}
+                    </div>
+                  )}
+                  {r.image_url ? (
+                    <img src={r.image_url} alt={r.display_name} loading="lazy" />
+                  ) : (
+                    <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, background: 'var(--bg)' }}>{icon}</div>
+                  )}
+                  <div className="sp-info">
+                    <div className="sp-common">{r.display_name}</div>
+                    {r.rock_type === 'fossil' && <div className="sp-sci">{r.period}{r.age_max_ma ? ` · ${r.age_max_ma} Ma` : ''}</div>}
+                    {r.rock_type === 'mineral' && <div className="sp-sci">{r.commodity}</div>}
+                    <div className="sp-class-label">{icon} {ROCK_LABELS[r.category] || r.category}</div>
+                    {r.museum && <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>{r.museum}</div>}
+                  </div>
+                </div>
+              )})}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="species-pagination">
+                <button disabled={rocksPage === 0} onClick={() => setRocksPage(p => p - 1)}>← Prev</button>
+                <span>{rocksPage + 1} / {totalPages}</span>
+                <button disabled={rocksPage >= totalPages - 1} onClick={() => setRocksPage(p => p + 1)}>Next →</button>
               </div>
             )}
           </div>

@@ -666,9 +666,43 @@
   display: inline-block;
   margin-top: 2px;
 }
-.species-card.clickable { cursor: pointer; }
+.species-card.clickable { cursor: pointer; position: relative; }
 .species-card.clickable:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(26,107,74,0.15); }
-.sp-map-hint { font-size: 9px; color: var(--accent); padding: 2px 8px 4px; }
+.species-card.selected { border-color: var(--accent); background: var(--accent-light); }
+.sp-select-check {
+  position: absolute; top: 4px; right: 4px; z-index: 1;
+  font-size: 14px; cursor: pointer; background: rgba(255,255,255,0.85);
+  border-radius: 3px; width: 20px; height: 20px; display: flex;
+  align-items: center; justify-content: center; line-height: 1;
+}
+.sp-class-label { font-size: 9px; color: var(--accent); margin-top: 1px; }
+
+/* Class filter chips */
+.species-class-filters {
+  display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.sp-class-chip {
+  padding: 3px 8px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); font-family: inherit; font-size: 10px;
+  cursor: pointer; color: var(--text-secondary);
+}
+.sp-class-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* Multi-select bar */
+.species-select-bar {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  background: var(--accent-light); border-radius: 6px; margin-bottom: 8px;
+  font-size: 11px; color: var(--accent);
+}
+.sp-show-map-btn {
+  background: var(--accent); color: white; border: none; border-radius: 4px;
+  padding: 3px 8px; font-size: 10px; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+}
+.sp-clear-btn {
+  background: none; border: none; color: var(--text-muted); font-size: 10px;
+  cursor: pointer; font-family: inherit; margin-left: auto;
+}
 .species-pagination {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 0; font-size: 12px; color: var(--text-muted);

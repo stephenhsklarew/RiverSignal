@@ -179,13 +179,32 @@ export default function MapPage() {
             onClose={() => setSelectedSite(null)}
             initialQuestion={pendingQuestion}
             onQuestionConsumed={() => setPendingQuestion(null)}
-            onShowSpeciesOnMap={(taxonName) => {
-              setObsSearch(taxonName)
+            onShowSpeciesOnMap={(taxonQuery) => {
+              setObsSearch(taxonQuery)
               setObsSearching(true)
-              fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonName)}&limit=500`)
-                .then(r => r.json())
-                .then(data => { setObsOverlay(data); setObsSearching(false) })
-                .catch(() => setObsSearching(false))
+              // Handle multi-species: split on " OR " and merge results
+              const taxa = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
+              if (taxa.length <= 1) {
+                fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonQuery)}&limit=500`)
+                  .then(r => r.json())
+                  .then(data => { setObsOverlay(data); setObsSearching(false) })
+                  .catch(() => setObsSearching(false))
+              } else {
+                Promise.all(taxa.map(t =>
+                  fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(t)}&limit=200`)
+                    .then(r => r.json()).catch(() => ({ features: [] }))
+                )).then(results => {
+                  const merged = {
+                    type: 'FeatureCollection',
+                    features: results.flatMap(r => r.features || []),
+                    query: taxonQuery,
+                    watershed: selectedSite,
+                    count: results.reduce((a, r) => a + (r.count || 0), 0),
+                  }
+                  setObsOverlay(merged)
+                  setObsSearching(false)
+                }).catch(() => setObsSearching(false))
+              }
             }}
           />
         )}
