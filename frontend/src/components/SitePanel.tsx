@@ -263,12 +263,13 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
                   onClick={() => {
                     if (onShowSpeciesOnMap) {
-                      // Toggle selection on card click
-                      setSelectedSpecies(prev => {
-                        const next = new Set(prev)
-                        if (next.has(s.taxon_name)) next.delete(s.taxon_name); else next.add(s.taxon_name)
-                        return next
-                      })
+                      const next = new Set(selectedSpecies)
+                      if (next.has(s.taxon_name)) next.delete(s.taxon_name); else next.add(s.taxon_name)
+                      setSelectedSpecies(next)
+                      // Immediately show on map
+                      if (next.size > 0) {
+                        onShowSpeciesOnMap(Array.from(next).join(' OR '))
+                      }
                     }
                   }}
                   title={`Tap to select ${s.common_name || s.taxon_name}`}>
@@ -378,9 +379,14 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
                   onClick={() => {
                     if (onShowSpeciesOnMap) {
-                      setSelectedRocks(prev => {
-                        const n = new Set(prev); if (n.has(r._uid)) n.delete(r._uid); else n.add(r._uid); return n
-                      })
+                      const next = new Set(selectedRocks)
+                      if (next.has(r._uid)) next.delete(r._uid); else next.add(r._uid)
+                      setSelectedRocks(next)
+                      // Immediately show on map
+                      if (next.size > 0) {
+                        const names = rocks.filter(rk => next.has(rk._uid)).map(rk => rk.display_name)
+                        onShowSpeciesOnMap([...new Set(names)].join(' OR '))
+                      }
                     }
                   }}
                   title={`Tap to select ${r.display_name}`}>
