@@ -62,7 +62,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
   useEffect(() => {
     if (activeTab === 'species' && species.length === 0) {
       setSpeciesPage(0)
-      fetch(`${API_BASE}/sites/${watershed}/species?limit=200`).then(r => r.json()).then(setSpecies).catch(console.error)
+      fetch(`${API_BASE}/sites/${watershed}/species?limit=5000`).then(r => r.json()).then(setSpecies).catch(console.error)
     }
     if (activeTab === 'rocks' && rocks.length === 0) {
       setRocksPage(0)

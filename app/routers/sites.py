@@ -326,7 +326,7 @@ def get_site_story(watershed: str, reading_level: str = Query("adult", pattern="
 
 
 @router.get("/sites/{watershed}/species")
-def get_site_species(watershed: str, taxonomic_group: str = None, limit: int = 50):
+def get_site_species(watershed: str, taxonomic_group: str = None, limit: int = 5000):
     """Get species observed at a watershed with photos."""
     with engine.connect() as conn:
         params = {"ws": watershed, "limit": limit}
