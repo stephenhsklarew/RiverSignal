@@ -2,7 +2,7 @@
   display: flex; align-items: center; gap: 8px;
   padding: 0 0 12px; font-size: 15px;
 }
-.ws-header-icon { font-size: 18px; }
+.ws-header-logo { height: 24px; width: auto; flex-shrink: 0; }
 .ws-header-name { font-weight: 500; }
 .ws-header-change {
   background: none; border: none; color: var(--accent);
