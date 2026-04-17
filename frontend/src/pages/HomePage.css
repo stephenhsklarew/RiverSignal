@@ -415,6 +415,7 @@
   background: var(--alert-light);
   color: var(--alert);
 }
+.species-scroll-credit { font-size: 8px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── Footer ── */
 .home-footer {

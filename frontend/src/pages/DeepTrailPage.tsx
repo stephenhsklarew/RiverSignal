@@ -1195,6 +1195,7 @@ function MineralGroupedList({ minerals }: { minerals: any[] }) {
                       {m.dev_status && <span className="dt-mineral-status">{m.dev_status}</span>}
                       {m.distance_km != null && <span className="dt-mineral-dist">{m.distance_km} km</span>}
                     </div>
+                    {m.image_url && m.image_license && <div className="dt-mineral-license">{m.image_license}</div>}
                   </div>
                 </div>
               ))}

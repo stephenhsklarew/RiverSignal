@@ -99,6 +99,7 @@ export default function FishRefugePage() {
                       <div>
                         <div className="fish-card-name">{sp.common_name || sp.taxon_name}</div>
                         <div className="fish-card-sci">{sp.taxon_name}</div>
+                        {sp.observer && <div className="fish-photo-credit">📷 {sp.observer}</div>}
                       </div>
                       <SaveButton item={{ type: 'species', id: sp.taxon_name, watershed: ws, label: sp.common_name || sp.taxon_name, sublabel: sp.taxon_name, thumbnail: sp.photo_url }} size={18} />
                     </div>

@@ -184,6 +184,7 @@ export default function SpeciesMapPage() {
               <div class="species-popup-name">${name}</div>
               <div class="species-popup-sci">${p.taxon_name}</div>
               <div class="species-popup-date">${date}</div>
+              ${p.photo_url ? '<div class="species-popup-credit">📷 via iNaturalist</div>' : ''}
               ${flyHtml}
             </div>
           `)

@@ -39,6 +39,7 @@
 .temp-stress { background: var(--alert-light); color: var(--alert); }
 .fish-temp-range { font-size: 11px; color: var(--text-muted); }
 
+.fish-photo-credit { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
 .fish-conservation {
   display: inline-block; padding: 2px 6px; border-radius: 4px;
   font-size: 10px; background: var(--warm-light); color: var(--warm);

@@ -109,7 +109,7 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
   return (
     <div className="insect-card-wrap">
       <div className="insect-card" onClick={() => setExpanded(!expanded)}>
-        {insect.photo_url && <img src={insect.photo_url} alt={insect.common_name} className="insect-img" />}
+        {insect.photo_url && <img src={insect.photo_url} alt={insect.common_name} className="insect-img" title="Photo via iNaturalist" />}
         <div className="insect-info">
           <div className="insect-name">{insect.common_name || insect.taxon_name}</div>
           <div className="insect-sci">{insect.taxon_name}</div>

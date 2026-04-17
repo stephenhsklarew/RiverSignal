@@ -521,10 +521,11 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <div className="rnow-spotter-grid">
                 {spotter.species.slice(0, 6).map((s: any, i: number) => (
                   <div key={i} className="rnow-spotter-card">
-                    {s.photo_url && <img src={s.photo_url} alt={s.common_name} className="rnow-spotter-img" loading="lazy" />}
+                    {s.photo_url && <img src={s.photo_url} alt={s.common_name} className="rnow-spotter-img" loading="lazy" title={s.observer ? `📷 ${s.observer}` : undefined} />}
                     <div className="rnow-spotter-name">{s.common_name}</div>
                     <div className="rnow-spotter-prob">{s.probability}% likely</div>
                     <div className="rnow-spotter-group">{s.group}</div>
+                    {s.observer && <div className="rnow-photo-credit">📷 {s.observer}</div>}
                   </div>
                 ))}
               </div>
@@ -670,6 +671,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                       <div className="rnow-fish-name">{s.common_name || s.species}</div>
                       <div className="rnow-fish-stream">{s.stream}</div>
                       <div className="rnow-fish-use">{s.use_type}</div>
+                      {s.observer && <div className="rnow-photo-credit">📷 {s.observer}</div>}
                     </div>
                   </div>
                 ))}
@@ -917,8 +919,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <div className="rnow-alive-grid">
                 {whatsAlive.map((s: any, i: number) => (
                   <div key={i} className="rnow-alive-item">
-                    {s.photo_url && <img src={s.photo_url} alt={s.common_name} className="rnow-alive-img" />}
+                    {s.photo_url && <img src={s.photo_url} alt={s.common_name} className="rnow-alive-img" title={s.observer ? `📷 ${s.observer}` : undefined} />}
                     <div className="rnow-alive-name">{s.common_name || s.taxon_name}</div>
+                    {s.observer && <div className="rnow-photo-credit">📷 {s.observer}</div>}
                   </div>
                 ))}
               </div>

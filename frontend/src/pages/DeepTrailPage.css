@@ -404,6 +404,7 @@
 .dt-fossil-source { color: #d4a96a; text-decoration: none; }
 .dt-fossil-source:hover { text-decoration: underline; }
 .dt-fossil-license { font-size: 0.6rem; color: #6b5f4f; font-style: italic; padding: 2px 0; }
+.dt-mineral-license { font-size: 0.6rem; color: #6b5f4f; font-style: italic; margin-top: 2px; }
 .dt-fossil-license { font-size: 0.55rem; color: #6b5f4f; margin-top: 2px; text-align: right; }
 
 /* Mineral card */

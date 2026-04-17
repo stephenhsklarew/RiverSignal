@@ -306,6 +306,7 @@ function SpeciesSection() {
               <div className="species-scroll-common">{s.common_name || s.taxon_name}</div>
               <div className="species-scroll-sci">{s.taxon_name}</div>
               {s.conservation_status && <span className="species-scroll-tag">{s.conservation_status}</span>}
+              {s.observer && <div className="species-scroll-credit">📷 {s.observer}</div>}
             </div>
           </div>
         ))}
