@@ -629,7 +629,7 @@ export default function DeepTrailPage() {
     <div className="dt-app">
       <header className="dt-detail-header">
         <button className="dt-back" onClick={() => setScreen('detail')}>← {loc!.name}</button>
-        <span className="dt-badge-sm">Fossils ({filteredFossils.length})</span>
+        <img src={logo} alt="DeepTrail" className="dt-logo" />
       </header>
 
       <MiniMap items={filteredFossils} center={loc!} color="#d4a96a"
@@ -660,7 +660,7 @@ export default function DeepTrailPage() {
     <div className="dt-app">
       <header className="dt-detail-header">
         <button className="dt-back" onClick={() => setScreen('detail')}>← {loc!.name}</button>
-        <span className="dt-badge-sm">Minerals ({filteredMinerals.length})</span>
+        <img src={logo} alt="DeepTrail" className="dt-logo" />
       </header>
 
       <MiniMap items={filteredMinerals} center={loc!} color="#e65100"
