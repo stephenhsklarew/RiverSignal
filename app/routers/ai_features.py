@@ -288,27 +288,57 @@ def catch_probability(watershed: str):
 # ═══════════════════════════════════════════════
 @router.get("/sites/{watershed}/species-spotter")
 def species_spotter(watershed: str):
-    """Predict which species are likely to be seen today based on season and patterns."""
+    """Predict fish food organisms likely active today — aquatic insects, scuds, terrestrials near water."""
     month = datetime.now().month
 
     with engine.connect() as conn:
-        # Seasonal patterns — what's typically observed this month
-        patterns = conn.execute(text("""
-            SELECT taxonomic_group, obs_month, observation_count
-            FROM gold.seasonal_observation_patterns
-            WHERE watershed = :ws AND is_peak_month = true
-            ORDER BY observation_count DESC
-        """), {"ws": watershed}).fetchall()
+        # 1. Aquatic insects from curated hatch chart (highest confidence)
+        curated = conn.execute(text("""
+            SELECT common_name, scientific_name, insect_order, start_month, end_month, peak_months
+            FROM curated_hatch_chart
+            WHERE watershed = :ws AND start_month <= :m AND end_month >= :m
+            ORDER BY CASE WHEN :m = ANY(peak_months) THEN 0 ELSE 1 END
+        """), {"ws": watershed, "m": month}).fetchall()
 
-        # Species with photos observed recently
-        species = conn.execute(text("""
-            SELECT g.common_name, g.taxon_name, g.taxonomic_group, g.photo_url
+        # 2. Aquatic insects from observation data
+        observed = conn.execute(text("""
+            SELECT taxon_name, common_name, observation_count, activity_level, photo_url
+            FROM gold.aquatic_hatch_chart
+            WHERE watershed = :ws AND obs_month = :m
+            ORDER BY observation_count DESC LIMIT 10
+        """), {"ws": watershed, "m": month}).fetchall()
+
+        # 3. Other aquatic invertebrates (scuds, worms, leeches) from species gallery
+        inverts = conn.execute(text("""
+            SELECT g.common_name, g.taxon_name, g.taxonomic_group, g.photo_url, g.observer
             FROM gold.species_gallery g
             WHERE g.watershed = :ws AND g.photo_url IS NOT NULL
-            ORDER BY random() LIMIT 30
+              AND (g.taxonomic_group IN ('Insecta', 'Arachnida', 'Mollusca')
+                   OR g.taxon_name ILIKE ANY(ARRAY[
+                       '%amphipoda%', '%gammarus%', '%hyalella%',
+                       '%oligochaeta%', '%lumbriculid%',
+                       '%hirudinea%',
+                       '%isopod%', '%asellus%',
+                       '%collembola%', '%springtail%'
+                   ]))
+            ORDER BY random() LIMIT 15
         """), {"ws": watershed}).fetchall()
 
-        # Current month hatch
+        # 4. Photos for curated insects (lookup from species gallery)
+        photo_lookup = {}
+        if curated:
+            sci_names = [r[1] for r in curated]
+            for name in sci_names:
+                genus = name.split()[0] if ' ' in name else name
+                photo = conn.execute(text("""
+                    SELECT photo_url, observer FROM gold.species_gallery
+                    WHERE watershed = :ws AND taxon_name ILIKE :pattern AND photo_url IS NOT NULL
+                    LIMIT 1
+                """), {"ws": watershed, "pattern": f"%{genus}%"}).fetchone()
+                if photo:
+                    photo_lookup[name] = {"photo_url": photo[0], "observer": photo[1]}
+
+        # Current hatch for context
         hatch = conn.execute(text("""
             SELECT pattern_insect_name, observation_count
             FROM gold.hatch_fly_recommendations
@@ -316,47 +346,69 @@ def species_spotter(watershed: str):
             ORDER BY observation_count DESC LIMIT 3
         """), {"ws": watershed, "m": month}).fetchall()
 
-    # Score species by likelihood this month
-    peak_groups = {r[0]: r[1] for r in patterns}
-    group_obs = {r[0]: r[2] for r in patterns}
-
+    # Build scored results — fish food first
     scored = []
-    for sp in species:
-        group = sp[2] or 'Unknown'
-        peak = peak_groups.get(group, 6)
-        obs_avg = group_obs.get(group, 0)
+    seen = set()
 
-        # Probability based on distance from peak month
-        month_dist = min(abs(month - peak), 12 - abs(month - peak))
-        if month_dist == 0:
-            prob = min(95, 70 + obs_avg // 5)
-        elif month_dist <= 2:
-            prob = min(85, 50 + obs_avg // 8)
-        elif month_dist <= 4:
-            prob = min(65, 30 + obs_avg // 10)
-        else:
-            prob = max(10, 15 + obs_avg // 20)
-
+    # Curated aquatic insects (highest value — these are what fish eat)
+    for r in curated:
+        name = r[0]
+        if name in seen:
+            continue
+        seen.add(name)
+        is_peak = month in (r[5] or [])
+        photo_info = photo_lookup.get(r[1], {})
         scored.append({
-            "common_name": sp[0] or sp[1],
-            "taxon_name": sp[1],
-            "group": group,
-            "photo_url": sp[3],
-            "probability": prob,
+            "common_name": name,
+            "taxon_name": r[1],
+            "group": r[2] or "Aquatic Insect",
+            "photo_url": photo_info.get("photo_url"),
+            "observer": photo_info.get("observer"),
+            "probability": 90 if is_peak else 70,
+            "fish_food": True,
+            "note": f"{'Peak' if is_peak else 'Active'} — fish are keying on these",
         })
 
-    # Deduplicate and sort
-    seen = set()
-    unique = []
-    for s in sorted(scored, key=lambda x: x["probability"], reverse=True):
-        if s["common_name"] not in seen:
-            seen.add(s["common_name"])
-            unique.append(s)
+    # Observed aquatic insects
+    for r in observed:
+        name = r[1] or r[0]
+        if name in seen:
+            continue
+        seen.add(name)
+        scored.append({
+            "common_name": name,
+            "taxon_name": r[0],
+            "group": "Aquatic Insect",
+            "photo_url": r[4],
+            "observer": None,
+            "probability": min(85, 50 + (r[2] or 0) // 3),
+            "fish_food": True,
+            "note": f"{r[2]} observations · {r[3]}",
+        })
+
+    # Other aquatic invertebrates
+    for sp in inverts:
+        name = sp[0] or sp[1]
+        if name in seen:
+            continue
+        seen.add(name)
+        scored.append({
+            "common_name": name,
+            "taxon_name": sp[1],
+            "group": sp[2] or "Invertebrate",
+            "photo_url": sp[3],
+            "observer": sp[4],
+            "probability": 60,
+            "fish_food": True,
+            "note": "Aquatic food source",
+        })
+
+    scored.sort(key=lambda x: x["probability"], reverse=True)
 
     return {
         "watershed": watershed,
         "month": month,
-        "species": unique[:8],
+        "species": scored[:8],
         "hatch_active": [{"insect": r[0], "observations": r[1]} for r in hatch],
     }
 

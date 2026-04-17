@@ -514,10 +514,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
           </div>
           <div data-card="species_spotter">
-          {/* ── Species Spotter ── */}
+          {/* ── What Fish Are Eating ── */}
           {spotter && spotter.species?.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">👀 Likely Sightings Today</div>
+              <div className="rnow-section-title">🪰 What Fish Are Eating Now</div>
               <div className="rnow-spotter-grid">
                 {spotter.species.slice(0, 6).map((s: any, i: number) => (
                   <div key={i} className="rnow-spotter-card">
@@ -525,6 +525,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                     <div className="rnow-spotter-name">{s.common_name}</div>
                     <div className="rnow-spotter-prob">{s.probability}% likely</div>
                     <div className="rnow-spotter-group">{s.group}</div>
+                    {s.note && <div className="rnow-spotter-note">{s.note}</div>}
                     {s.observer && <div className="rnow-photo-credit">📷 {s.observer}</div>}
                   </div>
                 ))}
