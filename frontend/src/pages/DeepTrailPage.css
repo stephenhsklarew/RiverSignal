@@ -51,6 +51,23 @@
 .dt-pick-divider::before { left: 0; }
 .dt-pick-divider::after { right: 0; }
 
+/* Rockhounding quick-pick on pick screen */
+.dt-rockpick-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  padding: 0 4px;
+}
+.dt-rockpick-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 10px;
+  padding: 12px 8px; cursor: pointer; font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+  min-height: 48px;
+}
+.dt-rockpick-btn:hover { border-color: #d4a96a; background: #332b1f; }
+.dt-rockpick-icon { font-size: 1.3rem; }
+.dt-rockpick-name { font-size: 0.78rem; font-weight: 600; color: #e8e0d4; }
+.dt-rockpick-sub { font-size: 0.65rem; color: #8a7e6e; }
+
 .dt-coord-form { display: flex; gap: 8px; justify-content: center; }
 .dt-coord-input {
   width: 90px; flex: none; background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
@@ -386,6 +403,7 @@
 .dt-fossil-dist { color: #6b5f4f; }
 .dt-fossil-source { color: #d4a96a; text-decoration: none; }
 .dt-fossil-source:hover { text-decoration: underline; }
+.dt-fossil-license { font-size: 0.6rem; color: #6b5f4f; font-style: italic; padding: 2px 0; }
 .dt-fossil-license { font-size: 0.55rem; color: #6b5f4f; margin-top: 2px; text-align: right; }
 
 /* Mineral card */
@@ -465,6 +483,47 @@
 
 /* ── Mineral Shops ── */
 .dt-mineral-shops h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 500; color: #d4a96a; margin: 0 0 12px; }
+/* Rockhounding sites — compact list */
+.dt-rockhounding h3 { font-size: 0.95rem; font-weight: 600; color: #d4a96a; margin-bottom: 10px; }
+.dt-rocksite-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
+  margin-bottom: 6px; cursor: pointer; font-family: inherit;
+  text-align: left; width: 100%;
+  transition: border-color 0.15s;
+}
+.dt-rocksite-row:hover { border-color: #d4a96a; }
+.dt-rocksite-row-img {
+  width: 44px; height: 44px; border-radius: 6px; object-fit: cover; flex-shrink: 0;
+}
+.dt-rocksite-row-body { flex: 1; min-width: 0; }
+.dt-rocksite-name { font-size: 0.82rem; font-weight: 600; color: #e8e0d4; }
+.dt-rocksite-rocks { font-size: 0.7rem; color: #d4a96a; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dt-rocksite-row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.dt-rocksite-owner {
+  padding: 1px 6px; border-radius: 8px; font-weight: 600; font-size: 0.6rem; text-transform: uppercase;
+}
+.dt-rocksite-owner.public { background: #2e5c1e; color: #a5d69b; }
+.dt-rocksite-owner.private { background: #5c3a1e; color: #d4a96a; }
+.dt-rocksite-owner.other { background: #3d3328; color: #8a7e6e; }
+.dt-rocksite-dist { color: #6b5f4f; font-size: 0.65rem; }
+.dt-rocksite-arrow { color: #6b5f4f; font-size: 0.9rem; flex-shrink: 0; }
+
+/* Rockhounding detail screen */
+.dt-rockdetail-hero { width: 100%; height: 200px; overflow: hidden; }
+.dt-rockdetail-hero img { width: 100%; height: 100%; object-fit: cover; }
+.dt-rockdetail-content { padding: 16px 20px 40px; }
+.dt-rockdetail-name { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 400; color: #e8e0d4; margin: 0 0 4px; }
+.dt-rockdetail-rocks { font-size: 0.88rem; color: #d4a96a; font-style: italic; margin-bottom: 12px; }
+.dt-rockdetail-badges { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.dt-rockdetail-town { font-size: 0.78rem; color: #8a7e6e; }
+.dt-rockdetail-dist { font-size: 0.78rem; color: #6b5f4f; }
+.dt-rockdetail-section { margin-bottom: 16px; }
+.dt-rockdetail-section h3 { font-size: 0.82rem; font-weight: 600; color: #d4a96a; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+.dt-rockdetail-section p { font-size: 0.85rem; color: #c4b8a4; line-height: 1.5; margin: 0; }
+.dt-rockdetail-rules-box { background: #332b1f; border: 1px solid #3d3328; border-radius: 10px; padding: 12px 14px; }
+.dt-rockdetail-coords { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #8a7e6e; }
+
 .dt-shop-card { padding: 10px 0; border-bottom: 1px solid #3d3328; }
 .dt-shop-card:last-child { border-bottom: none; }
 .dt-shop-name { font-size: 0.88rem; font-weight: 600; color: #e8e0d4; }
@@ -474,6 +533,43 @@
 .dt-shop-link { font-size: 0.78rem; color: #d4a96a; text-decoration: none; }
 .dt-shop-link:hover { text-decoration: underline; }
 .dt-mineral-shops { margin-bottom: 20px; }
+
+/* Saved page */
+.dt-saved-card {
+  display: flex; gap: 10px; align-items: center; padding: 10px 12px;
+  background: #2a2318; border: 1px solid #3d3328; border-radius: 8px;
+  margin-bottom: 6px;
+}
+.dt-saved-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.dt-saved-body { flex: 1; min-width: 0; }
+.dt-saved-name { font-size: 0.85rem; font-weight: 600; color: #e8e0d4; }
+.dt-saved-sub { font-size: 0.72rem; color: #d4a96a; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dt-saved-meta { display: flex; gap: 10px; margin-top: 3px; font-size: 0.65rem; }
+.dt-saved-type { color: #8a7e6e; }
+.dt-saved-date { color: #6b5f4f; }
+.dt-saved-remove {
+  background: none; border: none; color: #6b5f4f; font-size: 1rem;
+  cursor: pointer; padding: 4px 8px; flex-shrink: 0;
+}
+.dt-saved-remove:hover { color: #f44336; }
+
+/* Explore tab toggle */
+.dt-explore-tabs { display: flex; gap: 0; margin: 0 16px 8px; }
+.dt-explore-tab {
+  flex: 1; padding: 8px; text-align: center; font-size: 0.82rem; font-weight: 600;
+  background: #2a2318; border: 1px solid #3d3328; color: #8a7e6e;
+  cursor: pointer; font-family: inherit;
+}
+.dt-explore-tab:first-child { border-radius: 8px 0 0 8px; }
+.dt-explore-tab:last-child { border-radius: 0 8px 8px 0; }
+.dt-explore-tab.active { background: #3d3328; color: #d4a96a; border-color: #d4a96a; }
+
+/* Save button on cards */
+.dt-save-btn {
+  background: none; border: none; font-size: 1.1rem; cursor: pointer;
+  padding: 2px 6px; flex-shrink: 0; opacity: 0.5; transition: opacity 0.15s;
+}
+.dt-save-btn:hover, .dt-save-btn.saved { opacity: 1; }
 
 /* ── Fossil Rarity Badge ── */
 .dt-rarity-badge {

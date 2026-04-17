@@ -677,6 +677,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .sp-class-label { font-size: 9px; color: var(--accent); margin-top: 1px; }
+.sp-credit { font-size: 8px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Class filter chips */
 .species-class-filters {

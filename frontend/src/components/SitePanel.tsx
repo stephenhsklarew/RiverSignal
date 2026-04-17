@@ -280,6 +280,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                     <div className="sp-sci">{s.taxon_name}</div>
                     <div className="sp-class-label">{CLASS_LABELS[s.taxonomic_group] || s.taxonomic_group}</div>
                     {s.conservation_status && <span className="conservation-tag">{s.conservation_status}</span>}
+                    {s.observer && <div className="sp-credit">📷 {s.observer} · {s.photo_license || 'CC BY-NC'}</div>}
                   </div>
                 </div>
               )})}
@@ -401,7 +402,8 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                     {r.rock_type === 'fossil' && <div className="sp-sci">{r.period}{r.age_max_ma ? ` · ${r.age_max_ma} Ma` : ''}</div>}
                     {r.rock_type === 'mineral' && <div className="sp-sci">{r.commodity}</div>}
                     <div className="sp-class-label">{icon} {ROCK_LABELS[r.category] || r.category}</div>
-                    {r.museum && <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>{r.museum}</div>}
+                    {r.museum && <div className="sp-credit">{r.museum}</div>}
+                    {r.image_license && <div className="sp-credit">{r.image_license}</div>}
                   </div>
                 </div>
               )})}

@@ -954,6 +954,11 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           )}
           </div>
           </div>{/* end rnow-card-container */}
+
+          {/* ── Data Attribution ── */}
+          <div className="rnow-attribution">
+            Data: USGS · NOAA/NWS · USDA SNOTEL · ODFW · EPA · iNaturalist (CC BY-NC) · USFS · OSMB · Macrostrat · PBDB
+          </div>
         </>
       )}
     </div>

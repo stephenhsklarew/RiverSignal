@@ -51,7 +51,7 @@ const PHYLUM_ICONS: Record<string, string> = {
   'Brachiopoda': '🐚', 'Foraminifera': '🔬', 'Radiolaria': '🔬',
 }
 
-type Screen = 'pick' | 'detail' | 'fossils' | 'minerals'
+type Screen = 'pick' | 'detail' | 'fossils' | 'minerals' | 'rockhounding'
 
 export default function DeepTrailPage() {
   const [screen, setScreen] = useState<Screen>('pick')
@@ -140,6 +140,8 @@ export default function DeepTrailPage() {
   const [compareEra2, setCompareEra2] = useState('Miocene')
   const [compareData, setCompareData] = useState<any>(null)
   const [mineralShops, setMineralShops] = useState<any[]>([])
+  const [rockhoundingSites, setRockhoundingSites] = useState<any[]>([])
+  const [selectedRocksite, setSelectedRocksite] = useState<any>(null)
   const [rarityScores, setRarityScores] = useState<Record<string, any>>({})
 
   // Fossil/mineral filters
@@ -202,6 +204,7 @@ export default function DeepTrailPage() {
     fetch(`${API_BASE}/deep-time/quiz?lat=${loc.lat}&lon=${loc.lon}`).then(r => r.json()).then(setQuiz).catch(() => {})
     fetch(`${API_BASE}/deep-time/rarity`).then(r => r.json()).then(d => setRarityScores(d.scores || {})).catch(() => {})
     fetch(`${API_BASE}/deep-time/mineral-shops`).then(r => r.json()).then(setMineralShops).catch(() => {})
+    fetch(`${API_BASE}/rockhounding/near/${loc.lat}/${loc.lon}?radius_km=150`).then(r => r.json()).then(d => setRockhoundingSites(d.sites || [])).catch(() => {})
 
     // Fetch nearest river data for Living River card
     setRiverData(null)
@@ -577,6 +580,30 @@ export default function DeepTrailPage() {
             </button>
           </section>
           </div>
+          <div data-dtcard="rockhounding">
+          {/* Rockhounding Sites */}
+          {rockhoundingSites.length > 0 && (
+            <section className="dt-rockhounding">
+              <h3>🪨 Rockhounding Sites ({rockhoundingSites.length})</h3>
+              {rockhoundingSites.map((s: any, i: number) => (
+                <button key={i} className="dt-rocksite-row" onClick={() => { setSelectedRocksite(s); setScreen('rockhounding') }}>
+                  {s.image_url && <img src={s.image_url} alt={s.rock_type} className="dt-rocksite-row-img" loading="lazy" />}
+                  <div className="dt-rocksite-row-body">
+                    <div className="dt-rocksite-name">{s.name}</div>
+                    <div className="dt-rocksite-rocks">{s.rock_type}</div>
+                  </div>
+                  <div className="dt-rocksite-row-right">
+                    <span className={`dt-rocksite-owner ${s.land_owner === 'BLM' ? 'public' : s.land_owner === 'Private' ? 'private' : 'other'}`}>
+                      {s.land_owner}
+                    </span>
+                    {s.distance_km != null && <span className="dt-rocksite-dist">{s.distance_km} km</span>}
+                  </div>
+                  <span className="dt-rocksite-arrow">→</span>
+                </button>
+              ))}
+            </section>
+          )}
+          </div>
           <div data-dtcard="mineral_shops">
           {/* Mineral Shops */}
           {mineralShops.length > 0 && (
@@ -633,7 +660,9 @@ export default function DeepTrailPage() {
       </header>
 
       <MiniMap items={filteredFossils} center={loc!} color="#d4a96a"
-        labels={filteredFossils.map(f => f.common_name || f.taxon_name)} />
+        labels={filteredFossils.map(f => f.common_name || f.taxon_name)}
+        extraItems={rockhoundingSites} extraColor="#4caf50"
+        extraLabels={rockhoundingSites.map(s => s.name + ' — ' + s.rock_type)} />
 
       {/* Period selector + phylum chips */}
       <PeriodFilterModal periods={fossilPeriods} selected={periodFilter} onSelect={setPeriodFilter} />
@@ -654,6 +683,62 @@ export default function DeepTrailPage() {
   )
 
   // ═══════════════════════════════════════════════
+  // SCREEN 4: ROCKHOUNDING SITE DETAIL
+  // ═══════════════════════════════════════════════
+  if (screen === 'rockhounding' && selectedRocksite) {
+    const s = selectedRocksite
+    return (
+      <div className="dt-app">
+        <header className="dt-detail-header">
+          <button className="dt-back" onClick={() => setScreen('detail')}>← {loc!.name}</button>
+          <img src={logo} alt="DeepTrail" className="dt-logo" />
+        </header>
+
+        {s.image_url && (
+          <div className="dt-rockdetail-hero">
+            <img src={s.image_url} alt={s.rock_type} />
+          </div>
+        )}
+
+        <div className="dt-rockdetail-content">
+          <h2 className="dt-rockdetail-name">{s.name}</h2>
+          <div className="dt-rockdetail-rocks">{s.rock_type}</div>
+
+          <div className="dt-rockdetail-badges">
+            <span className={`dt-rocksite-owner ${s.land_owner === 'BLM' ? 'public' : s.land_owner === 'Private' ? 'private' : 'other'}`}>
+              {s.land_owner}
+            </span>
+            {s.nearest_town && <span className="dt-rockdetail-town">📍 {s.nearest_town}</span>}
+            {s.distance_km != null && <span className="dt-rockdetail-dist">{s.distance_km} km away</span>}
+          </div>
+
+          <div className="dt-rockdetail-section">
+            <h3>Description</h3>
+            <p>{s.description}</p>
+          </div>
+
+          <div className="dt-rockdetail-section dt-rockdetail-rules-box">
+            <h3>⚖️ Collecting Rules</h3>
+            <p>{s.collecting_rules}</p>
+          </div>
+
+          <div className="dt-rockdetail-section">
+            <h3>Location</h3>
+            <p className="dt-rockdetail-coords">{s.latitude.toFixed(4)}°N, {Math.abs(s.longitude).toFixed(4)}°W</p>
+          </div>
+
+          <MiniMap
+            items={[{ latitude: s.latitude, longitude: s.longitude }]}
+            center={{ lat: s.latitude, lon: s.longitude }}
+            color="#4caf50"
+            labels={[s.name]}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ═══════════════════════════════════════════════
   // SCREEN 3b: MINERAL LIST + MAP
   // ═══════════════════════════════════════════════
   return (
@@ -664,7 +749,9 @@ export default function DeepTrailPage() {
       </header>
 
       <MiniMap items={filteredMinerals} center={loc!} color="#e65100"
-        labels={filteredMinerals.map(m => m.site_name)} />
+        labels={filteredMinerals.map(m => m.site_name)}
+        extraItems={rockhoundingSites} extraColor="#4caf50"
+        extraLabels={rockhoundingSites.map(s => s.name + ' — ' + s.rock_type)} />
 
       {/* Filter chips */}
       <div className="dt-filter-chips">
@@ -684,11 +771,14 @@ export default function DeepTrailPage() {
 // ═══════════════════════════════════════════════
 // Compact MapLibre map for fossil/mineral lists
 // ═══════════════════════════════════════════════
-function MiniMap({ items, center, color, labels }: {
+function MiniMap({ items, center, color, labels, extraItems, extraColor, extraLabels }: {
   items: { latitude: number; longitude: number }[];
   center: { lat: number; lon: number };
   color: string;
   labels?: string[];
+  extraItems?: { latitude: number; longitude: number }[];
+  extraColor?: string;
+  extraLabels?: string[];
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const popupRef = useRef<maplibregl.Popup | null>(null)
@@ -717,6 +807,35 @@ function MiniMap({ items, center, color, labels }: {
         id: 'item-points', type: 'circle', source: 'items',
         paint: { 'circle-radius': 7, 'circle-color': color, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 },
       })
+
+      // Rockhounding sites as extra pins (green diamonds)
+      if (extraItems && extraItems.length > 0) {
+        const extraFeatures = extraItems.filter(i => i.latitude && i.longitude).map((item, idx) => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [item.longitude, item.latitude] },
+          properties: { idx, label: extraLabels?.[idx] || `Site ${idx + 1}`, isExtra: true },
+        }))
+        map.addSource('extra-items', { type: 'geojson', data: { type: 'FeatureCollection', features: extraFeatures } })
+        map.addLayer({
+          id: 'extra-points', type: 'circle', source: 'extra-items',
+          paint: {
+            'circle-radius': 8, 'circle-color': extraColor || '#4caf50',
+            'circle-stroke-color': '#fff', 'circle-stroke-width': 2,
+          },
+        })
+        map.on('click', 'extra-points', (e) => {
+          if (!e.features?.length) return
+          const props = e.features[0].properties as any
+          const coords = (e.features[0].geometry as any).coordinates.slice() as [number, number]
+          if (popupRef.current) popupRef.current.remove()
+          popupRef.current = new maplibregl.Popup({ maxWidth: '200px', closeButton: false })
+            .setLngLat(coords)
+            .setHTML(`<div style="font-family:Outfit,sans-serif;font-size:12px;color:#1a1612;padding:2px 0;">🪨 <strong>${props.label}</strong></div>`)
+            .addTo(map)
+        })
+        map.on('mouseenter', 'extra-points', () => { map.getCanvas().style.cursor = 'pointer' })
+        map.on('mouseleave', 'extra-points', () => { map.getCanvas().style.cursor = '' })
+      }
 
       // Click → popup + scroll to card
       map.on('click', 'item-points', (e) => {
@@ -748,7 +867,7 @@ function MiniMap({ items, center, color, labels }: {
     })
 
     return () => { map.remove() }
-  }, [items, center, color, labels])
+  }, [items, center, color, labels, extraItems, extraColor, extraLabels])
 
   return <div ref={ref} className="dt-mini-map" />
 }
