@@ -1,4 +1,4 @@
-"""Watershed configurations for 5 Oregon watersheds.
+"""Watershed configurations for Pacific Northwest watersheds.
 
 Each watershed defines a bounding box and metadata used by ingestion adapters.
 Bounding boxes are approximate and designed to capture the main stem and
@@ -70,6 +70,21 @@ WATERSHEDS = {
             "south": 44.15,
             "east": -118.40,
             "west": -119.90,
+        },
+    },
+    "skagit": {
+        "name": "Skagit River",
+        "description": (
+            "Skagit River watershed in northwest Washington, from North Cascades "
+            "through Skagit Valley to Puget Sound. Largest river system in the "
+            "Puget Sound basin — all five Pacific salmon species, bald eagle "
+            "wintering grounds, and critical estuary habitat."
+        ),
+        "bbox": {
+            "north": 48.90,
+            "south": 48.20,
+            "east": -121.00,
+            "west": -122.60,
         },
     },
 }

@@ -2,6 +2,7 @@ import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { SavedProvider } from './components/SavedContext'
+import { DeepTrailProvider } from './components/DeepTrailContext'
 import './index.css'
 
 function DynamicFavicon() {
@@ -26,7 +27,13 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const MapPage = lazy(() => import('./pages/MapPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const DeepSignalPage = lazy(() => import('./pages/DeepSignalPage'))
-const DeepTrailPage = lazy(() => import('./pages/DeepTrailPage'))
+// DeepTrail tab pages
+const DeepTrailPickPage = lazy(() => import('./pages/DeepTrailPickPage'))
+const TrailStoryPage = lazy(() => import('./pages/TrailStoryPage'))
+const TrailExplorePage = lazy(() => import('./pages/TrailExplorePage'))
+const TrailCollectPage = lazy(() => import('./pages/TrailCollectPage'))
+const TrailLearnPage = lazy(() => import('./pages/TrailLearnPage'))
+const TrailSavedPage = lazy(() => import('./pages/TrailSavedPage'))
 const StatusPage = lazy(() => import('./pages/StatusPage'))
 
 // RiverPath mobile tab pages
@@ -39,8 +46,9 @@ const SavedPage = lazy(() => import('./pages/SavedPage'))
 const SpeciesMapPage = lazy(() => import('./pages/SpeciesMapPage'))
 const ExploreMapPage = lazy(() => import('./pages/ExploreMapPage'))
 
-// Bottom nav (only on /path/* routes)
+// Bottom nav
 const BottomNav = lazy(() => import('./components/BottomNav'))
+const DeepTrailBottomNav = lazy(() => import('./components/DeepTrailBottomNav'))
 
 const Loading = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'Outfit, sans-serif', color: '#64705b' }}>
@@ -50,16 +58,20 @@ const Loading = () => (
 
 function ConditionalBottomNav() {
   const { pathname } = useLocation()
-  // Show bottom nav on /path/* routes except the homepage (/path, /path/:watershed)
+  // DeepTrail bottom nav on /trail/story|explore|collect|learn|saved routes
+  const isTrailTabRoute = /^\/trail\/(story|explore|collect|learn|saved)/.test(pathname)
+  if (isTrailTabRoute) return <DeepTrailBottomNav />
+  // RiverPath bottom nav on /path/* routes
   const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map)/.test(pathname)
-  if (!isTabRoute) return null
-  return <BottomNav />
+  if (isTabRoute) return <BottomNav />
+  return null
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <SavedProvider>
+        <DeepTrailProvider>
         <DynamicFavicon />
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -93,11 +105,13 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/deepsignal" element={<DeepSignalPage />} />
             <Route path="/deepsignal/:watershed" element={<DeepSignalPage />} />
 
-            {/* DeepTrail — B2C geology adventure (mobile-first) */}
-            <Route path="/trail" element={<DeepTrailPage />} />
-            <Route path="/trail/location" element={<DeepTrailPage />} />
-            <Route path="/trail/fossils" element={<DeepTrailPage />} />
-            <Route path="/trail/minerals" element={<DeepTrailPage />} />
+            {/* DeepTrail — B2C geology adventure (mobile-first, 5 tabs) */}
+            <Route path="/trail" element={<DeepTrailPickPage />} />
+            <Route path="/trail/story/:locationId" element={<TrailStoryPage />} />
+            <Route path="/trail/explore/:locationId" element={<TrailExplorePage />} />
+            <Route path="/trail/collect/:locationId" element={<TrailCollectPage />} />
+            <Route path="/trail/learn/:locationId" element={<TrailLearnPage />} />
+            <Route path="/trail/saved" element={<TrailSavedPage />} />
 
             {/* Legacy routes — redirect to new product routes */}
             <Route path="/map" element={<MapPage />} />
@@ -107,6 +121,7 @@ createRoot(document.getElementById('root')!).render(
           </Routes>
           <ConditionalBottomNav />
         </Suspense>
+        </DeepTrailProvider>
       </SavedProvider>
     </BrowserRouter>
   </StrictMode>,

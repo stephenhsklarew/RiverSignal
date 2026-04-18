@@ -605,20 +605,31 @@ No markdown formatting — this will be spoken aloud.""",
     # ── Cache story text ──
     text_file.write_text(story_text)
 
-    # ── Generate and cache audio via OpenAI TTS ──
+    # ── Generate and cache audio via OpenAI audio model ──
+    import base64
     openai_key = os.environ.get("OPENAI_API_KEY")
     has_audio = False
     if openai_key:
         try:
             resp = httpx.post(
-                "https://api.openai.com/v1/audio/speech",
+                "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"},
-                json={"model": "tts-1", "voice": "nova", "input": story_text[:4096]},
-                timeout=60,
+                json={
+                    "model": "gpt-4o-audio-preview",
+                    "modalities": ["text", "audio"],
+                    "audio": {"voice": "nova", "format": "mp3"},
+                    "messages": [
+                        {"role": "system", "content": "You are a narrator. Read the following text aloud exactly as written. Do not add commentary. Just read naturally and expressively."},
+                        {"role": "user", "content": story_text[:4000]},
+                    ],
+                },
+                timeout=120,
             )
             if resp.status_code == 200:
-                audio_file.write_bytes(resp.content)
-                has_audio = True
+                audio_data = resp.json().get("choices", [{}])[0].get("message", {}).get("audio", {}).get("data")
+                if audio_data:
+                    audio_file.write_bytes(base64.b64decode(audio_data))
+                    has_audio = True
         except Exception:
             pass
 
@@ -695,6 +706,52 @@ def time_machine(watershed: str):
             "top_species": year_species.get(r[0], []),
         } for r in rows],
     }
+
+
+# ═══════════════════════════════════════════════
+# 10. RIVER STORY — Pre-cached ecological narratives
+# ═══════════════════════════════════════════════
+@router.get("/sites/{watershed}/river-story")
+def river_story(watershed: str, reading_level: str = Query("adult")):
+    """Serve pre-generated river story from cache. Falls back to campfire-story if not cached."""
+    if reading_level not in ("kids", "adult", "expert"):
+        reading_level = "adult"
+
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT narrative, generated_at FROM river_stories
+            WHERE watershed = :ws AND reading_level = :lvl
+        """), {"ws": watershed, "lvl": reading_level}).fetchone()
+
+    if row:
+        import pathlib
+        audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".river_story_audio" / f"{watershed}_{reading_level}.mp3"
+        return {
+            "watershed": watershed,
+            "reading_level": reading_level,
+            "narrative": row[0],
+            "generated_at": str(row[1]) if row[1] else None,
+            "audio_url": f"/api/v1/sites/{watershed}/river-story-audio?reading_level={reading_level}" if audio_file.exists() else None,
+            "cached": True,
+        }
+
+    raise HTTPException(404, f"No cached story for {watershed}/{reading_level}. Run: python -m pipeline.generate_river_stories")
+
+
+@router.get("/sites/{watershed}/river-story-audio")
+def river_story_audio(watershed: str, reading_level: str = Query("adult")):
+    """Serve cached River Path story audio (MP3)."""
+    import pathlib
+    from fastapi.responses import Response
+
+    if reading_level not in ("kids", "adult", "expert"):
+        reading_level = "adult"
+
+    audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".river_story_audio" / f"{watershed}_{reading_level}.mp3"
+    if not audio_file.exists():
+        raise HTTPException(404, "No cached audio for this story.")
+
+    return Response(content=audio_file.read_bytes(), media_type="audio/mpeg")
 
 
 def _table_exists(conn, table_name: str) -> bool:

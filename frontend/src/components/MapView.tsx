@@ -18,6 +18,7 @@ const COLORS: Record<string, string> = {
   deschutes: '#2563eb',
   metolius: '#7c3aed',
   johnday: '#d97706',
+  skagit: '#0891b2',
 }
 
 const OBS_LAYER_ID = 'observation-points'
@@ -49,8 +50,8 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      center: [-121.5, 43.8],
-      zoom: 6.5,
+      center: [-121.3, 45.5],
+      zoom: 5.5,
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')

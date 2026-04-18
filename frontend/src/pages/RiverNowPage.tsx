@@ -22,10 +22,16 @@ const WS_CENTERS: Record<string, [number, number]> = {
   metolius: [-121.57, 44.50],
   klamath: [-121.55, 42.65],
   johnday: [-119.15, 44.60],
+  skagit: [-121.50, 48.45],
 }
 
 export default function RiverNowPage() {
   const watershed = useWatershed('/path/now')
+
+  useEffect(() => {
+    document.title = 'River Path'
+    return () => { document.title = 'River Signal' }
+  }, [])
 
   if (!watershed) {
     return <RiverNowDefault />
@@ -40,10 +46,10 @@ export default function RiverNowPage() {
 
 import logo from '../assets/riverpath-logo.svg'
 
-const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
+const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday', 'skagit']
 const WATERSHED_LABELS: Record<string, string> = {
   mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius',
-  klamath: 'Klamath', johnday: 'John Day',
+  klamath: 'Klamath', johnday: 'John Day', skagit: 'Skagit',
 }
 const PHOTOS: Record<string, string> = {
   mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop',
@@ -51,6 +57,7 @@ const PHOTOS: Record<string, string> = {
   metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop',
   klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop',
   johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop',
+  skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {
   mckenzie: 'Fire, recovery, and the return of salmon',
@@ -58,6 +65,7 @@ const TAGLINES: Record<string, string> = {
   metolius: "Spring-fed sanctuary — Oregon's purest river",
   klamath: 'The largest dam removal in American history',
   johnday: 'Wild & Scenic through ancient fossil beds',
+  skagit: 'All five salmon species in the shadow of the North Cascades',
 }
 
 function RiverNowDefault() {
@@ -189,12 +197,13 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [tmYear, setTmYear] = useState<number | null>(null)
   const [compareWs, setCompareWs] = useState<string | null>(null)
   const [compareData, setCompareData] = useState<any>(null)
-  const [campfireStory, setCampfireStory] = useState<string | null>(null)
-  const [campfireLoading, setCampfireLoading] = useState(false)
-  const [campfireAudio, setCampfireAudio] = useState<HTMLAudioElement | null>(null)
-  const [campfirePlaying, setCampfirePlaying] = useState(false)
-  const [campfireLevel, setCampfireLevel] = useState<string>('adult')
-  const [campfireExpanded, setCampfireExpanded] = useState(false)
+  const [riverStory, setRiverStory] = useState<string>('')
+  const [riverStoryLoading, setRiverStoryLoading] = useState(true)
+  const [riverStoryLevel, setRiverStoryLevel] = useState<string>('adult')
+  const [riverStorySpeaking, setRiverStorySpeaking] = useState(false)
+  const [riverStoryAudioLoading, setRiverStoryAudioLoading] = useState(false)
+  const [riverStoryAudioUrl, setRiverStoryAudioUrl] = useState<string | null>(null)
+  const [riverStoryAudioEl, setRiverStoryAudioEl] = useState<HTMLAudioElement | null>(null)
 
   // Card customization
   const [cardConfig, setCardConfig] = useState<CardConfig[]>(loadCardSettings)
@@ -236,6 +245,11 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/species-spotter`).then(r => r.json()).then(setSpotter).catch(() => {})
     fetch(`${API}/sites/${watershed}/replay?days_ago=30`).then(r => r.json()).then(setReplay).catch(() => {})
     fetch(`${API}/sites/${watershed}/time-machine`).then(r => r.json()).then(d => { setTimeMachine(d); if (d.years?.length) setTmYear(d.years[d.years.length - 1].year) }).catch(() => {})
+    // River story (pre-cached)
+    setRiverStoryLoading(true)
+    fetch(`${API}/sites/${watershed}/river-story?reading_level=${riverStoryLevel}`)
+      .then(r => r.json()).then(d => { setRiverStory(d.narrative || ''); setRiverStoryAudioUrl(d.audio_url || null); setRiverStoryLoading(false) })
+      .catch(() => setRiverStoryLoading(false))
     // Geology + fossils for Deep Time card
     const center = WS_CENTERS[watershed]
     if (center) {
@@ -301,50 +315,52 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const displayDO = liveDO ? liveDO.value.toFixed(1) : health.dissolved_oxygen_mg_l
   const isLive = !!(liveTemp || liveFlow)
 
-  const fetchCampfireStory = async (level: string) => {
-    setCampfireLoading(true)
-    setCampfireStory(null)
-    setCampfireExpanded(false)
-    if (campfireAudio) { campfireAudio.pause(); setCampfirePlaying(false) }
-    try {
-      const r = await fetch(`${API}/sites/${watershed}/campfire-story?reading_level=${level}`)
-      const d = await r.json()
-      setCampfireStory(d.story)
-      setCampfireLoading(false)
-    } catch { setCampfireLoading(false) }
+  const handleRiverStoryLevelChange = (level: string) => {
+    setRiverStoryLevel(level)
+    setRiverStoryLoading(true)
+    if (riverStoryAudioEl) { riverStoryAudioEl.pause(); setRiverStorySpeaking(false) }
+    fetch(`${API}/sites/${watershed}/river-story?reading_level=${level}`)
+      .then(r => r.json()).then(d => { setRiverStory(d.narrative || ''); setRiverStoryAudioUrl(d.audio_url || null); setRiverStoryLoading(false) })
+      .catch(() => setRiverStoryLoading(false))
   }
 
-  const playCampfireAudio = async () => {
-    if (campfirePlaying && campfireAudio) { campfireAudio.pause(); setCampfirePlaying(false); return }
-    if (!campfireStory) return
-    setCampfireLoading(true)
-    try {
-      // Try cached audio first
-      let audioUrl: string
-      const audioResp = await fetch(`http://localhost:8001/api/v1/sites/${watershed}/campfire-audio?reading_level=${campfireLevel}`)
-      if (audioResp.ok) {
-        const blob = await audioResp.blob()
-        audioUrl = URL.createObjectURL(blob)
-      } else {
-        const ttsResp = await fetch(`${API}/tts`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: campfireStory, voice: 'nova' }),
+  const speakRiverStory = () => {
+    // Stop if already playing
+    if (riverStorySpeaking) {
+      if (riverStoryAudioEl) { riverStoryAudioEl.pause(); setRiverStoryAudioEl(null) }
+      else window.speechSynthesis.cancel()
+      setRiverStorySpeaking(false)
+      return
+    }
+    if (!riverStory) return
+
+    // Prefer cached OpenAI audio
+    if (riverStoryAudioUrl) {
+      setRiverStoryAudioLoading(true)
+      fetch(`http://localhost:8001${riverStoryAudioUrl}`)
+        .then(r => r.blob())
+        .then(blob => {
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          audio.onended = () => { setRiverStorySpeaking(false); setRiverStoryAudioEl(null) }
+          setRiverStoryAudioEl(audio)
+          setRiverStorySpeaking(true)
+          setRiverStoryAudioLoading(false)
+          audio.play()
         })
-        const blob = await ttsResp.blob()
-        audioUrl = URL.createObjectURL(blob)
-      }
-      const audio = new Audio(audioUrl)
-      audio.onended = () => setCampfirePlaying(false)
-      setCampfireAudio(audio)
-      setCampfirePlaying(true)
-      setCampfireLoading(false)
-      audio.play()
-    } catch { setCampfireLoading(false) }
-  }
+        .catch(() => { setRiverStoryAudioLoading(false) })
+      return
+    }
 
-  const handleCampfireLevelChange = (level: string) => {
-    setCampfireLevel(level)
-    fetchCampfireStory(level)
+    // Fallback to browser speech synthesis
+    setRiverStoryAudioLoading(true)
+    const utterance = new SpeechSynthesisUtterance(riverStory)
+    utterance.rate = 0.95
+    utterance.onend = () => setRiverStorySpeaking(false)
+    utterance.onerror = () => { setRiverStorySpeaking(false); setRiverStoryAudioLoading(false) }
+    window.speechSynthesis.speak(utterance)
+    setRiverStorySpeaking(true)
+    setRiverStoryAudioLoading(false)
   }
 
   // Harvest trend — latest year vs prior
@@ -535,44 +551,16 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
           </div>
           <div data-card="campfire_story">
-          {/* ── Campfire Story ── */}
-          <section className="rnow-section">
-            <div className="rnow-section-title">🔥 River Story</div>
-
-            {/* Reading level toggle */}
-            <div className="rnow-campfire-levels">
-              {(['kids', 'adult', 'expert'] as const).map(level => (
-                <button key={level}
-                  className={`rnow-campfire-level${campfireLevel === level ? ' active' : ''}`}
-                  onClick={() => handleCampfireLevelChange(level)}>
-                  {level === 'kids' ? 'Kids' : level === 'expert' ? 'Expert' : 'Adult'}
-                </button>
-              ))}
-            </div>
-
-            {/* Listen button */}
-            <button className={`rnow-campfire-btn${campfirePlaying ? ' playing' : ''}`}
-              onClick={campfireStory ? playCampfireAudio : () => fetchCampfireStory(campfireLevel)}
-              disabled={campfireLoading}>
-              {campfireLoading ? '⏳ Generating...' : campfirePlaying ? '⏹ Stop' : campfireStory ? '🔊 Listen to Story' : '🔥 Generate Story'}
-            </button>
-
-            {/* Story text with expand/collapse */}
-            {campfireStory && (
-              <div className={`rnow-campfire-card${campfireExpanded ? ' expanded' : ''}`}>
-                <div className="rnow-campfire-text">
-                  <Markdown>{campfireStory}</Markdown>
-                </div>
-                {!campfireExpanded && campfireStory.length > 300 && (
-                  <div className="rnow-campfire-fade" />
-                )}
-                <button className="rnow-campfire-expand" onClick={() => setCampfireExpanded(!campfireExpanded)}>
-                  {campfireExpanded ? 'Show less ↑' : 'Read full story ↓'}
-                </button>
-              </div>
-            )}
-          </section>
-
+          {/* ── River Story ── */}
+          <RiverStoryCard
+            narrative={riverStory}
+            loading={riverStoryLoading}
+            readingLevel={riverStoryLevel}
+            onChangeLevel={handleRiverStoryLevelChange}
+            speaking={riverStorySpeaking}
+            audioLoading={riverStoryAudioLoading}
+            onSpeak={speakRiverStory}
+          />
           </div>
           <div data-card="current_activity">
           {/* ── Swipeable Condition Cards ── */}
@@ -966,6 +954,69 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
         </>
       )}
     </div>
+  )
+}
+
+// ════════════════════════════════════════════
+// River Story Card — pre-cached ecological narratives
+// ════════════════════════════════════════════
+
+function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speaking, audioLoading, onSpeak }: {
+  narrative: string; loading: boolean; readingLevel: string;
+  onChangeLevel: (level: string) => void;
+  speaking: boolean; audioLoading: boolean; onSpeak: () => void;
+}) {
+  const [page, setPage] = useState(0)
+  const SENTENCES_PER_PAGE = 5
+
+  // Reset page when narrative changes
+  useEffect(() => { setPage(0) }, [narrative])
+
+  // Split into sentences for pagination
+  const sentences = narrative
+    .split(/(?<=[.!?])\s+/)
+    .filter(s => s.trim().length > 10)
+  const totalPages = Math.max(1, Math.ceil(sentences.length / SENTENCES_PER_PAGE))
+  const pageSentences = sentences.slice(page * SENTENCES_PER_PAGE, (page + 1) * SENTENCES_PER_PAGE)
+
+  return (
+    <>
+      <div className="rnow-story-label">River Story</div>
+      <section className="rnow-story-card">
+        {/* Reading level toggle + audio */}
+        <div className="rnow-story-controls">
+          <div className="rnow-story-toggle">
+            {(['adult', 'kids', 'expert'] as const).map(level => (
+              <button key={level} className={`rnow-story-level${readingLevel === level ? ' active' : ''}`}
+                onClick={() => onChangeLevel(level)}>
+                {level === 'kids' ? 'Kids' : level === 'expert' ? 'Expert' : 'Adult'}
+              </button>
+            ))}
+          </div>
+          <button className={`rnow-story-listen${speaking ? ' active' : ''}`} onClick={onSpeak} disabled={audioLoading || loading}>
+            {audioLoading ? '...' : speaking ? '⏹' : '🔊'}
+          </button>
+        </div>
+
+        {/* Story content */}
+        {loading ? (
+          <div className="rnow-story-loading">Loading story...</div>
+        ) : (
+          <div className="rnow-story-text">
+            <Markdown>{pageSentences.join(' ')}</Markdown>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="rnow-story-pagination">
+            <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="rnow-story-page-btn">← Prev</button>
+            <span className="rnow-story-page-info">{page + 1} / {totalPages}</span>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="rnow-story-page-btn">Next →</button>
+          </div>
+        )}
+      </section>
+    </>
   )
 }
 

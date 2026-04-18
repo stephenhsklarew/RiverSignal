@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 
 export interface SavedItem {
-  type: 'reach' | 'species' | 'fly' | 'recreation' | 'restoration'
+  type: 'reach' | 'species' | 'fly' | 'recreation' | 'restoration' | 'fossil' | 'mineral' | 'rocksite'
   id: string
   watershed: string
   label: string

@@ -15,6 +15,7 @@ const PHOTOS: Record<string, string> = {
   metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop', // Cabin on Metolius River, Camp Sherman OR by Lance Reis
   klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop', // Wood River meandering into Klamath Lake, Chiloquin OR by Dan Meyers
   johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop', // Painted Hills, John Day Fossil Beds National Monument OR by Dan Meyers
+  skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 
 interface WatershedData {
@@ -49,9 +50,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: 'Wild & Scenic through ancient fossil beds',
     narrative: 'The John Day is one of the longest free-flowing rivers in the Pacific Northwest — 284 miles without a dam. It cuts through the Painted Hills and John Day Fossil Beds, where 40-million-year-old ecosystems are preserved in stone. Today it supports wild steelhead and spring Chinook runs through high-desert rangeland, making it one of Oregon\'s most remote and ecologically significant watersheds.',
   },
+  skagit: {
+    tagline: 'All five salmon species in the shadow of the North Cascades',
+    narrative: 'The Skagit is the largest river system flowing into Puget Sound and one of only a handful of rivers in the lower 48 that supports all five species of Pacific salmon. Fed by glaciers in North Cascades National Park, the river draws hundreds of bald eagles each winter to feed on spawned-out chum. Its vast estuary — the Skagit Delta — is critical nursery habitat for juvenile Chinook and a key link in the Puget Sound food web.',
+  },
 }
 
-const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
+const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -99,7 +104,7 @@ export default function HomePage() {
       <div className="home-nav-links">
         {WATERSHED_ORDER.map(ws => (
           <Link key={ws} to={`/path/now/${ws}`} className="home-nav-link">
-            {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day' }[ws]}
+            {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day', skagit: 'Skagit' }[ws]}
           </Link>
         ))}
       </div>

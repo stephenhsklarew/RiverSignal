@@ -7,10 +7,10 @@ import './DeepSignalPage.css'
 
 const API_BASE = 'http://localhost:8001/api/v1'
 
-const WATERSHEDS = ['klamath', 'mckenzie', 'deschutes', 'metolius', 'johnday']
+const WATERSHEDS = ['klamath', 'mckenzie', 'deschutes', 'metolius', 'johnday', 'skagit']
 const NAMES: Record<string, string> = {
   klamath: 'Upper Klamath', mckenzie: 'McKenzie', deschutes: 'Deschutes',
-  metolius: 'Metolius', johnday: 'John Day',
+  metolius: 'Metolius', johnday: 'John Day', skagit: 'Skagit River',
 }
 
 interface GeoUnit {

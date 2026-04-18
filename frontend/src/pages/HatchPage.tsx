@@ -12,6 +12,10 @@ const LIFECYCLE_STAGES = ['nymph', 'emerger', 'adult']
 const STAGE_ICONS: Record<string, string> = { nymph: '🐛', emerger: '🪶', adult: '🪰' }
 
 export default function HatchPage() {
+  useEffect(() => {
+    document.title = 'River Path'
+    return () => { document.title = 'River Signal' }
+  }, [])
   const ws = useWatershed('/path/hatch') || 'deschutes'
   const [hatch, setHatch] = useState<any>(null)
   const [flies, setFlies] = useState<any[]>([])

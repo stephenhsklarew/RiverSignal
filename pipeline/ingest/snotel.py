@@ -103,21 +103,29 @@ class SNOTELAdapter(IngestionAdapter):
 
     def _find_stations(self, bbox: dict) -> list[dict]:
         """Find SNOTEL stations near the watershed bbox."""
-        with httpx.Client(timeout=60) as client:
-            resp = client.get(f"{API_BASE}/stations", params={
-                "stateCode": "OR",
-                "networkCode": "SNTL",
-                "returnFields": "stationTriplet,name,latitude,longitude,elevation",
-            })
-            if resp.status_code != 200:
-                return []
+        # Determine state from bbox latitude (OR vs WA)
+        state_codes = ["OR"]
+        if bbox.get("north", 0) > 46:
+            state_codes.append("WA")
 
-            all_stations = resp.json()
-            m = STATION_SEARCH_MARGIN
-            return [
-                s for s in all_stations
-                if s.get("stateCode") == "OR"
-                and s.get("networkCode") == "SNTL"
-                and bbox["south"] - m <= s.get("latitude", 0) <= bbox["north"] + m
-                and bbox["west"] - m <= s.get("longitude", 0) <= bbox["east"] + m
-            ]
+        all_stations = []
+        with httpx.Client(timeout=60) as client:
+            for state in state_codes:
+                try:
+                    resp = client.get(f"{API_BASE}/stations", params={
+                        "stateCode": state,
+                        "networkCode": "SNTL",
+                        "returnFields": "stationTriplet,name,latitude,longitude,elevation",
+                    })
+                    if resp.status_code == 200:
+                        all_stations.extend(resp.json())
+                except Exception:
+                    pass
+
+        m = STATION_SEARCH_MARGIN
+        return [
+            s for s in all_stations
+            if "SNTL" in s.get("stationTriplet", "")
+            and bbox["south"] - m <= s.get("latitude", 0) <= bbox["north"] + m
+            and bbox["west"] - m <= s.get("longitude", 0) <= bbox["east"] + m
+        ]

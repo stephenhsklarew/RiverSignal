@@ -586,6 +586,7 @@ CREATE MATERIALIZED VIEW gold.site_ecological_summary AS
 -- gold.species_by_reach
 DROP MATERIALIZED VIEW IF EXISTS gold.species_by_reach CASCADE;
 CREATE MATERIALIZED VIEW gold.species_by_reach AS
+-- Oregon data from ODFW Fish Habitat Distribution
  SELECT o.site_id,
     s.watershed,
     o.data_payload ->> 'stream'::text AS stream_name,
@@ -604,7 +605,23 @@ CREATE MATERIALIZED VIEW gold.species_by_reach AS
           WHERE obs.site_id = o.site_id AND obs.source_type::text = 'inaturalist'::text AND obs.taxon_name::text = o.taxon_name::text) AS last_inat_observation
    FROM observations o
      JOIN sites s ON s.id = o.site_id
-  WHERE o.source_type::text = 'fish_habitat'::text;;
+  WHERE o.source_type::text = 'fish_habitat'::text
+UNION ALL
+-- Washington data from WDFW SalmonScape
+ SELECT w.site_id,
+    s.watershed,
+    w.stream_name,
+    w.species AS scientific_name,
+    w.species AS common_name,
+    w.species_run AS run_type,
+    w.use_type,
+    NULL AS origin,
+    w.life_history,
+    w.distribution_type AS data_basis,
+    0 AS inat_observation_count,
+    NULL::date AS last_inat_observation
+   FROM wa_salmonscape w
+     JOIN sites s ON s.id = w.site_id;
 
 -- gold.species_trends
 DROP MATERIALIZED VIEW IF EXISTS gold.species_trends CASCADE;

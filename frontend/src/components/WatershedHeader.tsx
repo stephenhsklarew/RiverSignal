@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import rpLogo from '../assets/riverpath-logo.svg'
 import './WatershedHeader.css'
 
-const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday']
+const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday', 'skagit']
 const WATERSHED_LABELS: Record<string, string> = {
   mckenzie: 'McKenzie River', deschutes: 'Deschutes River', metolius: 'Metolius River',
-  klamath: 'Upper Klamath Basin', johnday: 'John Day River',
+  klamath: 'Upper Klamath Basin', johnday: 'John Day River', skagit: 'Skagit River',
 }
 
 export const WS_STORAGE_KEY = 'riverpath-selected-watershed'

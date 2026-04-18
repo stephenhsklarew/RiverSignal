@@ -40,6 +40,7 @@ OWRI_WATERSHED_FILTERS = {
     "deschutes": "watershed LIKE '%Deschutes%' OR watershed LIKE '%Crooked%' OR watershed LIKE '%Tumalo%'",
     "metolius": "watershed LIKE '%Metolius%'",
     "johnday": "watershed LIKE '%John Day%'",
+    "skagit": "watershed LIKE '%Skagit%' OR watershed LIKE '%Sauk%' OR watershed LIKE '%Baker%'",
 }
 
 UPSERT_SQL = text("""

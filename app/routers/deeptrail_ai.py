@@ -277,65 +277,101 @@ def fossil_rarity_scores():
 @router.get("/deep-time/quiz")
 def kid_quiz(lat: float = Query(...), lon: float = Query(...)):
     """Generate quiz questions from fossil and geology data at a location."""
+    import random
+
     with engine.connect() as conn:
+        # Deduplicate fossils by common_name so each species appears once
+        # Widen to 150km to find fossils even in areas with sparse coverage
         fossils = conn.execute(text("""
-            SELECT taxon_name, common_name, phylum, class_name, period, age_max_ma
+            SELECT DISTINCT ON (common_name) taxon_name, common_name, phylum, class_name, period, age_max_ma
             FROM fossil_occurrences
-            WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, 50000)
+            WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, 150000)
               AND common_name IS NOT NULL AND common_name != ''
-            ORDER BY random() LIMIT 10
+            ORDER BY common_name, random()
         """), {"lat": lat, "lon": lon}).fetchall()
 
+        # Deduplicate geologic units by period so each age is a unique question
         geo = conn.execute(text("""
-            SELECT unit_name, rock_type, period, age_max_ma
+            SELECT DISTINCT ON (period) unit_name, rock_type, period, age_max_ma
             FROM geologic_units
             WHERE ST_Contains(geometry, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326))
-            LIMIT 3
+              AND period IS NOT NULL AND age_max_ma IS NOT NULL
+            ORDER BY period, age_max_ma DESC NULLS LAST
         """), {"lat": lat, "lon": lon}).fetchall()
 
     questions = []
+    seen_questions: set[str] = set()
+
+    # Shuffle fossils so we get different ones each time
+    fossil_list = list(fossils)
+    random.shuffle(fossil_list)
+
+    wrong_pool = ["Ancient Shark", "Giant Beetle", "Sea Scorpion", "Woolly Mammoth",
+                  "Saber-toothed Cat", "Giant Sloth", "Cave Bear", "Terror Bird",
+                  "Trilobite", "Ammonite", "Giant Fern", "Primitive Horse",
+                  "Ancient Whale", "Dire Wolf", "Giant Salamander", "Seed Fern"]
 
     # Fossil-based questions
-    for f in fossils[:4]:
+    for f in fossil_list:
         common = f[1]
         taxon = f[0]
         period = f[4]
         age = f[5]
 
-        # Question type 1: "What is [taxon] commonly known as?"
-        wrong_answers = ["Ancient Shark", "Giant Beetle", "Sea Scorpion", "Woolly Mammoth",
-                        "Saber-toothed Cat", "Giant Sloth", "Cave Bear", "Terror Bird"]
-        import random
-        wrong = random.sample([w for w in wrong_answers if w != common], 3)
+        q_text = f"What is '{taxon}' commonly known as?"
+        if q_text in seen_questions:
+            continue
+        seen_questions.add(q_text)
+
+        wrong = random.sample([w for w in wrong_pool if w.lower() != common.lower()], 3)
         choices = wrong + [common]
         random.shuffle(choices)
 
         questions.append({
-            "question": f"What is '{taxon}' commonly known as?",
+            "question": q_text,
             "choices": choices,
             "correct": common,
             "hint": f"It lived during the {period} period, about {int(age) if age else '?'} million years ago.",
             "type": "fossil_id",
         })
+        if len(questions) >= 3:
+            break
 
     # Geology-based questions
-    for g in geo[:2]:
+    geo_list = list(geo)
+    random.shuffle(geo_list)
+    for g in geo_list:
         period = g[2]
         age = g[3]
-        if age:
-            questions.append({
-                "question": f"How old is the {g[0] or 'rock'} at this location?",
-                "choices": [
-                    f"About {int(age)} million years",
-                    f"About {int(age * 2)} million years",
-                    f"About {int(age / 2)} million years",
-                    f"About {int(age * 0.1)} million years",
-                ],
-                "correct": f"About {int(age)} million years",
-                "hint": f"This is a {g[1] or 'geologic'} formation from the {period} period.",
-                "type": "age_guess",
-            })
+        if not age:
+            continue
+        q_text = f"How old is the {g[0] or 'rock'} ({period}) at this location?"
+        if q_text in seen_questions:
+            continue
+        seen_questions.add(q_text)
 
+        # Generate wrong answers that are clearly different from the correct one
+        wrong_ages = set()
+        for mult in [0.1, 0.3, 0.5, 2, 3, 5, 10]:
+            wrong_ages.add(int(age * mult))
+        wrong_ages.discard(int(age))
+        wrong_list = [a for a in sorted(wrong_ages) if a > 0]
+        wrong_picks = random.sample(wrong_list, min(3, len(wrong_list))) if len(wrong_list) >= 3 else wrong_list[:3]
+
+        choices = [f"About {int(age)} million years"] + [f"About {a} million years" for a in wrong_picks]
+        random.shuffle(choices)
+
+        questions.append({
+            "question": q_text,
+            "choices": choices,
+            "correct": f"About {int(age)} million years",
+            "hint": f"This is a {g[1] or 'geologic'} formation from the {period} period.",
+            "type": "age_guess",
+        })
+        if len(questions) >= 5:
+            break
+
+    random.shuffle(questions)
     return {"lat": lat, "lon": lon, "questions": questions[:5]}
 
 

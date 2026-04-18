@@ -15,6 +15,7 @@ const WATERSHEDS = [
   { id: 'metolius', name: 'Metolius River' },
   { id: 'klamath', name: 'Upper Klamath Basin' },
   { id: 'johnday', name: 'John Day River' },
+  { id: 'skagit', name: 'Skagit River' },
 ]
 
 export default function ReportsPage() {

@@ -242,15 +242,15 @@ def get_legal_collecting_sites(
 def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=200)):
     """Return mineral deposit locations within radius of a point."""
     sql = text("""
-        SELECT source_id, site_name, commodity, dev_status,
+        SELECT DISTINCT ON (site_name, commodity)
+               source_id, site_name, commodity, dev_status,
                latitude, longitude,
                ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km,
                image_url, image_license
         FROM mineral_deposits
         WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
           AND site_name NOT ILIKE 'Unnamed%'
-        ORDER BY distance_km
-        LIMIT 1000
+        ORDER BY site_name, commodity, distance_km
     """)
     with engine.connect() as conn:
         rows = conn.execute(sql, {
@@ -266,6 +266,60 @@ def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=20
     } for r in rows]
 
     return {"minerals": minerals, "count": len(minerals), "radius_km": radius_km}
+
+
+@router.get("/rockhounding/near/{lat}/{lon}")
+def get_rockhounding_near(lat: float, lon: float, radius_km: float = Query(100, le=300)):
+    """Return rockhounding/collecting sites within radius of a point."""
+    sql = text("""
+        SELECT name, rock_type, latitude, longitude,
+               land_owner, collecting_rules, nearest_town, description,
+               image_url, image_license,
+               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km
+        FROM rockhounding_sites
+        WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+        ORDER BY distance_km
+    """)
+    with engine.connect() as conn:
+        rows = conn.execute(sql, {
+            "lat": lat, "lon": lon, "radius_m": radius_km * 1000
+        }).fetchall()
+
+    sites = [{
+        "name": r[0], "rock_type": r[1],
+        "latitude": r[2], "longitude": r[3],
+        "land_owner": r[4], "collecting_rules": r[5],
+        "nearest_town": r[6], "description": r[7],
+        "image_url": r[8], "image_license": r[9],
+        "distance_km": round(r[10], 1) if r[10] else None,
+    } for r in rows]
+
+    return {"sites": sites, "count": len(sites), "radius_km": radius_km}
+
+
+@router.get("/rockhounding/watershed/{watershed}")
+def get_rockhounding_by_watershed(watershed: str):
+    """Return rockhounding sites tagged with a specific watershed."""
+    sql = text("""
+        SELECT name, rock_type, latitude, longitude,
+               land_owner, collecting_rules, nearest_town, description,
+               image_url, image_license
+        FROM rockhounding_sites
+        WHERE :ws = ANY(watersheds)
+        ORDER BY name
+    """)
+    with engine.connect() as conn:
+        rows = conn.execute(sql, {"ws": watershed}).fetchall()
+
+    sites = [{
+        "name": r[0], "rock_type": r[1],
+        "latitude": r[2], "longitude": r[3],
+        "land_owner": r[4], "collecting_rules": r[5],
+        "nearest_town": r[6], "description": r[7],
+        "image_url": r[8], "image_license": r[9],
+    } for r in rows]
+
+    return {"sites": sites, "count": len(sites)}
 
 
 @router.post("/deep-time/story")
@@ -296,10 +350,27 @@ def generate_deep_time_story(body: dict):
         cached = conn.execute(cache_sql, {"lat": lat, "lon": lon, "level": reading_level}).fetchone()
 
     if cached and cached[0]:
+        # Check for cached audio
+        import pathlib
+        story_id = None
+        with engine.connect() as conn2:
+            sid_row = conn2.execute(text("""
+                SELECT id FROM deep_time_stories
+                WHERE geologic_unit_id = (
+                    SELECT id FROM geologic_units
+                    WHERE ST_Contains(geometry, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326))
+                    ORDER BY age_max_ma ASC NULLS LAST LIMIT 1
+                ) AND reading_level = :level
+            """), {"lat": lat, "lon": lon, "level": reading_level}).fetchone()
+            if sid_row:
+                story_id = str(sid_row[0])
+        audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".deep_time_audio" / f"{story_id}_{reading_level}.mp3" if story_id else None
+        has_audio = audio_file and audio_file.exists()
         return {
             "narrative": cached[0],
             "evidence_cited": cached[1],
             "generated_at": str(cached[2]),
+            "audio_url": f"/api/v1/deep-time/audio/{story_id}?reading_level={reading_level}" if has_audio else None,
             "cached": True,
         }
 
@@ -440,18 +511,45 @@ def text_to_speech(body: dict):
     if not api_key:
         return Response(content=b"", media_type="audio/mpeg", status_code=503)
 
-    import httpx
+    import httpx, base64
     resp = httpx.post(
-        "https://api.openai.com/v1/audio/speech",
+        "https://api.openai.com/v1/chat/completions",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={"model": "tts-1", "voice": voice, "input": text_input[:4096]},
-        timeout=30,
+        json={
+            "model": "gpt-4o-audio-preview",
+            "modalities": ["text", "audio"],
+            "audio": {"voice": voice, "format": "mp3"},
+            "messages": [
+                {"role": "system", "content": "You are a narrator. Read the following text aloud exactly as written. Do not add commentary. Just read naturally and expressively."},
+                {"role": "user", "content": text_input[:4000]},
+            ],
+        },
+        timeout=120,
     )
 
     if resp.status_code != 200:
         return Response(content=b"", media_type="audio/mpeg", status_code=502)
 
-    # Save to cache
-    cache_file.write_bytes(resp.content)
+    audio_data = resp.json().get("choices", [{}])[0].get("message", {}).get("audio", {}).get("data")
+    if not audio_data:
+        return Response(content=b"", media_type="audio/mpeg", status_code=502)
 
-    return Response(content=resp.content, media_type="audio/mpeg")
+    audio_bytes = base64.b64decode(audio_data)
+    cache_file.write_bytes(audio_bytes)
+
+    return Response(content=audio_bytes, media_type="audio/mpeg")
+
+
+@router.get("/deep-time/audio/{story_id}")
+def deep_time_cached_audio(story_id: str, reading_level: str = "adult"):
+    """Serve pre-cached Deep Trail story audio (MP3)."""
+    import pathlib
+
+    if reading_level not in ("adult", "kid_friendly", "expert"):
+        reading_level = "adult"
+
+    audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".deep_time_audio" / f"{story_id}_{reading_level}.mp3"
+    if not audio_file.exists():
+        raise HTTPException(404, "No cached audio for this story.")
+
+    return Response(content=audio_file.read_bytes(), media_type="audio/mpeg")

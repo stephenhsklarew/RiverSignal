@@ -84,6 +84,25 @@ HATCH_DATA = [
     ("johnday", "Golden Stonefly", "Hesperoperla pacifica", "Plecoptera", 6, 8, [7], ["Golden Stone #6-8"]),
     ("johnday", "Skwala", "Skwala parallela", "Plecoptera", 2, 4, [3], ["Skwala Stone #8-10"]),
     ("johnday", "Midges", "Chironomidae", "Diptera", 1, 12, [3,4,11], ["Griffith's Gnat #18-22", "Zebra Midge #20"]),
+
+    # ── SKAGIT (Skagit / Sauk / Cascade / Baker, Washington) ──
+    # Mayflies
+    ("skagit", "Blue-Winged Olive", "Baetis tricaudatus", "Ephemeroptera", 3, 11, [4,5,9,10], ["Parachute Adams #18-20", "RS2 #20-22", "Pheasant Tail Nymph #18-20"]),
+    ("skagit", "Pale Morning Dun", "Ephemerella infrequens", "Ephemeroptera", 6, 8, [7], ["Pale Morning Dun #16-18", "Sparkle Dun #16"]),
+    ("skagit", "March Brown", "Rhithrogena morrisoni", "Ephemeroptera", 3, 5, [3,4], ["March Brown #12-14", "Hare's Ear Nymph #12"]),
+    ("skagit", "Green Drake", "Drunella grandis", "Ephemeroptera", 6, 7, [6], ["Green Drake #10-12", "Hare's Ear #10"]),
+    # Caddisflies
+    ("skagit", "October Caddis", "Dicosmoecus", "Trichoptera", 9, 11, [10], ["Orange Stimulator #8-10", "October Caddis #8"]),
+    ("skagit", "Spotted Sedge", "Hydropsyche", "Trichoptera", 5, 9, [6,7], ["Elk Hair Caddis #14-16", "Peacock Caddis #14"]),
+    ("skagit", "Mother's Day Caddis", "Brachycentrus", "Trichoptera", 4, 6, [5], ["Elk Hair Caddis #14-16", "X-Caddis #14-16"]),
+    # Stoneflies
+    ("skagit", "Salmonfly", "Pteronarcys californica", "Plecoptera", 5, 7, [6], ["Kaufmann Stone #4-6", "Pat's Rubber Legs #4-6"]),
+    ("skagit", "Golden Stonefly", "Hesperoperla pacifica", "Plecoptera", 6, 8, [7], ["Golden Stone #6-8", "Stimulator #6-8"]),
+    ("skagit", "Skwala", "Skwala parallela", "Plecoptera", 2, 4, [3], ["Skwala Stone #8-10", "Olive Rubberlegs #8"]),
+    ("skagit", "Little Yellow Sally", "Sweltsa", "Plecoptera", 6, 9, [7,8], ["Yellow Sally #14-16", "Yellow Stimulator #14"]),
+    # Midges
+    ("skagit", "Midges", "Chironomidae", "Diptera", 1, 12, [2,3,11,12], ["Griffith's Gnat #18-22", "Zebra Midge #18-22", "Brassie #18-20"]),
+    ("skagit", "Crane Fly", "Tipula", "Diptera", 5, 9, [6,7], ["Ginger Crane Fly Larva #10", "San Juan Worm #10"]),
 ]
 
 

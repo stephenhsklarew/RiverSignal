@@ -96,6 +96,7 @@ class StreamNetAdapter(IngestionAdapter):
             "mckenzie": "StreamName LIKE '%McKenzie%'",
             "deschutes": "StreamName LIKE '%Deschutes%' OR StreamName LIKE '%Crooked%'",
             "metolius": "StreamName LIKE '%Metolius%'",
+            "skagit": "StreamName LIKE '%Skagit%' OR StreamName LIKE '%Sauk%' OR StreamName LIKE '%Baker%' OR StreamName LIKE '%Suiattle%'",
         }
 
         where = stream_queries.get(site.watershed, f"StreamName LIKE '%{site.name.split()[0]}%'")

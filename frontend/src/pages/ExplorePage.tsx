@@ -36,6 +36,10 @@ interface RecSite {
 }
 
 export default function ExplorePage() {
+  useEffect(() => {
+    document.title = 'River Path'
+    return () => { document.title = 'River Signal' }
+  }, [])
   const navigate = useNavigate()
   const ws = useWatershed('/path/explore') || 'deschutes'
   const [sites, setSites] = useState<RecSite[]>([])

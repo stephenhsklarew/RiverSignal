@@ -39,6 +39,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   metolius: [-121.6, 44.5],
   klamath: [-121.6, 42.6],
   johnday: [-119.0, 44.6],
+  skagit: [-121.50, 48.45],
 }
 
 interface RecSite {
@@ -48,6 +49,10 @@ interface RecSite {
 }
 
 export default function ExploreMapPage() {
+  useEffect(() => {
+    document.title = 'River Path'
+    return () => { document.title = 'River Signal' }
+  }, [])
   const navigate = useNavigate()
   const { watershed: paramWs } = useParams<{ watershed?: string }>()
   const ws = paramWs || getSelectedWatershed() || 'deschutes'

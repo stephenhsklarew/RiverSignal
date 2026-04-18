@@ -26,6 +26,9 @@ const WATERSHEDS = [
   { id: 'johnday', name: 'John Day River', lat: 44.6, lon: -119.15,
     photo: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=400&fit=crop',
     caption: 'Painted Hills — 33 Ma volcanic ash layers' },
+  { id: 'skagit', name: 'Skagit River', lat: 48.45, lon: -121.50,
+    photo: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
+    caption: 'North Cascades glacial geology' },
 ]
 
 interface Location { id: string; name: string; lat: number; lon: number; photo?: string; caption?: string }
@@ -65,7 +68,7 @@ export default function DeepTrailPage() {
   // Page title
   useEffect(() => {
     document.title = 'Deep Trail'
-    return () => { document.title = 'RiverSignal' }
+    return () => { document.title = 'River Signal' }
   }, [])
   const [customLon, setCustomLon] = useState('')
   const [gpsLoading, setGpsLoading] = useState(false)

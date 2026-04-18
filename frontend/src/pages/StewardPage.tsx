@@ -24,6 +24,10 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 export default function StewardPage() {
+  useEffect(() => {
+    document.title = 'River Path'
+    return () => { document.title = 'River Signal' }
+  }, [])
   const ws = useWatershed('/path/steward') || 'mckenzie'
   const [data, setData] = useState<any>(null)
   const [story, setStory] = useState<any>(null)

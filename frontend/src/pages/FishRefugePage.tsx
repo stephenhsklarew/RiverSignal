@@ -42,6 +42,10 @@ function getTempStatus(currentTemp: number | null, taxon: string): { label: stri
 }
 
 export default function FishRefugePage() {
+  useEffect(() => {
+    document.title = 'River Path'
+    return () => { document.title = 'River Signal' }
+  }, [])
   const navigate = useNavigate()
   const { watershed: paramWs } = useParams<{ watershed: string }>()
   const [searchParams] = useSearchParams()

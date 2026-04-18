@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useSaved, type SavedItem } from '../components/SavedContext'
 import './SavedPage.css'
 
@@ -7,10 +8,14 @@ const TYPE_ICONS: Record<SavedItem['type'], string> = {
 
 const WATERSHED_LABELS: Record<string, string> = {
   mckenzie: 'McKenzie River', deschutes: 'Deschutes River', metolius: 'Metolius River',
-  klamath: 'Upper Klamath Basin', johnday: 'John Day River',
+  klamath: 'Upper Klamath Basin', johnday: 'John Day River', skagit: 'Skagit River',
 }
 
 export default function SavedPage() {
+  useEffect(() => {
+    document.title = 'River Path'
+    return () => { document.title = 'River Signal' }
+  }, [])
   const { listSaved, unsave } = useSaved()
   const all = listSaved()
 

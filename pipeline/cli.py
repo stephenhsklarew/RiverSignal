@@ -36,7 +36,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -65,6 +65,7 @@ def ingest(source: str, watershed: str):
     from pipeline.ingest.gbif import GBIFFossilAdapter
     from pipeline.ingest.recreation import RecreationAdapter
     from pipeline.ingest.usgs import USGSAdapter
+    from pipeline.ingest.washington import WashingtonDataAdapter
     from pipeline.ingest.wqp_bugs import WQPBugsAdapter
 
     adapters = {
@@ -92,6 +93,7 @@ def ingest(source: str, watershed: str):
         "gbif": GBIFFossilAdapter,
         "recreation": RecreationAdapter,
         "wqp_bugs": WQPBugsAdapter,
+        "washington": WashingtonDataAdapter,
     }
 
     watersheds = list(WATERSHEDS.keys()) if watershed == "all" else [watershed]

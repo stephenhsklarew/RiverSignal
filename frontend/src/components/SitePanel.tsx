@@ -489,7 +489,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 <table className="data-table">
                   <thead><tr><th>Year</th><th>Δ Fire</th><th>Species</th><th>Obs</th></tr></thead>
                   <tbody>
-                    {story.fire_recovery.filter((r: any) => r.years_since >= -1 && r.years_since <= 6).map((r: any, i: number) => (
+                    {story.fire_recovery.filter((r: any) => r.years_since >= -1 && r.years_since <= 6).sort((a: any, b: any) => b.obs_year - a.obs_year).map((r: any, i: number) => (
                       <tr key={i} style={r.years_since === 0 ? { background: 'var(--alert-light)' } : {}}>
                         <td className="mono">{r.obs_year}{r.years_since === 0 ? ' 🔥' : ''}</td>
                         <td className="mono">{r.years_since > 0 ? '+' : ''}{r.years_since}</td>

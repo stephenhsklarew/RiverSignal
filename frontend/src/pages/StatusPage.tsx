@@ -29,6 +29,7 @@ const SOURCE_META: Record<string, { description: string; upstream: string; refre
   dogami: { description: 'Oregon geology polygons (DOGAMI/OGDC)', upstream: 'Rarely', refresh: 'Annually', license: 'Public Records', commercial: true },
   mrds: { description: 'USGS mineral deposit locations — commodity, status', upstream: 'Rarely', refresh: 'Annually', license: 'Public Domain', commercial: true },
   recreation: { description: 'USFS campgrounds/trailheads + OSMB boat ramps', upstream: 'Seasonally', refresh: 'Monthly', license: 'Public Domain', commercial: true },
+  washington: { description: 'Washington state data — WDFW SalmonScape, stocking, WA DNR geology, SRFB restoration, WA parks, water access', upstream: 'Varies', refresh: 'Monthly', license: 'Public Domain', commercial: true },
 }
 
 const BRONZE_DESCRIPTIONS: Record<string, string> = {
@@ -48,6 +49,12 @@ const BRONZE_DESCRIPTIONS: Record<string, string> = {
   curated_hatch_chart: 'Expert fly fishing hatch timing data (manually curated)',
   deep_time_stories: 'Cached AI-generated deep time narratives',
   rockhounding_sites: 'Oregon rockhounding locations — thundereggs, agates, obsidian, sunstone, opal, petrified wood',
+  river_stories: 'Pre-cached AI-generated ecological narratives at 3 reading levels per watershed',
+  wa_salmonscape: 'WDFW SalmonScape fish species distribution — all 5 Pacific salmon, steelhead, bull trout',
+  wa_fish_stocking: 'WDFW fish stocking/planting releases by county, species, and date',
+  wa_surface_geology: 'WA DNR 100K surface geology map units with formation labels',
+  wa_srfb_projects: 'Salmon Recovery Funding Board restoration projects with funding and status',
+  wa_state_parks: 'Washington State Parks boundaries, boat launches, and recreation facilities',
 }
 
 const SILVER_DESCRIPTIONS: Record<string, string> = {

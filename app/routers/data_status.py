@@ -48,7 +48,10 @@ def get_data_status():
         for tbl in ['observations', 'time_series', 'interventions', 'fire_perimeters',
                     'stream_flowlines', 'impaired_waters', 'wetlands', 'watershed_boundaries',
                     'geologic_units', 'fossil_occurrences', 'mineral_deposits', 'land_ownership',
-                    'recreation_sites', 'curated_hatch_chart', 'deep_time_stories']:
+                    'recreation_sites', 'curated_hatch_chart', 'deep_time_stories',
+                    'rockhounding_sites', 'river_stories',
+                    'wa_salmonscape', 'wa_fish_stocking', 'wa_surface_geology',
+                    'wa_srfb_projects', 'wa_state_parks']:
             try:
                 bronze_tables[tbl] = conn.execute(text(f"SELECT count(*) FROM {tbl}")).scalar()
             except Exception:
@@ -106,6 +109,18 @@ def get_data_status():
                 "records": mineral_shop_count,
                 "description": "Oregon mineral shops, rock ranches, and paleontology museums with contact info and coordinates",
                 "source": "Hand-curated from web research (verified businesses)",
+            })
+        except Exception:
+            conn.rollback()
+
+        try:
+            rock_count = conn.execute(text("SELECT count(*) FROM rockhounding_sites")).scalar()
+            curated.append({
+                "name": "Rockhounding Sites",
+                "table": "rockhounding_sites",
+                "records": rock_count,
+                "description": "Oregon rockhounding and collecting locations — thundereggs, agates, obsidian, sunstone, petrified wood, opal, jasper with coordinates, land ownership, and collecting rules",
+                "source": "Hand-curated from rockhounding guides, BLM records, and community knowledge",
             })
         except Exception:
             conn.rollback()
@@ -192,7 +207,7 @@ def get_data_status():
                 "name": "Expert Hatch Chart",
                 "table": "curated_hatch_chart",
                 "records": hatch_count,
-                "description": "Month-by-month aquatic insect emergence timing with fly pattern recommendations for 5 Oregon watersheds",
+                "description": "Month-by-month aquatic insect emergence timing with fly pattern recommendations for 6 Pacific NW watersheds",
                 "source": "Compiled from Western Hatches, The Caddis Fly Shop, Westfly.com, The Fly Fisher's Place",
             })
         except Exception:
