@@ -4,6 +4,7 @@ import './SavedPage.css'
 
 const TYPE_ICONS: Record<SavedItem['type'], string> = {
   reach: '📍', species: '🐟', fly: '🪶', recreation: '⛺', restoration: '♻',
+  fossil: '🦴', mineral: '💎', rocksite: '🪨',
 }
 
 const WATERSHED_LABELS: Record<string, string> = {

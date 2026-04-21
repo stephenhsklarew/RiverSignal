@@ -6,6 +6,7 @@ import WatershedHeader from '../components/WatershedHeader'
 import { CardSettingsPanel, loadCardSettings, type CardConfig } from '../components/CardSettings'
 import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
+import PhotoObservation from '../components/PhotoObservation'
 const dtMark = '/favicon-deeptrail.svg'
 import './RiverNowPage.css'
 
@@ -953,6 +954,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           </div>
         </>
       )}
+
+      <PhotoObservation app="riverpath" watershed={watershed} />
     </div>
   )
 }

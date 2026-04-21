@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useDeepTrail, WATERSHEDS, type Fossil, type Mineral } from '../components/DeepTrailContext'
+import DeepTrailHeader from '../components/DeepTrailHeader'
 import SaveButton from '../components/SaveButton'
 import { CardSettingsPanel, loadCardSettingsGeneric, type CardConfig } from '../components/CardSettings'
-import logo from '../assets/deeptrail-logo.svg'
+import PhotoObservation from '../components/PhotoObservation'
 import './DeepTrailPage.css'
 
 const API_BASE = 'http://localhost:8001/api/v1'
@@ -104,10 +105,7 @@ export default function TrailExplorePage() {
 
   return (
     <div className="dt-app">
-      <header className="dt-detail-header">
-        <button className="dt-back" onClick={() => navigate('/trail')}>← Back</button>
-        <img src={logo} alt="DeepTrail" className="dt-logo" />
-      </header>
+      <DeepTrailHeader tab="explore" />
 
       {showSettings && (
         <CardSettingsPanel
@@ -224,6 +222,8 @@ export default function TrailExplorePage() {
           </div>
         </main>
       )}
+
+      <PhotoObservation app="deeptrail" watershed={loc?.id} />
     </div>
   )
 }

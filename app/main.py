@@ -8,7 +8,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import sites, reasoning, fishing, reports, health, data_status, geology, weather, predictions, ai_features, deeptrail_ai
+from app.routers import sites, reasoning, fishing, reports, health, data_status, geology, weather, predictions, ai_features, deeptrail_ai, user_observations, auth
 
 
 @asynccontextmanager
@@ -42,3 +42,5 @@ app.include_router(weather.router, prefix="/api/v1")
 app.include_router(predictions.router, prefix="/api/v1")
 app.include_router(ai_features.router, prefix="/api/v1")
 app.include_router(deeptrail_ai.router, prefix="/api/v1")
+app.include_router(user_observations.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")

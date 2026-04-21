@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useSaved, type SavedItem } from '../components/SavedContext'
-import logo from '../assets/deeptrail-logo.svg'
+import DeepTrailHeader from '../components/DeepTrailHeader'
 import './DeepTrailPage.css'
 
 const DT_TYPES: SavedItem['type'][] = ['rocksite', 'fossil', 'mineral']
@@ -21,10 +21,7 @@ export default function TrailSavedPage() {
 
   return (
     <div className="dt-app">
-      <header className="dt-detail-header">
-        <Link to="/trail" className="dt-back" style={{ textDecoration: 'none' }}>← Home</Link>
-        <img src={logo} alt="DeepTrail" className="dt-logo" />
-      </header>
+      <DeepTrailHeader tab="saved" />
 
       <main className="dt-content" style={{ paddingBottom: 72 }}>
         <section className="dt-loc-hero">

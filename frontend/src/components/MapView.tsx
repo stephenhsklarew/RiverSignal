@@ -280,7 +280,7 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
       </div>
 
       <div className="watershed-tabs">
-        {sites.map(s => (
+        {[...sites].sort((a, b) => a.watershed.localeCompare(b.watershed)).map(s => (
           <button
             key={s.watershed}
             className={`ws-tab${selectedSite === s.watershed ? ' active' : ''}`}

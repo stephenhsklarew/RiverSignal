@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import rpLogo from '../assets/riverpath-logo.svg'
+import UserMenu from './UserMenu'
 import './WatershedHeader.css'
 
 const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday', 'skagit']
@@ -45,6 +46,7 @@ export default function WatershedHeader({ watershed, basePath }: WatershedHeader
         <img src={rpLogo} alt="RiverPath" className="ws-header-logo" />
         <span className="ws-header-name">{WATERSHED_LABELS[watershed] || watershed}</span>
         <button className="ws-header-change" onClick={() => setShowPicker(true)}>Change</button>
+        <UserMenu />
       </div>
 
       {showPicker && (

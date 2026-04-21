@@ -490,7 +490,7 @@ def text_to_speech(body: dict):
     import pathlib
 
     text_input = body.get("text", "")
-    voice = body.get("voice", "nova")
+    voice = body.get("voice", "nova")  # Deep Trail uses nova (female)
 
     if not text_input:
         return Response(content=b"", media_type="audio/mpeg", status_code=400)
@@ -520,7 +520,7 @@ def text_to_speech(body: dict):
             "modalities": ["text", "audio"],
             "audio": {"voice": voice, "format": "mp3"},
             "messages": [
-                {"role": "system", "content": "You are a narrator. Read the following text aloud exactly as written. Do not add commentary. Just read naturally and expressively."},
+                {"role": "system", "content": "You are a narrator. Begin with a brief calm pause before you start reading. Then read the following text aloud exactly as written. Do not add commentary. Just read naturally and expressively."},
                 {"role": "user", "content": text_input[:4000]},
             ],
         },

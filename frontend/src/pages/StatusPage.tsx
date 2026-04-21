@@ -4,7 +4,7 @@ import './StatusPage.css'
 const API = 'http://localhost:8001/api/v1'
 
 // Static metadata about each pipeline adapter
-const SOURCE_META: Record<string, { description: string; upstream: string; refresh: string }> = {
+const SOURCE_META: Record<string, { description: string; upstream: string; refresh: string; license?: string; commercial?: boolean }> = {
   inaturalist: { description: 'Citizen science species observations with photos', upstream: 'Continuous', refresh: 'Daily', license: 'CC BY-NC', commercial: false },
   usgs: { description: 'Stream gauge readings — flow, temperature, dissolved oxygen', upstream: 'Real-time (15 min)', refresh: 'Daily', license: 'Public Domain', commercial: true },
   snotel: { description: 'Snowpack, snow water equivalent, precipitation, air temp', upstream: 'Daily', refresh: 'Daily', license: 'Public Domain', commercial: true },
@@ -123,7 +123,7 @@ const LIVE_SOURCES = [
 interface SourceInfo {
   source_type: string; description: string; upstream_frequency: string
   refresh_schedule: string; last_sync: string | null; status: string
-  license: string; commercial: boolean
+  license?: string; commercial?: boolean
 }
 
 export default function StatusPage() {

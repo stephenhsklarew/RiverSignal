@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import logo from '../assets/riversignal-logo.svg'
 import DataFreshness from '../components/DataFreshness'
+import UserMenu from '../components/UserMenu'
 import MapView from '../components/MapView'
 import SitePanel from '../components/SitePanel'
 import '../App.css'
@@ -147,6 +148,7 @@ export default function MapPage() {
         <div className="topbar-status">
           <DataFreshness compact />
         </div>
+        <UserMenu />
       </div>
 
       {/* Fishing alerts — minimal inline ticker */}

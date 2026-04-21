@@ -1,0 +1,144 @@
+/* Login overlay */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.login-overlay.dark { background: rgba(0,0,0,0.7); }
+
+.login-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%; max-width: 380px;
+  padding: 28px 24px;
+  position: relative;
+  font-family: 'Outfit', sans-serif;
+}
+.login-overlay.dark .login-modal {
+  background: #1a1612; color: #e8e0d4;
+}
+
+.login-close {
+  position: absolute; top: 12px; right: 16px;
+  background: none; border: none; font-size: 1.2rem;
+  cursor: pointer; color: #999;
+}
+.login-overlay.dark .login-close { color: #6b5f4f; }
+
+.login-header {
+  text-align: center; margin-bottom: 24px;
+}
+.login-header h2 {
+  font-size: 1.3rem; font-weight: 600; margin: 0 0 6px;
+}
+.login-header p {
+  font-size: 0.82rem; color: #888; margin: 0;
+}
+.login-overlay.dark .login-header p { color: #8a7e6e; }
+
+.login-buttons {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.login-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 12px 16px;
+  border-radius: 10px; font-size: 0.9rem; font-weight: 500;
+  font-family: inherit; cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  min-height: 48px;
+}
+.login-btn:active { transform: scale(0.98); }
+
+.login-btn.google {
+  background: #fff; border: 1px solid #dadce0; color: #3c4043;
+}
+.login-btn.google:hover { background: #f8f9fa; }
+.login-overlay.dark .login-btn.google {
+  background: #2a2318; border-color: #3d3328; color: #e8e0d4;
+}
+.login-overlay.dark .login-btn.google:hover { background: #332b1f; }
+
+.login-btn.apple {
+  background: #000; border: 1px solid #000; color: #fff;
+}
+.login-btn.apple:hover { background: #1a1a1a; }
+.login-overlay.dark .login-btn.apple {
+  background: #e8e0d4; color: #1a1612; border-color: #e8e0d4;
+}
+
+.login-footer {
+  margin-top: 20px; text-align: center;
+}
+.login-footer p {
+  font-size: 0.72rem; color: #aaa; margin: 0; line-height: 1.4;
+}
+.login-overlay.dark .login-footer p { color: #6b5f4f; }
+
+/* User menu (shown in headers when logged in) */
+.user-menu {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  position: relative;
+}
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  object-fit: cover; border: 2px solid transparent;
+}
+.user-avatar:hover { border-color: var(--accent, #1a6b4a); }
+.user-name {
+  font-size: 0.78rem; font-weight: 500; color: #555;
+  max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.user-dropdown {
+  position: absolute; top: 100%; right: 0; margin-top: 4px;
+  background: #fff; border: 1px solid #e8e5de; border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 160px; z-index: 100; overflow: hidden;
+}
+.user-dropdown-item {
+  display: block; width: 100%; padding: 10px 14px;
+  border: none; background: none; text-align: left;
+  font-size: 0.82rem; font-family: inherit; cursor: pointer;
+  color: #333;
+}
+.user-dropdown-item:hover { background: #f5f3f0; }
+.user-dropdown-item.danger { color: #d32f2f; }
+.user-dropdown-item.danger:hover { background: #fce4ec; }
+
+/* Login nudge banner */
+.login-nudge {
+  position: fixed;
+  bottom: 64px; left: 12px; right: 12px;
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid #e8e5de;
+  border-radius: 12px; padding: 10px 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 950;
+  font-family: 'Outfit', sans-serif;
+  animation: nudgeSlideUp 0.3s ease-out;
+}
+.login-nudge.dark {
+  background: #2a2318; border-color: #3d3328;
+}
+@keyframes nudgeSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.login-nudge-text {
+  flex: 1; font-size: 0.78rem; color: #555;
+}
+.login-nudge.dark .login-nudge-text { color: #8a7e6e; }
+.login-nudge-btn {
+  padding: 6px 14px; border-radius: 8px;
+  border: none; background: var(--accent, #1a6b4a); color: #fff;
+  font-size: 0.75rem; font-weight: 600; font-family: inherit;
+  cursor: pointer; white-space: nowrap;
+}
+.login-nudge.dark .login-nudge-btn { background: #d4a96a; color: #1a1612; }
+.login-nudge-dismiss {
+  background: none; border: none; color: #ccc; font-size: 1rem;
+  cursor: pointer; padding: 2px 4px;
+}

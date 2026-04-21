@@ -617,13 +617,13 @@ No markdown formatting — this will be spoken aloud.""",
                 json={
                     "model": "gpt-4o-audio-preview",
                     "modalities": ["text", "audio"],
-                    "audio": {"voice": "nova", "format": "mp3"},
+                    "audio": {"voice": "echo", "format": "mp3"},
                     "messages": [
-                        {"role": "system", "content": "You are a narrator. Read the following text aloud exactly as written. Do not add commentary. Just read naturally and expressively."},
+                        {"role": "system", "content": "You are a narrator. Begin with a brief calm pause before you start reading. Then read the following text aloud exactly as written. Do not add commentary. Just read naturally and expressively."},
                         {"role": "user", "content": story_text[:4000]},
                     ],
                 },
-                timeout=120,
+                timeout=180,
             )
             if resp.status_code == 200:
                 audio_data = resp.json().get("choices", [{}])[0].get("message", {}).get("audio", {}).get("data")

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import { useDeepTrail, WATERSHEDS } from '../components/DeepTrailContext'
+import DeepTrailHeader from '../components/DeepTrailHeader'
 import { CardSettingsPanel, loadCardSettingsGeneric, type CardConfig } from '../components/CardSettings'
-import logo from '../assets/deeptrail-logo.svg'
 import './DeepTrailPage.css'
 
 const TRAIL_STORY_CARDS: CardConfig[] = [
@@ -66,10 +66,7 @@ export default function TrailStoryPage() {
 
   return (
     <div className="dt-app">
-      <header className="dt-detail-header">
-        <button className="dt-back" onClick={() => navigate('/trail')}>← Back</button>
-        <img src={logo} alt="DeepTrail" className="dt-logo" />
-      </header>
+      <DeepTrailHeader tab="story" />
 
       {showSettings && (
         <CardSettingsPanel

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDeepTrail, WATERSHEDS } from '../components/DeepTrailContext'
+import DeepTrailHeader from '../components/DeepTrailHeader'
 import { CardSettingsPanel, loadCardSettingsGeneric, type CardConfig } from '../components/CardSettings'
-import logo from '../assets/deeptrail-logo.svg'
 import './DeepTrailPage.css'
 
 const LEARN_CARDS: CardConfig[] = [
@@ -59,10 +59,7 @@ export default function TrailLearnPage() {
 
   return (
     <div className="dt-app">
-      <header className="dt-detail-header">
-        <button className="dt-back" onClick={() => navigate('/trail')}>← Back</button>
-        <img src={logo} alt="DeepTrail" className="dt-logo" />
-      </header>
+      <DeepTrailHeader tab="learn" />
 
       {showSettings && (
         <CardSettingsPanel

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { SavedProvider } from './components/SavedContext'
 import { DeepTrailProvider } from './components/DeepTrailContext'
+import { AuthProvider, useAuth } from './components/AuthContext'
 import './index.css'
 
 function DynamicFavicon() {
@@ -35,6 +36,7 @@ const TrailCollectPage = lazy(() => import('./pages/TrailCollectPage'))
 const TrailLearnPage = lazy(() => import('./pages/TrailLearnPage'))
 const TrailSavedPage = lazy(() => import('./pages/TrailSavedPage'))
 const StatusPage = lazy(() => import('./pages/StatusPage'))
+const UsernameSetupPage = lazy(() => import('./pages/UsernameSetupPage'))
 
 // RiverPath mobile tab pages
 const RiverNowPage = lazy(() => import('./pages/RiverNowPage'))
@@ -49,6 +51,13 @@ const ExploreMapPage = lazy(() => import('./pages/ExploreMapPage'))
 // Bottom nav
 const BottomNav = lazy(() => import('./components/BottomNav'))
 const DeepTrailBottomNav = lazy(() => import('./components/DeepTrailBottomNav'))
+
+function AuthSuccessRedirect() {
+  const { user, loading, needsUsername } = useAuth()
+  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>Signing in...</div>
+  if (needsUsername) return <Navigate to="/auth/setup-username" replace />
+  return <Navigate to="/" replace />
+}
 
 const Loading = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'Outfit, sans-serif', color: '#64705b' }}>
@@ -70,6 +79,7 @@ function ConditionalBottomNav() {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <AuthProvider>
       <SavedProvider>
         <DeepTrailProvider>
         <DynamicFavicon />
@@ -113,6 +123,10 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/trail/learn/:locationId" element={<TrailLearnPage />} />
             <Route path="/trail/saved" element={<TrailSavedPage />} />
 
+            {/* Auth */}
+            <Route path="/auth/success" element={<AuthSuccessRedirect />} />
+            <Route path="/auth/setup-username" element={<UsernameSetupPage />} />
+
             {/* Legacy routes — redirect to new product routes */}
             <Route path="/map" element={<MapPage />} />
             <Route path="/map/:watershed" element={<MapPage />} />
@@ -123,6 +137,7 @@ createRoot(document.getElementById('root')!).render(
         </Suspense>
         </DeepTrailProvider>
       </SavedProvider>
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )
