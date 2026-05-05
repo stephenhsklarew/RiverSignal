@@ -181,10 +181,46 @@ export default function MapPage() {
             onClose={() => setSelectedSite(null)}
             initialQuestion={pendingQuestion}
             onQuestionConsumed={() => setPendingQuestion(null)}
-            onShowSpeciesOnMap={(taxonQuery) => {
+            onShowSpeciesOnMap={(taxonQuery, source) => {
               setObsSearch(taxonQuery)
               setObsSearching(true)
-              // Handle multi-species: split on " OR " and merge results
+
+              if (source === 'fossils') {
+                // Query fossils endpoint and convert to GeoJSON
+                const bbox = siteDetail?.bbox || {}
+                const lat = ((bbox.south || 0) + (bbox.north || 0)) / 2
+                const lon = ((bbox.west || 0) + (bbox.east || 0)) / 2
+                const latSpan = Math.abs((bbox.north || 0) - (bbox.south || 0))
+                const lonSpan = Math.abs((bbox.east || 0) - (bbox.west || 0))
+                const radiusKm = Math.min(400, Math.max(75, Math.round(Math.max(latSpan, lonSpan) * 111 / 2)))
+                fetch(`${API_BASE}/fossils/near/${lat}/${lon}?radius_km=${radiusKm}`)
+                  .then(r => r.json())
+                  .then(data => {
+                    const searchTerms = taxonQuery.toLowerCase().split(' or ').map((t: string) => t.trim())
+                    const matching = (data.fossils || []).filter((f: any) =>
+                      searchTerms.some((term: string) =>
+                        (f.taxon_name || '').toLowerCase().includes(term) ||
+                        (f.common_name || '').toLowerCase().includes(term)
+                      )
+                    )
+                    const features = matching.filter((f: any) => f.latitude && f.longitude).map((f: any) => ({
+                      type: 'Feature' as const,
+                      geometry: { type: 'Point' as const, coordinates: [f.longitude, f.latitude] },
+                      properties: {
+                        taxon_name: f.taxon_name,
+                        common_name: f.common_name || '',
+                        observed_at: f.period || '',
+                        photo_url: f.image_url || '',
+                      },
+                    }))
+                    setObsOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })
+                    setObsSearching(false)
+                  })
+                  .catch(() => setObsSearching(false))
+                return
+              }
+
+              // Default: query observations
               const taxa = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
               if (taxa.length <= 1) {
                 fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonQuery)}&limit=5000`)

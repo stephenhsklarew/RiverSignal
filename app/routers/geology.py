@@ -110,7 +110,7 @@ def get_geology_watershed_link(watershed: str):
 
 
 @router.get("/fossils/near/{lat}/{lon}")
-def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=200)):
+def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=500)):
     """Return fossil occurrences within radius of a point."""
     sql = text("""
         WITH ranked AS (
@@ -239,7 +239,7 @@ def get_legal_collecting_sites(
 
 
 @router.get("/minerals/near/{lat}/{lon}")
-def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=200)):
+def get_minerals_near(lat: float, lon: float, radius_km: float = Query(50, le=500)):
     """Return mineral deposit locations within radius of a point."""
     sql = text("""
         SELECT DISTINCT ON (site_name, commodity)
