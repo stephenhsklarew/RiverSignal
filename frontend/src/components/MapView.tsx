@@ -242,11 +242,10 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     if (!map || !selectedSite) return
     const site = sites.find(s => s.watershed === selectedSite)
     if (site) {
-      map.flyTo({
-        center: [(site.bbox.east + site.bbox.west) / 2, (site.bbox.north + site.bbox.south) / 2],
-        zoom: 9,
-        duration: 800,
-      })
+      map.fitBounds(
+        [[site.bbox.west, site.bbox.south], [site.bbox.east, site.bbox.north]],
+        { padding: 40, duration: 800 }
+      )
     }
   }, [selectedSite, sites])
 
