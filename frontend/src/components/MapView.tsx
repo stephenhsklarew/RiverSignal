@@ -41,6 +41,9 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     const src = map.getSource(OBS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
     if (src) {
       src.setData(data || { type: 'FeatureCollection', features: [] })
+      // Clear any timeline date filter so all pins are visible
+      // (fossil pins have period strings, not dates, which would be filtered out)
+      try { map.setFilter(OBS_LAYER_ID, null) } catch {}
     }
   }, [])
 

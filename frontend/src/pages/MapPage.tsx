@@ -203,9 +203,10 @@ export default function MapPage() {
                       museum: f.museum || '',
                     },
                   }))
+                  console.log(`Fossil search: ${features.length} pins for "${taxonQuery}" in ${selectedSite}`)
                   setObsOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })
-                  setObsSearch(`🦴 ${taxonQuery}`)
-                }).catch(() => {})
+                  setObsSearch(`🦴 ${taxonQuery} (${features.length})`)
+                }).catch(err => console.error('Fossil search failed:', err))
                 return
               }
 
