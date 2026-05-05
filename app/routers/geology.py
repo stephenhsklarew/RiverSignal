@@ -163,6 +163,43 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=500
     return {"fossils": fossils, "count": len(fossils), "radius_km": radius_km}
 
 
+@router.get("/fossils/search")
+def search_fossils(
+    q: str = Query(..., description="Taxon or common name search"),
+    lat: float = Query(...), lon: float = Query(...),
+    radius_km: float = Query(300, le=500),
+):
+    """Search fossils by taxon name within a radius. Returns all matches (no dedup limit)."""
+    pattern = f"%{q}%"
+    sql = text("""
+        SELECT source_id, taxon_name, phylum, class_name, order_name, family,
+               age_min_ma, age_max_ma, period, formation,
+               latitude, longitude, collector, reference, museum,
+               ST_Distance(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) / 1000 as distance_km,
+               image_url, image_license, common_name
+        FROM fossil_occurrences
+        WHERE ST_DWithin(location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+          AND (taxon_name ILIKE :q OR common_name ILIKE :q)
+        ORDER BY distance_km
+        LIMIT 500
+    """)
+    with engine.connect() as conn:
+        rows = conn.execute(sql, {
+            "lat": lat, "lon": lon, "radius_m": radius_km * 1000, "q": pattern,
+        }).fetchall()
+
+    fossils = [{
+        "source_id": r[0], "taxon_name": r[1], "phylum": r[2], "class_name": r[3],
+        "order_name": r[4], "family": r[5], "age_min_ma": r[6], "age_max_ma": r[7],
+        "period": r[8], "formation": r[9], "latitude": r[10], "longitude": r[11],
+        "collector": r[12], "museum": r[14],
+        "distance_km": round(r[15], 1) if r[15] else None,
+        "image_url": r[16], "image_license": r[17], "common_name": r[18],
+    } for r in rows]
+
+    return {"fossils": fossils, "count": len(fossils), "query": q}
+
+
 @router.get("/fossils/by-formation/{formation}")
 def get_fossils_by_formation(formation: str):
     """Return fossils found in a specific geologic formation."""

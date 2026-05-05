@@ -186,39 +186,37 @@ export default function MapPage() {
               setObsSearching(true)
 
               if (source === 'fossils') {
-                // Query fossils endpoint and convert to GeoJSON
+                // Search fossils by taxon name using the observations search endpoint
+                // which also searches fossil_occurrences, OR query fossils directly
                 const bbox = siteDetail?.bbox || {}
                 const lat = ((bbox.south || 0) + (bbox.north || 0)) / 2
                 const lon = ((bbox.west || 0) + (bbox.east || 0)) / 2
                 const latSpan = Math.abs((bbox.north || 0) - (bbox.south || 0))
                 const lonSpan = Math.abs((bbox.east || 0) - (bbox.west || 0))
                 const radiusKm = Math.min(400, Math.max(75, Math.round(Math.max(latSpan, lonSpan) * 111 / 2)))
-                fetch(`${API_BASE}/fossils/near/${lat}/${lon}?radius_km=${radiusKm}`)
-                  .then(r => r.json())
-                  .then(data => {
-                    const searchTerms = taxonQuery.toLowerCase().split(' or ').map((t: string) => t.trim())
-                    const matching = (data.fossils || []).filter((f: any) =>
-                      searchTerms.some((term: string) =>
-                        (f.taxon_name || '').toLowerCase().includes(term) ||
-                        (f.common_name || '').toLowerCase().includes(term)
-                      )
-                    )
-                    const features = matching.filter((f: any) => f.latitude && f.longitude).map((f: any) => ({
-                      type: 'Feature' as const,
-                      geometry: { type: 'Point' as const, coordinates: [f.longitude, f.latitude] },
-                      properties: {
-                        taxon_name: f.taxon_name,
-                        common_name: f.common_name || '',
-                        observed_at: f.period ? `${f.period} (${f.age_max_ma || '?'} Ma)` : '',
-                        photo_url: f.image_url || '',
-                        source: 'fossil',
-                        museum: f.museum || '',
-                      },
-                    }))
-                    setObsOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })
-                    setObsSearching(false)
-                  })
-                  .catch(() => setObsSearching(false))
+                // Query fossils by name — use the search endpoint with a name filter
+                const searchTerms = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
+                Promise.all(searchTerms.map(term =>
+                  fetch(`${API_BASE}/fossils/search?q=${encodeURIComponent(term)}&lat=${lat}&lon=${lon}&radius_km=${radiusKm}`)
+                    .then(r => r.ok ? r.json() : { fossils: [] })
+                    .catch(() => ({ fossils: [] }))
+                )).then(results => {
+                  const allFossils = results.flatMap(r => r.fossils || [])
+                  const features = allFossils.filter((f: any) => f.latitude && f.longitude).map((f: any) => ({
+                    type: 'Feature' as const,
+                    geometry: { type: 'Point' as const, coordinates: [f.longitude, f.latitude] },
+                    properties: {
+                      taxon_name: f.taxon_name,
+                      common_name: f.common_name || '',
+                      observed_at: f.period ? `${f.period} (${f.age_max_ma || '?'} Ma)` : '',
+                      photo_url: f.image_url || '',
+                      source: 'fossil',
+                      museum: f.museum || '',
+                    },
+                  }))
+                  setObsOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })
+                  setObsSearching(false)
+                }).catch(() => setObsSearching(false))
                 return
               }
 
