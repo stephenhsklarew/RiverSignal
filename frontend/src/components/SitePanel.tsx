@@ -66,17 +66,12 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
     }
     if (activeTab === 'rocks' && rocks.length === 0) {
       setRocksPage(0)
-      // Fetch fossils and minerals, merge into one list
-      // Calculate radius from bbox dimensions to cover the full watershed
+      // Fetch fossils and minerals within the watershed bounding box
       const bbox = site.bbox || {}
-      const lat = ((bbox.south || 0) + (bbox.north || 0)) / 2
-      const lon = ((bbox.west || 0) + (bbox.east || 0)) / 2
-      const latSpan = Math.abs((bbox.north || 0) - (bbox.south || 0))
-      const lonSpan = Math.abs((bbox.east || 0) - (bbox.west || 0))
-      const radiusKm = Math.min(400, Math.max(75, Math.round(Math.max(latSpan, lonSpan) * 111 / 2)))
+      const bboxParams = `west=${bbox.west}&south=${bbox.south}&east=${bbox.east}&north=${bbox.north}`
       Promise.all([
-        fetch(`${API_BASE}/fossils/near/${lat}/${lon}?radius_km=${radiusKm}`).then(r => r.json()).catch(() => ({ fossils: [] })),
-        fetch(`${API_BASE}/minerals/near/${lat}/${lon}?radius_km=${radiusKm}`).then(r => r.json()).catch(() => ({ minerals: [] })),
+        fetch(`${API_BASE}/fossils/in-bbox?${bboxParams}`).then(r => r.json()).catch(() => ({ fossils: [] })),
+        fetch(`${API_BASE}/minerals/in-bbox?${bboxParams}`).then(r => r.json()).catch(() => ({ minerals: [] })),
       ]).then(([fossilData, mineralData]) => {
         const fossils = (fossilData.fossils || []).map((f: any, idx: number) => ({ ...f, rock_type: 'fossil', display_name: f.taxon_name, _uid: `f-${f.source_id || idx}`, category: f.phylum || 'Fossil' }))
         const minerals = (mineralData.minerals || []).map((m: any, idx: number) => ({ ...m, rock_type: 'mineral', display_name: m.site_name || m.commodity, _uid: `m-${m.source_id || idx}`, category: m.commodity?.split(',')[0]?.trim() || 'Mineral' }))
