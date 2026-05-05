@@ -163,39 +163,36 @@ def get_fossils_near(lat: float, lon: float, radius_km: float = Query(50, le=500
     return {"fossils": fossils, "count": len(fossils), "radius_km": radius_km}
 
 
-@router.get("/fossils/in-bbox")
-def get_fossils_in_bbox(
-    west: float = Query(...), south: float = Query(...),
-    east: float = Query(...), north: float = Query(...),
-):
-    """Return deduplicated fossils within a bounding box."""
-    sql = text("""
-        WITH ranked AS (
+@router.get("/fossils/by-watershed/{watershed}")
+def get_fossils_by_watershed(watershed: str):
+    """Return deduplicated fossils for a watershed via site_id."""
+    with engine.connect() as conn:
+        site = conn.execute(text("SELECT id FROM sites WHERE watershed = :ws"), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        rows = conn.execute(text("""
+            WITH ranked AS (
+                SELECT source_id, taxon_name, phylum, class_name, order_name, family,
+                       age_min_ma, age_max_ma, period, formation,
+                       latitude, longitude, collector, reference, museum,
+                       image_url, image_license, common_name,
+                       data_payload->>'morphosource_url' as morphosource_url,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY taxon_name, round(latitude::numeric, 2), round(longitude::numeric, 2)
+                           ORDER BY CASE WHEN image_url IS NOT NULL THEN 0 ELSE 1 END
+                       ) as rn
+                FROM fossil_occurrences
+                WHERE site_id = :sid
+            )
             SELECT source_id, taxon_name, phylum, class_name, order_name, family,
                    age_min_ma, age_max_ma, period, formation,
                    latitude, longitude, collector, reference, museum,
-                   image_url, image_license, common_name,
-                   data_payload->>'morphosource_url' as morphosource_url,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY taxon_name, round(latitude::numeric, 2), round(longitude::numeric, 2)
-                       ORDER BY CASE WHEN image_url IS NOT NULL THEN 0 ELSE 1 END
-                   ) as rn
-            FROM fossil_occurrences
-            WHERE latitude BETWEEN :south AND :north
-              AND longitude BETWEEN :west AND :east
-        )
-        SELECT source_id, taxon_name, phylum, class_name, order_name, family,
-               age_min_ma, age_max_ma, period, formation,
-               latitude, longitude, collector, reference, museum,
-               image_url, image_license, common_name, morphosource_url
-        FROM ranked WHERE rn = 1
-        ORDER BY taxon_name
-        LIMIT 2000
-    """)
-    with engine.connect() as conn:
-        rows = conn.execute(sql, {
-            "west": west, "south": south, "east": east, "north": north,
-        }).fetchall()
+                   image_url, image_license, common_name, morphosource_url
+            FROM ranked WHERE rn = 1
+            ORDER BY taxon_name
+            LIMIT 2000
+        """), {"sid": site[0]}).fetchall()
 
     fossils = [{
         "source_id": r[0], "taxon_name": r[1], "phylum": r[2], "class_name": r[3],
@@ -206,29 +203,26 @@ def get_fossils_in_bbox(
         "morphosource_url": r[18],
     } for r in rows]
 
-    return {"fossils": fossils, "count": len(fossils)}
+    return {"fossils": fossils, "count": len(fossils), "watershed": watershed}
 
 
-@router.get("/minerals/in-bbox")
-def get_minerals_in_bbox(
-    west: float = Query(...), south: float = Query(...),
-    east: float = Query(...), north: float = Query(...),
-):
-    """Return deduplicated minerals within a bounding box."""
-    sql = text("""
-        SELECT DISTINCT ON (site_name, commodity)
-               source_id, site_name, commodity, dev_status,
-               latitude, longitude, image_url, image_license
-        FROM mineral_deposits
-        WHERE latitude BETWEEN :south AND :north
-          AND longitude BETWEEN :west AND :east
-          AND site_name NOT ILIKE 'Unnamed%%'
-        ORDER BY site_name, commodity
-    """)
+@router.get("/minerals/by-watershed/{watershed}")
+def get_minerals_by_watershed(watershed: str):
+    """Return deduplicated minerals for a watershed via site_id."""
     with engine.connect() as conn:
-        rows = conn.execute(sql, {
-            "west": west, "south": south, "east": east, "north": north,
-        }).fetchall()
+        site = conn.execute(text("SELECT id FROM sites WHERE watershed = :ws"), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        rows = conn.execute(text("""
+            SELECT DISTINCT ON (site_name, commodity)
+                   source_id, site_name, commodity, dev_status,
+                   latitude, longitude, image_url, image_license
+            FROM mineral_deposits
+            WHERE site_id = :sid
+              AND site_name NOT ILIKE 'Unnamed%%'
+            ORDER BY site_name, commodity
+        """), {"sid": site[0]}).fetchall()
 
     minerals = [{
         "source_id": r[0], "site_name": r[1], "commodity": r[2],
@@ -236,33 +230,32 @@ def get_minerals_in_bbox(
         "image_url": r[6], "image_license": r[7],
     } for r in rows]
 
-    return {"minerals": minerals, "count": len(minerals)}
+    return {"minerals": minerals, "count": len(minerals), "watershed": watershed}
 
 
 @router.get("/fossils/search")
 def search_fossils(
     q: str = Query(..., description="Taxon or common name search"),
-    west: float = Query(...), south: float = Query(...),
-    east: float = Query(...), north: float = Query(...),
+    watershed: str = Query(...),
 ):
-    """Search fossils by taxon name within a bounding box."""
+    """Search fossils by taxon name within a watershed."""
     pattern = f"%{q}%"
-    sql = text("""
-        SELECT source_id, taxon_name, phylum, class_name, order_name, family,
-               age_min_ma, age_max_ma, period, formation,
-               latitude, longitude, collector, reference, museum,
-               image_url, image_license, common_name
-        FROM fossil_occurrences
-        WHERE latitude BETWEEN :south AND :north
-          AND longitude BETWEEN :west AND :east
-          AND (taxon_name ILIKE :q OR common_name ILIKE :q)
-        ORDER BY taxon_name
-        LIMIT 500
-    """)
     with engine.connect() as conn:
-        rows = conn.execute(sql, {
-            "west": west, "south": south, "east": east, "north": north, "q": pattern,
-        }).fetchall()
+        site = conn.execute(text("SELECT id FROM sites WHERE watershed = :ws"), {"ws": watershed}).fetchone()
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+        rows = conn.execute(text("""
+            SELECT source_id, taxon_name, phylum, class_name, order_name, family,
+                   age_min_ma, age_max_ma, period, formation,
+                   latitude, longitude, collector, reference, museum,
+                   image_url, image_license, common_name
+            FROM fossil_occurrences
+            WHERE site_id = :sid
+              AND (taxon_name ILIKE :q OR common_name ILIKE :q)
+            ORDER BY taxon_name
+            LIMIT 500
+        """), {"sid": site[0], "q": pattern}).fetchall()
 
     fossils = [{
         "source_id": r[0], "taxon_name": r[1], "phylum": r[2], "class_name": r[3],

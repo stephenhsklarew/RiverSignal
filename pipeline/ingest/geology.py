@@ -308,17 +308,18 @@ class PBDBFossilAdapter(IngestionAdapter):
                     common_name, phylum, class_name, order_name, family,
                     age_min_ma, age_max_ma, period, formation,
                     location, latitude, longitude,
-                    collector, reference, museum, data_payload)
+                    collector, reference, museum, data_payload, site_id)
                 VALUES (gen_random_uuid(), 'pbdb', :source_id, :taxon_name, :taxon_id,
                     :common_name, :phylum, :class_name, :order_name, :family,
                     :age_min, :age_max, :period, :formation,
                     ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :lat, :lon,
-                    :collector, :reference, :museum, CAST(:payload AS jsonb))
+                    :collector, :reference, :museum, CAST(:payload AS jsonb), :site_id)
                 ON CONFLICT (source, source_id) DO UPDATE SET
                     taxon_name = EXCLUDED.taxon_name,
                     age_min_ma = EXCLUDED.age_min_ma,
                     age_max_ma = EXCLUDED.age_max_ma,
-                    data_payload = EXCLUDED.data_payload
+                    data_payload = EXCLUDED.data_payload,
+                    site_id = EXCLUDED.site_id
             """)
 
             with engine.connect() as conn:
@@ -362,6 +363,7 @@ class PBDBFossilAdapter(IngestionAdapter):
                         "reference": str(rec.get("ref") or ""),
                         "museum": None,
                         "payload": json.dumps(rec),
+                        "site_id": self.site_id,
                     }
                     conn.execute(SQL, params)
                     created += 1
@@ -796,15 +798,16 @@ class IDigBioFossilAdapter(IngestionAdapter):
                         common_name, phylum, class_name, order_name, family,
                         age_min_ma, age_max_ma, period, formation,
                         location, latitude, longitude,
-                        collector, reference, museum, data_payload)
+                        collector, reference, museum, data_payload, site_id)
                     VALUES (gen_random_uuid(), 'idigbio', :source_id, :taxon_name, :taxon_id,
                         :common_name, :phylum, :class_name, :order_name, :family,
                         :age_min, :age_max, :period, :formation,
                         ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :lat, :lon,
-                        :collector, :reference, :museum, CAST(:payload AS jsonb))
+                        :collector, :reference, :museum, CAST(:payload AS jsonb), :site_id)
                     ON CONFLICT (source, source_id) DO UPDATE SET
                         taxon_name = EXCLUDED.taxon_name,
-                        data_payload = EXCLUDED.data_payload
+                        data_payload = EXCLUDED.data_payload,
+                        site_id = EXCLUDED.site_id
                 """)
 
                 with engine.connect() as conn:
@@ -848,6 +851,7 @@ class IDigBioFossilAdapter(IngestionAdapter):
                             "museum": (idx.get("institutioncode") or "")[:255] or None,
                             "payload": json.dumps({"uuid": uuid_val, "hasImage": has_image,
                                                    "catalog": dat.get("dwc:catalogNumber", "")}),
+                            "site_id": self.site_id,
                         })
                         created += 1
 

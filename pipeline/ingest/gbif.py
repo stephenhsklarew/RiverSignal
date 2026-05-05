@@ -35,7 +35,7 @@ UPSERT_SQL = text("""
          common_name, phylum, class_name, order_name, family,
          age_min_ma, age_max_ma, period, formation,
          location, latitude, longitude,
-         collector, reference, museum, data_payload)
+         collector, reference, museum, data_payload, site_id)
     VALUES
         (gen_random_uuid(), 'gbif', :source_id, :taxon_name, :taxon_id,
          :common_name, :phylum, :class_name, :order_name, :family,
@@ -43,12 +43,13 @@ UPSERT_SQL = text("""
          CASE WHEN :lat IS NOT NULL AND :lon IS NOT NULL
               THEN ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) ELSE NULL END,
          :lat, :lon,
-         :collector, :reference, :museum, CAST(:payload AS jsonb))
+         :collector, :reference, :museum, CAST(:payload AS jsonb), :site_id)
     ON CONFLICT (source, source_id) DO UPDATE SET
         taxon_name = EXCLUDED.taxon_name,
         age_min_ma = EXCLUDED.age_min_ma,
         age_max_ma = EXCLUDED.age_max_ma,
-        data_payload = EXCLUDED.data_payload
+        data_payload = EXCLUDED.data_payload,
+        site_id = EXCLUDED.site_id
 """)
 
 
@@ -173,6 +174,7 @@ class GBIFFossilAdapter(IngestionAdapter):
                                 "basisOfRecord": rec.get("basisOfRecord"),
                                 "image_url": image_url,
                             }),
+                            "site_id": self.site_id,
                         })
                         created += 1
                     except Exception:

@@ -183,12 +183,10 @@ export default function MapPage() {
             onQuestionConsumed={() => setPendingQuestion(null)}
             onShowSpeciesOnMap={(taxonQuery, source) => {
               if (source === 'fossils') {
-                // FOSSIL PATH: search by taxon name within the watershed bbox
-                const bbox = siteDetail?.bbox || {}
-                const bboxParams = `west=${bbox.west}&south=${bbox.south}&east=${bbox.east}&north=${bbox.north}`
+                // FOSSIL PATH: search by taxon name within the watershed (via site_id)
                 const searchTerms = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
                 Promise.all(searchTerms.map(term =>
-                  fetch(`${API_BASE}/fossils/search?q=${encodeURIComponent(term)}&${bboxParams}`)
+                  fetch(`${API_BASE}/fossils/search?q=${encodeURIComponent(term)}&watershed=${selectedSite}`)
                     .then(r => r.ok ? r.json() : { fossils: [] })
                     .catch(() => ({ fossils: [] }))
                 )).then(results => {

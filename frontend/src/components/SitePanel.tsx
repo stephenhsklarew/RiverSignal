@@ -66,12 +66,10 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
     }
     if (activeTab === 'rocks' && rocks.length === 0) {
       setRocksPage(0)
-      // Fetch fossils and minerals within the watershed bounding box
-      const bbox = site.bbox || {}
-      const bboxParams = `west=${bbox.west}&south=${bbox.south}&east=${bbox.east}&north=${bbox.north}`
+      // Fetch fossils and minerals by watershed (linked via site_id)
       Promise.all([
-        fetch(`${API_BASE}/fossils/in-bbox?${bboxParams}`).then(r => r.json()).catch(() => ({ fossils: [] })),
-        fetch(`${API_BASE}/minerals/in-bbox?${bboxParams}`).then(r => r.json()).catch(() => ({ minerals: [] })),
+        fetch(`${API_BASE}/fossils/by-watershed/${watershed}`).then(r => r.json()).catch(() => ({ fossils: [] })),
+        fetch(`${API_BASE}/minerals/by-watershed/${watershed}`).then(r => r.json()).catch(() => ({ minerals: [] })),
       ]).then(([fossilData, mineralData]) => {
         const fossils = (fossilData.fossils || []).map((f: any, idx: number) => ({ ...f, rock_type: 'fossil', display_name: f.taxon_name, _uid: `f-${f.source_id || idx}`, category: f.phylum || 'Fossil' }))
         const minerals = (mineralData.minerals || []).map((m: any, idx: number) => ({ ...m, rock_type: 'mineral', display_name: m.site_name || m.commodity, _uid: `m-${m.source_id || idx}`, category: m.commodity?.split(',')[0]?.trim() || 'Mineral' }))
