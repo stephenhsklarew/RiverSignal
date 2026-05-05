@@ -209,8 +209,10 @@ export default function MapPage() {
                       properties: {
                         taxon_name: f.taxon_name,
                         common_name: f.common_name || '',
-                        observed_at: f.period || '',
+                        observed_at: f.period ? `${f.period} (${f.age_max_ma || '?'} Ma)` : '',
                         photo_url: f.image_url || '',
+                        source: 'fossil',
+                        museum: f.museum || '',
                       },
                     }))
                     setObsOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })

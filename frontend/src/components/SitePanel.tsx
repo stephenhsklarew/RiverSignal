@@ -411,10 +411,10 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                       const next = new Set(selectedRocks)
                       if (next.has(r._uid)) next.delete(r._uid); else next.add(r._uid)
                       setSelectedRocks(next)
-                      // Immediately show on map
+                      // Immediately show on map — use 'fossils' source for rock tab items
                       if (next.size > 0) {
                         const names = rocks.filter(rk => next.has(rk._uid)).map(rk => rk.display_name)
-                        onShowSpeciesOnMap([...new Set(names)].join(' OR '))
+                        onShowSpeciesOnMap([...new Set(names)].join(' OR '), 'fossils')
                       }
                     }
                   }}

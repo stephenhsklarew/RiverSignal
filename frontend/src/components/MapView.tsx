@@ -87,12 +87,16 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
         const photoHtml = props.photo_url
           ? `<img src="${props.photo_url}" style="width:200px;border-radius:6px;margin-bottom:8px;display:block;" />`
           : ''
+        const isFossil = props.source === 'fossil'
+        const dateLabel = isFossil ? 'Period' : 'Observed'
         const html = `
           <div style="font-family:Outfit,sans-serif;font-size:13px;max-width:220px;line-height:1.4;">
             ${photoHtml}
+            ${isFossil ? '<span style="font-size:10px;color:#d4a96a;text-transform:uppercase;letter-spacing:0.05em;">Fossil</span><br/>' : ''}
             <strong style="font-style:italic;">${props.taxon_name || 'Unknown'}</strong><br/>
             ${props.common_name ? `<span style="color:#666;">${props.common_name}</span><br/>` : ''}
-            ${props.observed_at ? `<span style="color:#999;font-size:11px;">Observed: ${props.observed_at}</span>` : ''}
+            ${props.observed_at ? `<span style="color:#999;font-size:11px;">${dateLabel}: ${props.observed_at}</span><br/>` : ''}
+            ${isFossil && props.museum ? `<span style="color:#aaa;font-size:10px;">${props.museum}</span>` : ''}
           </div>
         `
 
