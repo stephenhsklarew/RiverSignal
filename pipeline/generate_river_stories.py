@@ -24,6 +24,7 @@ WATERSHEDS = {
     'klamath': 'Upper Klamath Basin',
     'johnday': 'John Day River',
     'skagit': 'Skagit River',
+    'green_river': 'Green River',
 }
 
 READING_LEVELS = ['adult', 'kids', 'expert']
@@ -104,7 +105,7 @@ def generate_story(watershed: str, ws_name: str, level: str, context: str) -> st
         'expert': "Write for a professional ecologist. Include technical terminology, cite specific data points, mention restoration methodologies and monitoring metrics. 3-4 paragraphs.",
     }
 
-    prompt = f"""Write a compelling ecological story about the {ws_name} in Oregon.
+    prompt = f"""Write a compelling ecological story about the {ws_name}.
 
 {level_instructions[level]}
 

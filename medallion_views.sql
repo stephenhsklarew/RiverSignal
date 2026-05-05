@@ -62,14 +62,14 @@ CREATE MATERIALIZED VIEW silver.water_conditions AS
     EXTRACT(year FROM t."timestamp")::integer AS obs_year,
     EXTRACT(month FROM t."timestamp")::integer AS obs_month,
         CASE
-            WHEN (t.parameter::text = ANY (ARRAY['temperature'::character varying, 'temperature_mean'::character varying]::text[])) AND (t.source_type::text = ANY (ARRAY['usgs'::character varying, 'owdp'::character varying]::text[])) THEN 'water_temperature'::character varying
+            WHEN (t.parameter::text = ANY (ARRAY['temperature'::character varying::text, 'temperature_mean'::character varying::text])) AND (t.source_type::text = ANY (ARRAY['usgs'::character varying::text, 'owdp'::character varying::text])) THEN 'water_temperature'::character varying
             WHEN t.parameter::text = 'temperature_max'::text AND t.source_type::text = 'prism'::text THEN 'air_temperature_max'::character varying
             WHEN t.parameter::text = 'temperature_min'::text AND t.source_type::text = 'prism'::text THEN 'air_temperature_min'::character varying
             WHEN t.parameter::text = 'temperature_mean'::text AND t.source_type::text = 'prism'::text THEN 'air_temperature_mean'::character varying
-            WHEN t.parameter::text = ANY (ARRAY['air_temperature'::character varying, 'air_temperature_avg'::character varying]::text[]) THEN 'air_temperature'::character varying
-            WHEN t.parameter::text = ANY (ARRAY['dissolved_oxygen'::character varying, 'oxygen'::character varying]::text[]) THEN 'dissolved_oxygen'::character varying
+            WHEN t.parameter::text = ANY (ARRAY['air_temperature'::character varying::text, 'air_temperature_avg'::character varying::text]) THEN 'air_temperature'::character varying
+            WHEN t.parameter::text = ANY (ARRAY['dissolved_oxygen'::character varying::text, 'oxygen'::character varying::text]) THEN 'dissolved_oxygen'::character varying
             WHEN t.parameter::text = 'dissolved_oxygen_saturation'::text THEN 'do_saturation'::character varying
-            WHEN t.parameter::text = ANY (ARRAY['phosphorus'::character varying, 'orthophosphate'::character varying]::text[]) THEN 'phosphorus'::character varying
+            WHEN t.parameter::text = ANY (ARRAY['phosphorus'::character varying::text, 'orthophosphate'::character varying::text]) THEN 'phosphorus'::character varying
             WHEN t.parameter::text ~~ 'nitrogen%'::text OR t.parameter::text = 'nitrate_+_nitrite'::text THEN 'nitrogen'::character varying
             WHEN t.parameter::text ~~ 'chlorophyll%'::text THEN 'chlorophyll_a'::character varying
             ELSE t.parameter
@@ -80,19 +80,19 @@ CREATE MATERIALIZED VIEW silver.water_conditions AS
         END AS value,
         CASE
             WHEN t.unit::text = 'degF'::text THEN 'degC'::character varying
-            WHEN t.unit::text = ANY (ARRAY['deg C'::character varying, 'degC'::character varying]::text[]) THEN 'degC'::character varying
-            WHEN t.unit::text = ANY (ARRAY['mg/L'::character varying, 'mg/l'::character varying]::text[]) THEN 'mg/L'::character varying
-            WHEN t.unit::text = ANY (ARRAY['uS/cm'::character varying, 'uS/cm @25C'::character varying, 'umho/cm'::character varying]::text[]) THEN 'uS/cm'::character varying
+            WHEN t.unit::text = ANY (ARRAY['deg C'::character varying::text, 'degC'::character varying::text]) THEN 'degC'::character varying
+            WHEN t.unit::text = ANY (ARRAY['mg/L'::character varying::text, 'mg/l'::character varying::text]) THEN 'mg/L'::character varying
+            WHEN t.unit::text = ANY (ARRAY['uS/cm'::character varying::text, 'uS/cm @25C'::character varying::text, 'umho/cm'::character varying::text]) THEN 'uS/cm'::character varying
             ELSE t.unit
         END AS unit,
     t.quality_flag,
         CASE
-            WHEN t.parameter::text = ANY (ARRAY['temperature'::character varying, 'temperature_mean'::character varying, 'temperature_max'::character varying, 'temperature_min'::character varying, 'air_temperature'::character varying, 'air_temperature_avg'::character varying]::text[]) THEN 'temperature'::text
-            WHEN t.parameter::text = ANY (ARRAY['discharge'::character varying, 'gage_height'::character varying]::text[]) THEN 'hydrology'::text
-            WHEN t.parameter::text = ANY (ARRAY['dissolved_oxygen'::character varying, 'oxygen'::character varying, 'dissolved_oxygen_saturation'::character varying]::text[]) THEN 'oxygen'::text
+            WHEN t.parameter::text = ANY (ARRAY['temperature'::character varying::text, 'temperature_mean'::character varying::text, 'temperature_max'::character varying::text, 'temperature_min'::character varying::text, 'air_temperature'::character varying::text, 'air_temperature_avg'::character varying::text]) THEN 'temperature'::text
+            WHEN t.parameter::text = ANY (ARRAY['discharge'::character varying::text, 'gage_height'::character varying::text]) THEN 'hydrology'::text
+            WHEN t.parameter::text = ANY (ARRAY['dissolved_oxygen'::character varying::text, 'oxygen'::character varying::text, 'dissolved_oxygen_saturation'::character varying::text]) THEN 'oxygen'::text
             WHEN t.parameter::text = 'ph'::text THEN 'chemistry'::text
-            WHEN t.parameter::text = ANY (ARRAY['phosphorus'::character varying, 'orthophosphate'::character varying, 'nitrogen'::character varying, 'chlorophyll_a'::character varying, 'turbidity'::character varying]::text[]) THEN 'nutrients'::text
-            WHEN t.parameter::text = ANY (ARRAY['snow_water_equivalent'::character varying, 'snow_depth'::character varying, 'precipitation'::character varying, 'precipitation_cumulative'::character varying, 'soil_moisture'::character varying]::text[]) THEN 'climate'::text
+            WHEN t.parameter::text = ANY (ARRAY['phosphorus'::character varying::text, 'orthophosphate'::character varying::text, 'nitrogen'::character varying::text, 'chlorophyll_a'::character varying::text, 'turbidity'::character varying::text]) THEN 'nutrients'::text
+            WHEN t.parameter::text = ANY (ARRAY['snow_water_equivalent'::character varying::text, 'snow_depth'::character varying::text, 'precipitation'::character varying::text, 'precipitation_cumulative'::character varying::text, 'soil_moisture'::character varying::text]) THEN 'climate'::text
             WHEN t.parameter::text ~~ 'sport_catch%'::text OR t.parameter::text = 'trout_stocked'::text THEN 'fishing'::text
             ELSE 'other'::text
         END AS parameter_category
@@ -224,8 +224,8 @@ CREATE MATERIALIZED VIEW silver.mineral_sites AS
     image_license,
     image_source,
     ingested_at
-   FROM mineral_deposits md
-  WHERE site_name IS NOT NULL AND site_name::text <> ''::text;;
+   FROM mineral_deposits
+  WHERE site_name IS NOT NULL AND site_name::text <> ''::text AND site_name::text !~~* 'Unnamed%'::text;;
 
 -- gold.anomaly_flags
 DROP MATERIALIZED VIEW IF EXISTS gold.anomaly_flags CASCADE;
@@ -289,7 +289,7 @@ CREATE MATERIALIZED VIEW gold.cold_water_refuges AS
                     ELSE NULL::integer
                 END) AS days_above_20c
            FROM silver.water_conditions w
-          WHERE w.parameter::text = 'water_temperature'::text AND (w.source_type::text = ANY (ARRAY['usgs'::character varying, 'owdp'::character varying]::text[]))
+          WHERE w.parameter::text = 'water_temperature'::text AND (w.source_type::text = ANY (ARRAY['usgs'::character varying::text, 'owdp'::character varying::text]))
           GROUP BY w.site_id, w.watershed, w.station_id, w.source_type, w.obs_year
          HAVING count(
                 CASE
@@ -586,7 +586,6 @@ CREATE MATERIALIZED VIEW gold.site_ecological_summary AS
 -- gold.species_by_reach
 DROP MATERIALIZED VIEW IF EXISTS gold.species_by_reach CASCADE;
 CREATE MATERIALIZED VIEW gold.species_by_reach AS
--- Oregon data from ODFW Fish Habitat Distribution
  SELECT o.site_id,
     s.watershed,
     o.data_payload ->> 'stream'::text AS stream_name,
@@ -607,7 +606,6 @@ CREATE MATERIALIZED VIEW gold.species_by_reach AS
      JOIN sites s ON s.id = o.site_id
   WHERE o.source_type::text = 'fish_habitat'::text
 UNION ALL
--- Washington data from WDFW SalmonScape
  SELECT w.site_id,
     s.watershed,
     w.stream_name,
@@ -615,13 +613,13 @@ UNION ALL
     w.species AS common_name,
     w.species_run AS run_type,
     w.use_type,
-    NULL AS origin,
+    NULL::text AS origin,
     w.life_history,
     w.distribution_type AS data_basis,
     0 AS inat_observation_count,
     NULL::date AS last_inat_observation
    FROM wa_salmonscape w
-     JOIN sites s ON s.id = w.site_id;
+     JOIN sites s ON s.id = w.site_id;;
 
 -- gold.species_trends
 DROP MATERIALIZED VIEW IF EXISTS gold.species_trends CASCADE;
@@ -812,7 +810,7 @@ CREATE MATERIALIZED VIEW gold.river_health_score AS
    FROM sites s
      JOIN silver.water_conditions wc ON wc.site_id = s.id
      LEFT JOIN silver.species_observations so ON so.site_id = s.id AND so.obs_year = wc.obs_year AND so.obs_month = wc.obs_month AND so.taxon_name IS NOT NULL
-  WHERE wc.obs_year >= 2024 AND (wc.parameter::text = ANY (ARRAY['water_temperature'::character varying, 'dissolved_oxygen'::character varying, 'discharge'::character varying]::text[]))
+  WHERE wc.obs_year >= 2024 AND (wc.parameter::text = ANY (ARRAY['water_temperature'::character varying::text, 'dissolved_oxygen'::character varying::text, 'discharge'::character varying::text]))
   GROUP BY s.id, s.watershed, s.name, wc.obs_year, wc.obs_month;;
 
 -- gold.whats_alive_now
@@ -878,7 +876,7 @@ CREATE MATERIALIZED VIEW gold.swim_safety AS
             ELSE 'green'::text
         END AS safety_rating
    FROM silver.water_conditions w
-  WHERE source_type::text = 'usgs'::text AND (parameter::text = ANY (ARRAY['water_temperature'::character varying, 'discharge'::character varying]::text[])) AND obs_year >= 2024
+  WHERE source_type::text = 'usgs'::text AND (parameter::text = ANY (ARRAY['water_temperature'::character varying::text, 'discharge'::character varying::text])) AND obs_year >= 2024
   GROUP BY site_id, watershed, station_id, obs_year, obs_month;;
 
 -- gold.river_story_timeline
@@ -1126,6 +1124,7 @@ CREATE MATERIALIZED VIEW gold.geology_watershed_link AS
 DROP MATERIALIZED VIEW IF EXISTS gold.mineral_sites_nearby CASCADE;
 CREATE MATERIALIZED VIEW gold.mineral_sites_nearby AS
  SELECT id,
+    source_id,
     site_name,
     commodity,
     dev_status,
@@ -1133,9 +1132,8 @@ CREATE MATERIALIZED VIEW gold.mineral_sites_nearby AS
     longitude,
     location,
     image_url,
-    image_license,
-    image_source
-   FROM silver.mineral_sites ms;;
+    image_license
+   FROM silver.mineral_sites;;
 
 -- gold.hatch_fly_recommendations
 DROP MATERIALIZED VIEW IF EXISTS gold.hatch_fly_recommendations CASCADE;

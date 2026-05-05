@@ -16,6 +16,7 @@ const PHOTOS: Record<string, string> = {
   klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop', // Wood River meandering into Klamath Lake, Chiloquin OR by Dan Meyers
   johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop', // Painted Hills, John Day Fossil Beds National Monument OR by Dan Meyers
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
+  green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
 }
 
 interface WatershedData {
@@ -54,9 +55,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: 'All five salmon species in the shadow of the North Cascades',
     narrative: 'The Skagit is the largest river system flowing into Puget Sound and one of only a handful of rivers in the lower 48 that supports all five species of Pacific salmon. Fed by glaciers in North Cascades National Park, the river draws hundreds of bald eagles each winter to feed on spawned-out chum. Its vast estuary — the Skagit Delta — is critical nursery habitat for juvenile Chinook and a key link in the Puget Sound food web.',
   },
+  green_river: {
+    tagline: 'Flaming Gorge to Canyonlands — ancient fish in a desert canyon',
+    narrative: 'The Green River flows 730 miles from Wyoming\'s Wind River Range through Flaming Gorge, Dinosaur National Monument, Desolation Canyon, and into Canyonlands where it meets the Colorado. It is home to four endangered native fish — Colorado pikeminnow, razorback sucker, bonytail chub, and humpback chub — and the world-famous Green River Formation, where 50-million-year-old fossil fish are preserved in exquisite detail. Below Flaming Gorge Dam, tailwater trout fishing rivals the best in the West.',
+  },
 }
 
-const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -104,7 +109,7 @@ export default function HomePage() {
       <div className="home-nav-links">
         {WATERSHED_ORDER.map(ws => (
           <Link key={ws} to={`/path/now/${ws}`} className="home-nav-link">
-            {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day', skagit: 'Skagit' }[ws]}
+            {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day', skagit: 'Skagit', green_river: 'Green River' }[ws]}
           </Link>
         ))}
       </div>

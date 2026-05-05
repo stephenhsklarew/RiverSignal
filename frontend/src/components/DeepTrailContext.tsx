@@ -38,6 +38,9 @@ export const WATERSHEDS = [
   { id: 'skagit', name: 'Skagit River', lat: 48.45, lon: -121.50,
     photo: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
     caption: 'North Cascades glacial geology' },
+  { id: 'green_river', name: 'Green River', lat: 40.80, lon: -110.25,
+    photo: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
+    caption: 'Flaming Gorge to Canyonlands — Eocene fossil fish' },
 ]
 
 interface DeepTrailState {
