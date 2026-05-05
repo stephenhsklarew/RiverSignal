@@ -182,19 +182,14 @@ export default function MapPage() {
             initialQuestion={pendingQuestion}
             onQuestionConsumed={() => setPendingQuestion(null)}
             onShowSpeciesOnMap={(taxonQuery, source) => {
-              setObsSearch(taxonQuery)
-              setObsSearching(true)
-
               if (source === 'fossils') {
-                // Search fossils by taxon name using the observations search endpoint
-                // which also searches fossil_occurrences, OR query fossils directly
+                // FOSSIL PATH: query fossils endpoint directly, don't touch observation search bar
                 const bbox = siteDetail?.bbox || {}
                 const lat = ((bbox.south || 0) + (bbox.north || 0)) / 2
                 const lon = ((bbox.west || 0) + (bbox.east || 0)) / 2
                 const latSpan = Math.abs((bbox.north || 0) - (bbox.south || 0))
                 const lonSpan = Math.abs((bbox.east || 0) - (bbox.west || 0))
                 const radiusKm = Math.min(400, Math.max(75, Math.round(Math.max(latSpan, lonSpan) * 111 / 2)))
-                // Query fossils by name — use the search endpoint with a name filter
                 const searchTerms = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
                 Promise.all(searchTerms.map(term =>
                   fetch(`${API_BASE}/fossils/search?q=${encodeURIComponent(term)}&lat=${lat}&lon=${lon}&radius_km=${radiusKm}`)
@@ -215,12 +210,14 @@ export default function MapPage() {
                     },
                   }))
                   setObsOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })
-                  setObsSearching(false)
-                }).catch(() => setObsSearching(false))
+                  setObsSearch(`🦴 ${taxonQuery}`)
+                }).catch(() => {})
                 return
               }
 
-              // Default: query observations
+              // OBSERVATION PATH: query observations table
+              setObsSearch(taxonQuery)
+              setObsSearching(true)
               const taxa = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
               if (taxa.length <= 1) {
                 fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonQuery)}&limit=5000`)
