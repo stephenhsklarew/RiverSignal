@@ -35,6 +35,9 @@ export default function MapPage() {
   const [obsOverlay, setObsOverlay] = useState<any>(null)
   const [, setObsSearching] = useState(false)
 
+  // Fossil overlay state (completely separate from observations)
+  const [fossilOverlay, setFossilOverlay] = useState<any>(null)
+
   // Alerts + barriers
   const [alerts, setAlerts] = useState<any[]>([])
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set())
@@ -172,6 +175,7 @@ export default function MapPage() {
           selectedSite={selectedSite}
           onSelectSite={setSelectedSite}
           observationOverlay={obsOverlay}
+          fossilOverlay={fossilOverlay}
           barrierOverlay={showBarriers ? barrierOverlay : null}
         />
         {siteDetail && (
@@ -181,38 +185,35 @@ export default function MapPage() {
             onClose={() => setSelectedSite(null)}
             initialQuestion={pendingQuestion}
             onQuestionConsumed={() => setPendingQuestion(null)}
-            onShowSpeciesOnMap={(taxonQuery, source) => {
-              if (source === 'fossils') {
-                // FOSSIL PATH: search by taxon name within the watershed (via site_id)
-                const searchTerms = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
-                Promise.all(searchTerms.map(term =>
-                  fetch(`${API_BASE}/fossils/search?q=${encodeURIComponent(term)}&watershed=${selectedSite}`)
-                    .then(r => r.ok ? r.json() : { fossils: [] })
-                    .catch(() => ({ fossils: [] }))
-                )).then(results => {
-                  const allFossils = results.flatMap(r => r.fossils || [])
-                  const features = allFossils.filter((f: any) => f.latitude && f.longitude).map((f: any) => ({
-                    type: 'Feature' as const,
-                    geometry: { type: 'Point' as const, coordinates: [f.longitude, f.latitude] },
-                    properties: {
-                      taxon_name: f.taxon_name,
-                      common_name: f.common_name || '',
-                      observed_at: f.period ? `${f.period} (${f.age_max_ma || '?'} Ma)` : '',
-                      photo_url: f.image_url || '',
-                      source: 'fossil',
-                      museum: f.museum || '',
-                    },
-                  }))
-                  console.log(`Fossil search: ${features.length} pins for "${taxonQuery}" in ${selectedSite}`)
-                  setObsOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })
-                  setObsSearch(`🦴 ${taxonQuery} (${features.length})`)
-                }).catch(err => console.error('Fossil search failed:', err))
-                return
-              }
-
-              // OBSERVATION PATH: query observations table
+            onShowFossilsOnMap={(taxonQuery) => {
+              // FOSSIL PATH: completely separate from observations
+              const searchTerms = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
+              Promise.all(searchTerms.map(term =>
+                fetch(`${API_BASE}/fossils/search?q=${encodeURIComponent(term)}&watershed=${selectedSite}`)
+                  .then(r => r.ok ? r.json() : { fossils: [] })
+                  .catch(() => ({ fossils: [] }))
+              )).then(results => {
+                const allFossils = results.flatMap(r => r.fossils || [])
+                const features = allFossils.filter((f: any) => f.latitude && f.longitude).map((f: any) => ({
+                  type: 'Feature' as const,
+                  geometry: { type: 'Point' as const, coordinates: [f.longitude, f.latitude] },
+                  properties: {
+                    taxon_name: f.taxon_name,
+                    common_name: f.common_name || '',
+                    period: f.period ? `${f.period} (${f.age_max_ma || '?'} Ma)` : '',
+                    photo_url: f.image_url || '',
+                    museum: f.museum || '',
+                  },
+                }))
+                setFossilOverlay({ type: 'FeatureCollection', features, query: taxonQuery, watershed: selectedSite, count: features.length })
+                setObsSearch(`🦴 ${taxonQuery} (${features.length})`)
+              }).catch(err => console.error('Fossil search failed:', err))
+            }}
+            onShowSpeciesOnMap={(taxonQuery) => {
+              // OBSERVATION PATH: query observations table only
               setObsSearch(taxonQuery)
               setObsSearching(true)
+              setFossilOverlay(null) // Clear any fossil pins
               const taxa = taxonQuery.split(' OR ').map(t => t.trim()).filter(Boolean)
               if (taxa.length <= 1) {
                 fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(taxonQuery)}&limit=5000`)

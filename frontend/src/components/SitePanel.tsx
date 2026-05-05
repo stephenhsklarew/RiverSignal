@@ -9,7 +9,8 @@ interface SitePanelProps {
   onClose: () => void
   initialQuestion?: string | null
   onQuestionConsumed?: () => void
-  onShowSpeciesOnMap?: (taxonName: string, source?: 'observations' | 'fossils') => void
+  onShowSpeciesOnMap?: (taxonName: string) => void
+  onShowFossilsOnMap?: (taxonName: string) => void
 }
 
 interface ChatMessage {
@@ -17,7 +18,7 @@ interface ChatMessage {
   content: string
 }
 
-export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed, onShowSpeciesOnMap }: SitePanelProps) {
+export default function SitePanel({ site, watershed, onClose, initialQuestion, onQuestionConsumed, onShowSpeciesOnMap, onShowFossilsOnMap }: SitePanelProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'species' | 'rocks' | 'fishing' | 'story' | 'recs' | 'predict' | 'ask'>(
     initialQuestion ? 'ask' : 'overview'
   )
@@ -380,13 +381,13 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
             </div>
 
             {/* Multi-select bar */}
-            {selectedRocks.size > 0 && onShowSpeciesOnMap && (
+            {selectedRocks.size > 0 && onShowFossilsOnMap && (
               <div className="species-select-bar">
                 <span>{selectedRocks.size} selected</span>
                 <button className="sp-show-map-btn" onClick={() => {
                   const names = rocks.filter(r => selectedRocks.has(r._uid)).map(r => r.display_name)
                   const unique = [...new Set(names)]
-                  onShowSpeciesOnMap(unique.join(' OR '), 'fossils')
+                  onShowFossilsOnMap(unique.join(' OR '))
                 }}>📍 Show on map</button>
                 <button className="sp-clear-btn" onClick={() => setSelectedRocks(new Set())}>Clear</button>
               </div>
@@ -398,16 +399,15 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 const isSelected = selectedRocks.has(r._uid)
                 const icon = r.rock_type === 'fossil' ? '🦴' : '💎'
                 return (
-                <div key={i} className={`species-card${onShowSpeciesOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
+                <div key={i} className={`species-card${onShowFossilsOnMap ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
                   onClick={() => {
-                    if (onShowSpeciesOnMap) {
+                    if (onShowFossilsOnMap) {
                       const next = new Set(selectedRocks)
                       if (next.has(r._uid)) next.delete(r._uid); else next.add(r._uid)
                       setSelectedRocks(next)
-                      // Immediately show on map — use 'fossils' source for rock tab items
                       if (next.size > 0) {
                         const names = rocks.filter(rk => next.has(rk._uid)).map(rk => rk.display_name)
-                        onShowSpeciesOnMap([...new Set(names)].join(' OR '), 'fossils')
+                        onShowFossilsOnMap([...new Set(names)].join(' OR '))
                       }
                     }
                   }}
