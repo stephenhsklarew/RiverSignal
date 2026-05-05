@@ -1,0 +1,55 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored.
+#
+# Initialize with:
+#   terraform init -backend-config="bucket=YOUR-STATE-BUCKET" -backend-config="prefix=production"
+
+project_id  = "your-gcp-project-id"
+region      = "us-west1"
+environment = "production"
+
+# App naming — all GCP resources are prefixed with this
+app_name = "riversignal"
+db_name  = "riversignal"
+db_user  = "riversignal_app"
+
+# Timezone for scheduled pipeline jobs
+scheduler_timezone = "America/Los_Angeles"
+
+# Docker image tag (change to pin a specific version)
+docker_image_tag = "latest"
+
+# ── Option A: Budget (~$25/mo) ──
+# db_tier                 = "db-f1-micro"
+# db_disk_size_gb         = 10
+# db_backup_retention_days = 7
+# cloud_run_min_instances = 0
+# cloud_run_max_instances = 3
+# cloud_run_cpu           = "1"
+# cloud_run_memory        = "512Mi"
+# vpc_connector_machine_type = "f1-micro"
+
+# ── Option B: Production (~$57/mo) — DEFAULT ──
+db_tier                    = "db-g1-small"
+db_disk_size_gb            = 20
+db_backup_retention_days   = 14
+cloud_run_min_instances    = 1
+cloud_run_max_instances    = 10
+cloud_run_cpu              = "2"
+cloud_run_memory           = "2Gi"
+vpc_connector_machine_type = "e2-micro"
+
+# ── Option C: Scale-Ready (~$180/mo) ──
+# db_tier                 = "db-custom-2-4096"
+# db_disk_size_gb         = 50
+# db_ha_enabled           = true
+# db_backup_retention_days = 30
+# cloud_run_min_instances = 2
+# cloud_run_max_instances = 20
+# cloud_run_cpu           = "4"
+# cloud_run_memory        = "4Gi"
+
+# ── Custom domain (uncomment when ready) ──
+# enable_load_balancer = true
+# enable_cloud_armor   = true
+# domain_name          = "api.riversignal.com"

@@ -14,3 +14,14 @@ frontend/dist/
 # Image cache (downloaded at runtime, not committed)
 /frontend/public/images/cache/
 /backups/
+/migration-export/
+.river_story_audio/
+.deep_time_audio/
+.user_photos/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/terraform.tfvars
+terraform/.terraform.lock.hcl
