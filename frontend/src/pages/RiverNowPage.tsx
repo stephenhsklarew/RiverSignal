@@ -672,9 +672,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           </div>
           <div data-card="barriers">
           {/* ── Fish Passage Barriers ── */}
-          {barriers.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">⚠ Fish Passage Barriers ({barriers.length})</div>
+              <div className="rnow-section-title">⚠ Fish Passage Barriers{barriers.length > 0 ? ` (${barriers.length})` : ''}</div>
+              {barriers.length > 0 ? (
               <div className="rnow-barriers">
                 {barriers.slice(0, 5).map((b: any, i: number) => (
                   <div key={i} className="rnow-barrier-item">
@@ -684,8 +684,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   </div>
                 ))}
               </div>
+              ) : (
+                <div className="rnow-empty">No documented fish passage barriers in this watershed</div>
+              )}
             </section>
-          )}
 
           </div>
           <div data-card="fly_shops">

@@ -81,7 +81,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
     }
     if (activeTab === 'fishing' && !fishingBrief)
       fetch(`${API_BASE}/sites/${watershed}/fishing/brief`).then(r => r.json()).then(setFishingBrief).catch(console.error)
-    if (activeTab === 'story' && !story)
+    if (!story)
       fetch(`${API_BASE}/sites/${watershed}/story`).then(r => r.json()).then(setStory).catch(console.error)
     if (activeTab === 'recs' && !recommendations && !recsLoading) {
       setRecsLoading(true)
@@ -95,9 +95,9 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
   const sc = site.scorecard || {}
   const healthClass = (health.score || 0) >= 70 ? 'good' : (health.score || 0) >= 50 ? 'moderate' : 'poor'
 
-  const sendChat = () => {
-    if (!chatInput.trim() || chatLoading) return
-    const question = chatInput.trim()
+  const sendChat = (directQuestion?: string) => {
+    const question = (directQuestion || chatInput).trim()
+    if (!question || chatLoading) return
     setChatInput('')
     setActiveTab('ask')
     setChatMessages(prev => [...prev, { role: 'user', content: question }])
@@ -125,7 +125,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
 
       {/* Tabs */}
       <div className="panel-tabs">
-        {(['overview', 'story', 'species', 'rocks', 'predict', 'ask'] as const).map(tab => (
+        {(['overview', 'species', 'rocks', 'predict', 'ask'] as const).map(tab => (
           <button key={tab} className={`panel-tab${activeTab === tab ? ' active' : ''}`} onClick={() => setActiveTab(tab)}>
             {tab}
           </button>
@@ -137,18 +137,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
 
         {activeTab === 'overview' && (
           <>
-            {/* KPI Grid */}
-            <div className="section">
-              <div className="section-title">Key Metrics</div>
-              <div className="kpi-grid">
-                <div className="kpi-card"><div className={`value ${health.water_temp_c != null && health.water_temp_c < 16 ? 'green' : 'amber'}`}>{health.water_temp_c ?? '—'}°C</div><div className="label">Water Temp</div></div>
-                <div className="kpi-card"><div className={`value ${health.dissolved_oxygen_mg_l != null && health.dissolved_oxygen_mg_l > 8 ? 'green' : 'red'}`}>{health.dissolved_oxygen_mg_l ?? '—'}</div><div className="label">DO mg/L</div></div>
-                <div className="kpi-card"><div className="value">{sc.total_species?.toLocaleString() ?? '—'}</div><div className="label">Species</div></div>
-                <div className="kpi-card"><div className="value">{sc.total_interventions ?? '—'}</div><div className="label">Projects</div></div>
-              </div>
-            </div>
-
-            {/* Scorecard */}
+            {/* Data Coverage */}
             <div className="section">
               <div className="section-title">Data Coverage</div>
               <div className="kpi-grid">
@@ -159,7 +148,34 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
               </div>
             </div>
 
-            {/* Indicator Species Table */}
+            {/* Key Metrics */}
+            <div className="section">
+              <div className="section-title">Key Metrics</div>
+              <div className="kpi-grid">
+                <div className="kpi-card"><div className={`value ${health.water_temp_c != null && health.water_temp_c < 16 ? 'green' : 'amber'}`}>{health.water_temp_c ?? '—'}°C</div><div className="label">Water Temp</div></div>
+                <div className="kpi-card"><div className={`value ${health.dissolved_oxygen_mg_l != null && health.dissolved_oxygen_mg_l > 8 ? 'green' : 'red'}`}>{health.dissolved_oxygen_mg_l ?? '—'}</div><div className="label">DO mg/L</div></div>
+                <div className="kpi-card"><div className="value">{sc.total_species?.toLocaleString() ?? '—'}</div><div className="label">Species</div></div>
+                <div className="kpi-card"><div className="value">{sc.total_interventions ?? '—'}</div><div className="label">Projects</div></div>
+              </div>
+            </div>
+
+            {/* Current Health (from Story) */}
+            {story?.health && (
+              <div className="section">
+                <div className="section-title">Current Health</div>
+                <div className="kpi-grid">
+                  <div className="kpi-card"><div className="value green">{story.health.score}</div><div className="label">Score</div></div>
+                  <div className="kpi-card"><div className="value">{story.health.water_temp_c}°C</div><div className="label">Temp</div></div>
+                  <div className="kpi-card"><div className="value">{story.health.do_mg_l}</div><div className="label">DO</div></div>
+                  <div className="kpi-card"><div className="value">{story.health.species}</div><div className="label">Spp/mo</div></div>
+                </div>
+              </div>
+            )}
+
+            {/* What's Here Now */}
+            <WhatsHereNow watershed={watershed} />
+
+            {/* Indicator Species */}
             <div className="section">
               <div className="section-title">Indicator Species</div>
               <table className="data-table">
@@ -178,14 +194,22 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
               </table>
             </div>
 
-            {/* What's Here Now */}
-            <WhatsHereNow watershed={watershed} />
+            {/* Timeline (from Story) */}
+            {(story?.timeline || []).length > 0 && (
+              <div className="section">
+                <div className="section-title">Timeline</div>
+                {story.timeline.slice(0, 15).map((e: any, i: number) => (
+                  <div key={i} className="timeline-event">
+                    <span className="timeline-year">{e.year}</span>
+                    <span className={`timeline-type ${e.type}`}>{e.type}</span>
+                    <span className="timeline-name">{e.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {/* Stewardship Opportunities */}
+            {/* Stewardship & Restoration */}
             <StewardshipSection watershed={watershed} />
-
-            {/* Seasonal Trip Planner */}
-            <SeasonalPlanner watershed={watershed} />
           </>
         )}
 
@@ -460,49 +484,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
           </>
         )}
 
-        {activeTab === 'story' && (
-          <>
-            {story?.health && (
-              <div className="section">
-                <div className="section-title">Current Health</div>
-                <div className="kpi-grid">
-                  <div className="kpi-card"><div className="value green">{story.health.score}</div><div className="label">Score</div></div>
-                  <div className="kpi-card"><div className="value">{story.health.water_temp_c}°C</div><div className="label">Temp</div></div>
-                  <div className="kpi-card"><div className="value">{story.health.do_mg_l}</div><div className="label">DO</div></div>
-                  <div className="kpi-card"><div className="value">{story.health.species}</div><div className="label">Spp/mo</div></div>
-                </div>
-              </div>
-            )}
-            <div className="section">
-              <div className="section-title">Timeline</div>
-              {(story?.timeline || []).slice(0, 15).map((e: any, i: number) => (
-                <div key={i} className="timeline-event">
-                  <span className="timeline-year">{e.year}</span>
-                  <span className={`timeline-type ${e.type}`}>{e.type}</span>
-                  <span className="timeline-name">{e.name}</span>
-                </div>
-              ))}
-            </div>
-            {(story?.fire_recovery || []).length > 0 && (
-              <div className="section">
-                <div className="section-title">Fire Recovery</div>
-                <table className="data-table">
-                  <thead><tr><th>Year</th><th>Δ Fire</th><th>Species</th><th>Obs</th></tr></thead>
-                  <tbody>
-                    {story.fire_recovery.filter((r: any) => r.years_since >= -1 && r.years_since <= 6).sort((a: any, b: any) => b.obs_year - a.obs_year).map((r: any, i: number) => (
-                      <tr key={i} style={r.years_since === 0 ? { background: 'var(--alert-light)' } : {}}>
-                        <td className="mono">{r.obs_year}{r.years_since === 0 ? ' 🔥' : ''}</td>
-                        <td className="mono">{r.years_since > 0 ? '+' : ''}{r.years_since}</td>
-                        <td className="mono" style={r.years_since >= 4 ? { color: 'var(--accent)', fontWeight: 600 } : {}}>{r.species?.toLocaleString()}</td>
-                        <td className="mono">{r.observation_count?.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
+        {/* Story tab removed — content merged into Overview */}
 
         {activeTab === 'recs' && (
           <div className="section">
@@ -541,15 +523,14 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
             site={site}
             chatMessages={chatMessages}
             chatLoading={chatLoading}
-            onSuggestionClick={(q: string) => setChatInput(q)}
+            onSuggestionClick={(q: string) => sendChat(q)}
           />
         )}
       </div>
 
-      {/* Bottom Chat Bar (always visible) */}
-      <div className="chat-sidebar">
-        <div className="chat-label">AI Assistant</div>
-        <div className="chat-input-row">
+      {/* Ask input — pinned at bottom of panel */}
+      {activeTab === 'ask' && (
+        <div className="ask-input-bar">
           <input
             type="text"
             value={chatInput}
@@ -557,9 +538,9 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
             onKeyDown={e => { if (e.key === 'Enter') sendChat() }}
             placeholder={`Ask about ${site.name}...`}
           />
-          <button onClick={sendChat} disabled={!chatInput.trim() || chatLoading}>Query</button>
+          <button onClick={() => sendChat()} disabled={!chatInput.trim() || chatLoading}>Send</button>
         </div>
-      </div>
+      )}
     </div>
   )
 }

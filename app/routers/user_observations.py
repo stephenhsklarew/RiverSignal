@@ -2,12 +2,16 @@
 
 import base64
 import hashlib
+import json
 import pathlib
+import re
+import time
 import uuid
+from collections import defaultdict
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 
 from pipeline.db import engine
@@ -19,28 +23,108 @@ PHOTO_DIR.mkdir(exist_ok=True)
 THUMB_DIR = PHOTO_DIR / "thumbs"
 THUMB_DIR.mkdir(exist_ok=True)
 
+# ── Security constants ──
+MAX_PHOTO_BYTES = 10 * 1024 * 1024  # 10 MB max photo size
+MAX_TEXT_LENGTH = 500  # Max length for text fields
+ALLOWED_CATEGORIES = {"fish", "bird", "insect", "plant", "mammal", "amphibian", "reptile",
+                      "fossil", "rock", "mineral", "crystal", "landscape", "other"}
+ALLOWED_APPS = {"riverpath", "deeptrail"}
+# JPEG: FF D8 FF, PNG: 89 50 4E 47
+IMAGE_SIGNATURES = {b'\xff\xd8\xff': '.jpg', b'\x89PNG': '.png'}
+
+# Rate limiting: IP -> list of timestamps
+_rate_limit: dict[str, list[float]] = defaultdict(list)
+RATE_LIMIT_MAX = 10  # max submissions per window
+RATE_LIMIT_WINDOW = 300  # 5 minute window
+
+
+def _sanitize_text(val: str | None, max_len: int = MAX_TEXT_LENGTH) -> str | None:
+    """Strip HTML tags and limit length."""
+    if not val:
+        return val
+    clean = re.sub(r'<[^>]+>', '', val)  # strip HTML tags
+    clean = clean.replace('\x00', '')     # strip null bytes
+    return clean[:max_len].strip()
+
+
+def _check_rate_limit(ip: str) -> bool:
+    """Return True if request is allowed, False if rate limited."""
+    now = time.time()
+    _rate_limit[ip] = [t for t in _rate_limit[ip] if now - t < RATE_LIMIT_WINDOW]
+    if len(_rate_limit[ip]) >= RATE_LIMIT_MAX:
+        return False
+    _rate_limit[ip].append(now)
+    return True
+
+
+def _validate_image(photo_bytes: bytes) -> str:
+    """Validate image bytes. Returns extension or raises HTTPException."""
+    for sig, ext in IMAGE_SIGNATURES.items():
+        if photo_bytes[:len(sig)] == sig:
+            return ext
+    raise HTTPException(400, "Invalid image format. Only JPEG and PNG are accepted.")
+
 
 class ObservationCreate(BaseModel):
-    source_app: str = "riverpath"  # riverpath or deeptrail
-    photo_base64: str | None = None  # base64 encoded JPEG/PNG
+    source_app: str = "riverpath"
+    photo_base64: str | None = None
     latitude: float | None = None
     longitude: float | None = None
-    observed_at: str | None = None  # ISO datetime string
+    observed_at: str | None = None
     species_name: str | None = None
     common_name: str | None = None
-    category: str | None = None  # fish, bird, insect, plant, mammal, fossil, rock, mineral, etc.
+    category: str | None = None
     notes: str | None = None
     watershed: str | None = None
+
+    @field_validator('source_app')
+    @classmethod
+    def validate_app(cls, v: str) -> str:
+        if v not in ALLOWED_APPS:
+            raise ValueError(f'source_app must be one of {ALLOWED_APPS}')
+        return v
+
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, v: str | None) -> str | None:
+        if v and v.lower() not in ALLOWED_CATEGORIES:
+            raise ValueError(f'category must be one of {ALLOWED_CATEGORIES}')
+        return v.lower() if v else v
+
+    @field_validator('latitude')
+    @classmethod
+    def validate_lat(cls, v: float | None) -> float | None:
+        if v is not None and (v < -90 or v > 90):
+            raise ValueError('latitude must be between -90 and 90')
+        return v
+
+    @field_validator('longitude')
+    @classmethod
+    def validate_lon(cls, v: float | None) -> float | None:
+        if v is not None and (v < -180 or v > 180):
+            raise ValueError('longitude must be between -180 and 180')
+        return v
 
 
 @router.post("/observations/user")
 def create_user_observation(body: ObservationCreate, request: Request):
     """Save a user-submitted observation with optional photo."""
+    # Rate limiting by IP
+    client_ip = request.client.host if request.client else "unknown"
+    if not _check_rate_limit(client_ip):
+        raise HTTPException(429, "Too many submissions. Please wait a few minutes.")
+
     from app.routers.auth import get_current_user
     current_user = get_current_user(request)
     obs_id = str(uuid.uuid4())
     photo_path = None
     thumb_path = None
+
+    # Sanitize text inputs
+    body.species_name = _sanitize_text(body.species_name)
+    body.common_name = _sanitize_text(body.common_name)
+    body.notes = _sanitize_text(body.notes, 1000)
+    body.watershed = _sanitize_text(body.watershed, 50)
 
     # Save photo to disk
     if body.photo_base64:
@@ -49,20 +133,26 @@ def create_user_observation(body: ObservationCreate, request: Request):
             b64 = body.photo_base64
             if "," in b64:
                 b64 = b64.split(",", 1)[1]
+
+            # Check base64 size before decoding (base64 is ~33% larger than binary)
+            if len(b64) > MAX_PHOTO_BYTES * 1.4:
+                raise HTTPException(413, f"Photo too large. Maximum size is {MAX_PHOTO_BYTES // (1024*1024)} MB.")
+
             photo_bytes = base64.b64decode(b64)
 
-            # Determine extension from first bytes
-            ext = ".jpg"
-            if photo_bytes[:4] == b'\x89PNG':
-                ext = ".png"
+            if len(photo_bytes) > MAX_PHOTO_BYTES:
+                raise HTTPException(413, f"Photo too large. Maximum size is {MAX_PHOTO_BYTES // (1024*1024)} MB.")
+
+            # Validate image magic bytes
+            ext = _validate_image(photo_bytes)
 
             photo_filename = f"{obs_id}{ext}"
             photo_file = PHOTO_DIR / photo_filename
             photo_file.write_bytes(photo_bytes)
             photo_path = f"/api/v1/observations/user/photo/{photo_filename}"
-
-            # Create thumbnail (just store full image path — resize client-side)
             thumb_path = photo_path
+        except HTTPException:
+            raise
         except Exception:
             pass  # Photo save failed silently — observation still created
 
@@ -166,7 +256,13 @@ def create_user_observation(body: ObservationCreate, request: Request):
                     "taxon": body.species_name,
                     "iconic": iconic,
                     "lat": body.latitude, "lon": body.longitude,
-                    "payload": f'{{"common_name": "{body.common_name or ""}", "photo_url": "{photo_path or ""}", "source": "{source_type}", "notes": "{body.notes or ""}", "app": "{body.source_app}"}}',
+                    "payload": json.dumps({
+                        "common_name": body.common_name or "",
+                        "photo_url": photo_path or "",
+                        "source": source_type,
+                        "notes": body.notes or "",
+                        "app": body.source_app,
+                    }),
                 })
 
         conn.commit()

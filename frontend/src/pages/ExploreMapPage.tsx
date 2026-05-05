@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader from '../components/WatershedHeader'
 import { getSelectedWatershed } from '../components/WatershedHeader'
+import { useSaved } from '../components/SavedContext'
 import './ExploreMapPage.css'
 
 const API = 'http://localhost:8001/api/v1'
@@ -56,6 +57,10 @@ export default function ExploreMapPage() {
   const navigate = useNavigate()
   const { watershed: paramWs } = useParams<{ watershed?: string }>()
   const ws = paramWs || getSelectedWatershed() || 'deschutes'
+
+  const { save, unsave, isSaved } = useSaved()
+  const savedRef = useRef({ save, unsave, isSaved })
+  savedRef.current = { save, unsave, isSaved }
 
   const [sites, setSites] = useState<RecSite[]>([])
   const [filter, setFilter] = useState('all')
@@ -147,11 +152,17 @@ export default function ExploreMapPage() {
           amenities.parking ? '🅿' : '',
         ].filter(Boolean).join(' · ')
 
+        const itemId = `${s.rec_type}-${s.id}`
+        const alreadySaved = savedRef.current.isSaved('recreation', itemId)
+
         const popup = new maplibregl.Popup({ offset: 12, maxWidth: '220px' })
           .setLngLat([s.longitude, s.latitude])
           .setHTML(`
             <div class="explore-popup">
-              <div class="explore-popup-name">${s.name}</div>
+              <div class="explore-popup-header">
+                <div class="explore-popup-name">${s.name}</div>
+                <button class="explore-popup-save" data-site-id="${s.id}" data-rec-type="${s.rec_type}" data-name="${s.name.replace(/"/g, '&quot;')}" title="${alreadySaved ? 'Remove from saved' : 'Save this place'}">${alreadySaved ? '♥' : '♡'}</button>
+              </div>
               <div class="explore-popup-type" style="color:${color}">${s.rec_type.replace(/_/g, ' ')}</div>
               ${badges ? `<div class="explore-popup-badges">${badges}</div>` : ''}
               ${amenities.forest ? `<div class="explore-popup-forest">${amenities.forest}</div>` : ''}
@@ -162,6 +173,30 @@ export default function ExploreMapPage() {
           `)
           .addTo(map)
         popupRef.current = popup
+
+        // Attach save button click handler
+        const saveBtn = popup.getElement()?.querySelector('.explore-popup-save')
+        if (saveBtn) {
+          saveBtn.addEventListener('click', (evt) => {
+            evt.stopPropagation()
+            const id = `${s.rec_type}-${s.id}`
+            if (savedRef.current.isSaved('recreation', id)) {
+              savedRef.current.unsave('recreation', id)
+              saveBtn.textContent = '♡'
+              saveBtn.setAttribute('title', 'Save this place')
+            } else {
+              savedRef.current.save({
+                type: 'recreation',
+                id,
+                watershed: ws,
+                label: s.name,
+                sublabel: s.rec_type.replace(/_/g, ' '),
+              })
+              saveBtn.textContent = '♥'
+              saveBtn.setAttribute('title', 'Remove from saved')
+            }
+          })
+        }
       })
 
       markersRef.current.push(marker)

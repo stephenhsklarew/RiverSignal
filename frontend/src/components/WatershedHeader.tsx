@@ -4,10 +4,11 @@ import rpLogo from '../assets/riverpath-logo.svg'
 import UserMenu from './UserMenu'
 import './WatershedHeader.css'
 
-const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'skagit']
 const WATERSHED_LABELS: Record<string, string> = {
   mckenzie: 'McKenzie River', deschutes: 'Deschutes River', metolius: 'Metolius River',
   klamath: 'Upper Klamath Basin', johnday: 'John Day River', skagit: 'Skagit River',
+  green_river: 'Green River',
 }
 
 export const WS_STORAGE_KEY = 'riverpath-selected-watershed'

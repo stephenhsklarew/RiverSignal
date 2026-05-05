@@ -1,4 +1,4 @@
-"""Watershed configurations for Pacific Northwest watersheds.
+"""Watershed configurations.
 
 Each watershed defines a bounding box and metadata used by ingestion adapters.
 Bounding boxes are approximate and designed to capture the main stem and
@@ -85,6 +85,23 @@ WATERSHEDS = {
             "south": 48.20,
             "east": -121.00,
             "west": -122.60,
+        },
+    },
+    "green_river": {
+        "name": "Green River",
+        "description": (
+            "Green River from Wind River Range headwaters (WY) through "
+            "Flaming Gorge, Dinosaur National Monument, Desolation Canyon, "
+            "to confluence with Colorado River in Canyonlands (UT). "
+            "Endangered Colorado pikeminnow and razorback sucker habitat, "
+            "world-famous Green River Formation fossil fish, major "
+            "recreation destination."
+        ),
+        "bbox": {
+            "north": 43.50,
+            "south": 38.10,
+            "east": -109.00,
+            "west": -111.50,
         },
     },
 }

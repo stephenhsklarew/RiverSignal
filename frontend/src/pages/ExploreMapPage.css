@@ -35,7 +35,14 @@
 
 /* Popups */
 .explore-popup { font-family: 'Outfit', sans-serif; }
+.explore-popup-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
 .explore-popup-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.explore-popup-save {
+  background: none; border: none; cursor: pointer; font-size: 18px;
+  color: #9e9b96; padding: 0 2px; line-height: 1; flex-shrink: 0;
+  transition: color 0.15s, transform 0.15s;
+}
+.explore-popup-save:hover { color: #c4432b; transform: scale(1.15); }
 .explore-popup-type { font-size: 12px; font-weight: 500; text-transform: capitalize; margin-bottom: 4px; }
 .explore-popup-badges { font-size: 11px; color: #666; margin-bottom: 2px; }
 .explore-popup-forest { font-size: 10px; color: var(--accent); }

@@ -186,11 +186,19 @@ def geology_ecology_connector(lat: float, lon: float):
                 "icon": "🌋→🌿",
             })
 
+    # Deduplicate connections by message text
+    seen = set()
+    unique_connections = []
+    for c in connections:
+        if c["connection"] not in seen:
+            seen.add(c["connection"])
+            unique_connections.append(c)
+
     return {
         "lat": lat, "lon": lon,
         "geologic_units": [{"name": g[0], "formation": g[1], "rock_type": g[2], "period": g[4]} for g in geo],
         "ecology": ecology,
-        "connections": connections,
+        "connections": unique_connections,
     }
 
 

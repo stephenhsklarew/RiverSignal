@@ -8,10 +8,10 @@ import './DeepTrailPage.css'
 
 const TRAIL_STORY_CARDS: CardConfig[] = [
   { id: 'deep_time_story', label: 'Deep Time Story', icon: '📖', visible: true },
-  { id: 'geologic_context', label: 'Geologic Context', icon: '🪨', visible: true },
-  { id: 'deep_time_timeline', label: 'Deep Time Timeline', icon: '🕰️', visible: true },
-  { id: 'cross_domain', label: 'Why This River?', icon: '🌋', visible: true },
+  { id: 'deep_time_timeline', label: 'Timeline', icon: '🕰️', visible: true },
   { id: 'compare_eras', label: 'Compare Eras', icon: '⚖️', visible: true },
+  { id: 'cross_domain', label: 'Why This Watershed?', icon: '🌋', visible: true },
+  { id: 'geologic_context', label: 'Geologic Context', icon: '🪨', visible: false },
 ]
 
 export default function TrailStoryPage() {
@@ -143,18 +143,18 @@ export default function TrailStoryPage() {
               })()}
             </div>
 
-            {/* 3. Deep Time Timeline */}
+            {/* 3. Timeline */}
             <div data-dtcard="deep_time_timeline">
               {timeline.length > 0 && (
                 <TimelineSection items={timeline} />
               )}
             </div>
 
-            {/* 4. Why This River? */}
+            {/* 4. Why This Watershed? */}
             <div data-dtcard="cross_domain">
               {crossDomain && crossDomain.connections?.length > 0 && (
                 <section className="dt-cross-section">
-                  <h3>🌋 Why This River?</h3>
+                  <h3>🌋 Why This Watershed?</h3>
                   {crossDomain.connections.map((c: any, i: number) => (
                     <div key={i} className="dt-cross-card">
                       <span className="dt-cross-icon">{c.icon}</span>
@@ -325,7 +325,7 @@ function TimelineSection({ items }: { items: any[] }) {
 
   return (
     <section className="dt-timeline-section">
-      <h3>Deep Time Timeline</h3>
+      <h3>Timeline</h3>
       <div className="dt-timeline">
         {pageItems.map((item, i) => {
           const isRock = item.type === 'geologic_unit'

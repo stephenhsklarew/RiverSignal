@@ -188,6 +188,7 @@
 /* Sections */
 .rnow-section { margin-bottom: 20px; }
 .rnow-section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; }
+.rnow-empty { font-size: 13px; color: var(--text-muted, #9e9b96); padding: 8px 0; }
 .rnow-section-title-row {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
 }
