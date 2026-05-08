@@ -53,7 +53,7 @@ const BottomNav = lazy(() => import('./components/BottomNav'))
 const DeepTrailBottomNav = lazy(() => import('./components/DeepTrailBottomNav'))
 
 function AuthSuccessRedirect() {
-  const { user, loading, needsUsername } = useAuth()
+  const { loading, needsUsername } = useAuth()
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>Signing in...</div>
   if (needsUsername) return <Navigate to="/auth/setup-username" replace />
   return <Navigate to="/" replace />

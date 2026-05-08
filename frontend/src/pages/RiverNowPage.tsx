@@ -8,9 +8,10 @@ import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
 import PhotoObservation from '../components/PhotoObservation'
 const dtMark = '/favicon-deeptrail.svg'
+import { API_BASE } from '../config'
 import './RiverNowPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = API_BASE
 
 const TYPE_ICONS: Record<string, string> = {
   campground: '⛺', trailhead: '🥾', boat_ramp: '🚣', day_use: '☀',
@@ -18,11 +19,12 @@ const TYPE_ICONS: Record<string, string> = {
 }
 
 const WS_CENTERS: Record<string, [number, number]> = {
-  mckenzie: [-122.3, 44.08],
   deschutes: [-121.22, 44.33],
-  metolius: [-121.57, 44.50],
-  klamath: [-121.55, 42.65],
+  green_river: [-110.15, 38.99],
   johnday: [-119.15, 44.60],
+  klamath: [-121.55, 42.65],
+  mckenzie: [-122.3, 44.08],
+  metolius: [-121.57, 44.50],
   skagit: [-121.50, 48.45],
 }
 
@@ -47,25 +49,27 @@ export default function RiverNowPage() {
 
 import logo from '../assets/riverpath-logo.svg'
 
-const WATERSHED_ORDER = ['mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'skagit']
 const WATERSHED_LABELS: Record<string, string> = {
-  mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius',
-  klamath: 'Klamath', johnday: 'John Day', skagit: 'Skagit',
+  deschutes: 'Deschutes', green_river: 'Green River', johnday: 'John Day',
+  klamath: 'Klamath', mckenzie: 'McKenzie', metolius: 'Metolius', skagit: 'Skagit',
 }
 const PHOTOS: Record<string, string> = {
-  mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop',
   deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop',
-  metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop',
-  klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop',
+  green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop',
   johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop',
+  klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop',
+  mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop',
+  metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {
-  mckenzie: 'Fire, recovery, and the return of salmon',
   deschutes: '111 miles of canyon ecology and steelhead runs',
-  metolius: "Spring-fed sanctuary — Oregon's purest river",
-  klamath: 'The largest dam removal in American history',
+  green_river: 'Desert canyons, ancient rock, and Colorado cutthroat',
   johnday: 'Wild & Scenic through ancient fossil beds',
+  klamath: 'The largest dam removal in American history',
+  mckenzie: 'Fire, recovery, and the return of salmon',
+  metolius: "Spring-fed sanctuary — Oregon's purest river",
   skagit: 'All five salmon species in the shadow of the North Cascades',
 }
 
@@ -94,12 +98,6 @@ function RiverNowDefault() {
       <nav className="rnow-default-nav">
         <img src={logo} alt="RiverPath" className="rnow-default-logo" />
       </nav>
-      <div className="rnow-default-links">
-        {WATERSHED_ORDER.map(ws => (
-          <Link key={ws} to={`/path/now/${ws}`} className="rnow-default-link">{WATERSHED_LABELS[ws]}</Link>
-        ))}
-      </div>
-
       {/* Watershed cards */}
       <div className="rnow-default-list">
         {loading ? (
@@ -338,7 +336,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     // Prefer cached OpenAI audio
     if (riverStoryAudioUrl) {
       setRiverStoryAudioLoading(true)
-      fetch(`http://localhost:8001${riverStoryAudioUrl}`)
+      fetch(`${new URL(API_BASE).origin}${riverStoryAudioUrl}`)
         .then(r => r.blob())
         .then(blob => {
           const url = URL.createObjectURL(blob)

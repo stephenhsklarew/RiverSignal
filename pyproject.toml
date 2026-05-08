@@ -17,13 +17,14 @@ dependencies = [
     "uvicorn[standard]>=0.34",
     "anthropic>=0.52",
     "pydantic>=2.10",
+    "python-jose[cryptography]>=3.3",
 ]
 
 [project.scripts]
 riversignal = "pipeline.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["pipeline*"]
+include = ["pipeline*", "app*"]
 
 [build-system]
 requires = ["setuptools>=75"]

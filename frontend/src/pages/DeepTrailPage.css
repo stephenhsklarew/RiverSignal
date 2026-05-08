@@ -20,6 +20,7 @@
 .dt-detail-header {
   display: flex; align-items: center; gap: 8px; padding: 12px 20px;
   background: #2a2318; border-bottom: 1px solid #3d3328;
+  position: sticky; top: 0; z-index: 10;
 }
 .dt-detail-header .dt-logo { height: 28px; flex-shrink: 0; }
 .dt-header-name {

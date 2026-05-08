@@ -1,0 +1,63 @@
+name: Build & Deploy to GCP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-west1
+  APP_NAME: riversignal
+  IMAGE: us-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/riversignal/api
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image via Cloud Build
+        run: |
+          gcloud builds submit \
+            --tag ${{ env.IMAGE }}:${{ github.sha }} \
+            --tag ${{ env.IMAGE }}:latest \
+            --timeout=600s
+
+      - name: Deploy API to Cloud Run
+        run: |
+          gcloud run services update ${{ env.APP_NAME }}-api \
+            --region ${{ env.REGION }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          VITE_API_BASE=$(gcloud run services describe ${{ env.APP_NAME }}-api --region ${{ env.REGION }} --format='value(status.url)')/api/v1 \
+            npm run build
+
+      - name: Deploy frontend to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          entryPoint: frontend

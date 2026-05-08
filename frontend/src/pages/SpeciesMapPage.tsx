@@ -4,9 +4,10 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader from '../components/WatershedHeader'
 import { getSelectedWatershed } from '../components/WatershedHeader'
+import { API_BASE } from '../config'
 import './SpeciesMapPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = API_BASE
 
 const CATEGORIES = [
   { key: 'Actinopterygii', label: 'Fish' },

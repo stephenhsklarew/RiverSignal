@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
+import { API_BASE } from '../config'
 import './StewardPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = API_BASE
 
 const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   mckenzie: { name: 'McKenzie Watershed Council', url: 'https://www.mckenziewc.org/' },
@@ -41,8 +42,6 @@ export default function StewardPage() {
   }, [ws])
 
   const timeline = story?.timeline || []
-  const restorationEvents = timeline.filter((e: any) => e.event_type === 'restoration')
-  const fireEvents = timeline.filter((e: any) => e.event_type === 'fire')
   const council = COUNCIL_LINKS[ws]
 
   const handleShare = (name: string, before: number, after: number) => {

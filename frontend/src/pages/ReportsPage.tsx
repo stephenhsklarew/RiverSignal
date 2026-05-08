@@ -5,9 +5,8 @@ import remarkGfm from 'remark-gfm'
 import logo from '../assets/riversignal-logo.svg'
 import DataFreshness from '../components/DataFreshness'
 import '../App.css'
+import { API_BASE } from '../config'
 import './ReportsPage.css'
-
-const API_BASE = 'http://localhost:8001/api/v1'
 
 const WATERSHEDS = [
   { id: 'mckenzie', name: 'McKenzie River' },

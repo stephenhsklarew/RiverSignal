@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { API_BASE } from '../config'
 import './StatusPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = API_BASE
 
 // Static metadata about each pipeline adapter
 const SOURCE_META: Record<string, { description: string; upstream: string; refresh: string; license?: string; commercial?: boolean }> = {
@@ -186,7 +187,7 @@ export default function StatusPage() {
       <div className="status-header">
         <h1 className="status-title">Data Pipeline Status</h1>
         <p className="status-summary">
-          {sourceCount} data sources feeding {totalRecords.toLocaleString()} records across 5 Oregon watersheds
+          {sourceCount} data sources feeding {totalRecords.toLocaleString()} records across 7 watersheds
         </p>
         <div className="status-stats">
           <div className="status-stat">

@@ -45,6 +45,12 @@ variable "docker_image_tag" {
   default     = "latest"
 }
 
+variable "github_repo" {
+  description = "GitHub repository in owner/repo format (e.g. stephenhsklarew/RiverSignal)"
+  type        = string
+  default     = "stephenhsklarew/RiverSignal"
+}
+
 # ── Cloud SQL ──
 
 variable "db_tier" {

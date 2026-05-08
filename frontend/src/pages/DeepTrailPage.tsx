@@ -5,9 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import Markdown from 'react-markdown'
 import { CardSettingsPanel, loadDeepTrailCardSettings, DEEPTRAIL_DEFAULT_CARDS, type CardConfig } from '../components/CardSettings'
 import logo from '../assets/deeptrail-logo.svg'
+import { API_BASE } from '../config'
 import './DeepTrailPage.css'
-
-const API_BASE = 'http://localhost:8001/api/v1'
 
 // Watershed centers as curated locations with landscape photos
 const WATERSHEDS = [

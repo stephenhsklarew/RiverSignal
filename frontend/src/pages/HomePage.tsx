@@ -3,9 +3,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import { tempF } from '../utils/temp'
 import logo from '../assets/riverpath-logo.svg'
+import { API_BASE } from '../config'
 import './HomePage.css'
-
-const API_BASE = 'http://localhost:8001/api/v1'
 
 // Real Oregon watershed photos from Unsplash (free for commercial use)
 // Real Oregon watershed photos from Unsplash (free commercial use)

@@ -4,9 +4,10 @@ import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
 import PhotoObservation from '../components/PhotoObservation'
+import { API_BASE } from '../config'
 import './ExplorePage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = API_BASE
 
 const FILTERS = [
   { key: 'campground', label: 'Camping', icon: '⛺' },

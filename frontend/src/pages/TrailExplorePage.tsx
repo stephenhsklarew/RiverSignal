@@ -7,9 +7,8 @@ import DeepTrailHeader from '../components/DeepTrailHeader'
 import SaveButton from '../components/SaveButton'
 import { CardSettingsPanel, loadCardSettingsGeneric, type CardConfig } from '../components/CardSettings'
 import PhotoObservation from '../components/PhotoObservation'
+import { API_BASE } from '../config'
 import './DeepTrailPage.css'
-
-const API_BASE = 'http://localhost:8001/api/v1'
 
 const PHYLUM_ICONS: Record<string, string> = {
   'Mollusca': '🐚', 'Chordata': '🦴', 'Arthropoda': '🦐', 'Plantae': '🌿',
@@ -289,7 +288,7 @@ function MiniMap({ fossils, minerals, rockhoundingSites, center }: {
       })
 
       // Click handlers
-      const handleClick = (layerId: string) => (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      const handleClick = (_layerId: string) => (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
         if (!e.features?.length) return
         const props = e.features[0].properties as any
         const coords = (e.features[0].geometry as any).coordinates.slice() as [number, number]

@@ -3,12 +3,12 @@ import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
+import { API_BASE } from '../config'
 import './HatchPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = API_BASE
 const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-const LIFECYCLE_STAGES = ['nymph', 'emerger', 'adult']
 const STAGE_ICONS: Record<string, string> = { nymph: '🐛', emerger: '🪶', adult: '🪰' }
 
 export default function HatchPage() {
@@ -123,7 +123,7 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
             <span className="insect-stage" title={`Likely ${stage}`}>{STAGE_ICONS[stage]} {stage}</span>
             {insect.activity && <span className="insect-activity">{insect.activity}</span>}
             {insect.observations != null && <span className="insect-obs">{insect.observations} obs</span>}
-            {insect.source === 'curated' && <span className="insect-source">expert</span>}
+            {insect.source === 'curated' && <span className="insect-source">verified</span>}
           </div>
         </div>
         <span className="insect-expand">{expanded ? '▾' : '▸'}</span>

@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
-
-const API_BASE = 'http://localhost:8001/api/v1'
+import { API_BASE } from '../config'
 
 export interface Location { id: string; name: string; lat: number; lon: number; photo?: string; caption?: string }
 export interface Fossil {
@@ -20,27 +19,27 @@ export interface TimelineItem {
 }
 
 export const WATERSHEDS = [
+  { id: 'deschutes', name: 'Deschutes River', lat: 44.325, lon: -121.225,
+    photo: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=400&fit=crop',
+    caption: 'Smith Rock — 30 Ma welded tuff canyon' },
+  { id: 'green_river', name: 'Green River', lat: 40.80, lon: -110.25,
+    photo: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
+    caption: 'Flaming Gorge to Canyonlands — Eocene fossil fish' },
+  { id: 'johnday', name: 'John Day River', lat: 44.6, lon: -119.15,
+    photo: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=400&fit=crop',
+    caption: 'Painted Hills — 33 Ma volcanic ash layers' },
   { id: 'klamath', name: 'Upper Klamath Basin', lat: 42.65, lon: -121.55,
     photo: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=400&fit=crop',
     caption: 'Crater Lake & volcanic highlands' },
   { id: 'mckenzie', name: 'McKenzie River', lat: 44.075, lon: -122.3,
     photo: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=400&fit=crop',
     caption: 'Tamolitch Blue Pool — lava tube hydrology' },
-  { id: 'deschutes', name: 'Deschutes River', lat: 44.325, lon: -121.225,
-    photo: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=400&fit=crop',
-    caption: 'Smith Rock — 30 Ma welded tuff canyon' },
   { id: 'metolius', name: 'Metolius River', lat: 44.5, lon: -121.575,
     photo: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=400&fit=crop',
     caption: 'Spring-fed from Cascade volcanic aquifer' },
-  { id: 'johnday', name: 'John Day River', lat: 44.6, lon: -119.15,
-    photo: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=400&fit=crop',
-    caption: 'Painted Hills — 33 Ma volcanic ash layers' },
   { id: 'skagit', name: 'Skagit River', lat: 48.45, lon: -121.50,
     photo: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
     caption: 'North Cascades glacial geology' },
-  { id: 'green_river', name: 'Green River', lat: 40.80, lon: -110.25,
-    photo: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
-    caption: 'Flaming Gorge to Canyonlands — Eocene fossil fish' },
 ]
 
 interface DeepTrailState {

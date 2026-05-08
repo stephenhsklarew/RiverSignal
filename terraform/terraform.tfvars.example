@@ -19,6 +19,9 @@ scheduler_timezone = "America/Los_Angeles"
 # Docker image tag (change to pin a specific version)
 docker_image_tag = "latest"
 
+# GitHub repo for Workload Identity Federation (CI/CD)
+github_repo = "stephenhsklarew/RiverSignal"
+
 # ── Option A: Budget (~$25/mo) ──
 # db_tier                 = "db-f1-micro"
 # db_disk_size_gb         = 10

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { useSaved, type SavedItem } from '../components/SavedContext'
 import DeepTrailHeader from '../components/DeepTrailHeader'
 import './DeepTrailPage.css'

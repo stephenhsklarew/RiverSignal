@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader from '../components/WatershedHeader'
 import { getSelectedWatershed } from '../components/WatershedHeader'
 import { useSaved } from '../components/SavedContext'
+import { API_BASE } from '../config'
 import './ExploreMapPage.css'
 
-const API = 'http://localhost:8001/api/v1'
+const API = API_BASE
 
 const FILTERS = [
   { key: 'all', label: 'All' },

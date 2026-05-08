@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Markdown from 'react-markdown'
-
-const API_BASE = 'http://localhost:8001/api/v1'
+import { API_BASE } from '../config'
 
 interface SitePanelProps {
   site: any
@@ -234,14 +233,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
           const totalPages = Math.max(1, Math.ceil(filtered.length / SPECIES_PER_PAGE))
           const pageSpecies = filtered.slice(speciesPage * SPECIES_PER_PAGE, (speciesPage + 1) * SPECIES_PER_PAGE)
 
-          const toggleSelect = (taxon: string, e: React.MouseEvent) => {
-            e.stopPropagation()
-            setSelectedSpecies(prev => {
-              const next = new Set(prev)
-              if (next.has(taxon)) next.delete(taxon); else next.add(taxon)
-              return next
-            })
-          }
+
 
           const showSelectedOnMap = () => {
             if (selectedSpecies.size === 0 || !onShowSpeciesOnMap) return
@@ -349,10 +341,6 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
           const totalPages = Math.max(1, Math.ceil(filtered.length / ROCKS_PER_PAGE))
           const pageRocks = filtered.slice(rocksPage * ROCKS_PER_PAGE, (rocksPage + 1) * ROCKS_PER_PAGE)
 
-          const toggleRockSelect = (name: string, e: React.MouseEvent) => {
-            e.stopPropagation()
-            setSelectedRocks(prev => { const n = new Set(prev); if (n.has(name)) n.delete(name); else n.add(name); return n })
-          }
 
           return (
           <div className="section">
@@ -687,47 +675,6 @@ function StewardshipSection({ watershed }: { watershed: string }) {
 }
 
 
-/* ── Seasonal Trip Planner ── */
-function SeasonalPlanner({ watershed }: { watershed: string }) {
-  const [data, setData] = useState<any>(null)
-  const MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-  useEffect(() => {
-    fetch(`${API_BASE}/sites/${watershed}/seasonal`)
-      .then(r => r.json()).then(setData).catch(console.error)
-  }, [watershed])
-
-  if (!data?.seasonal_patterns?.length) return null
-
-  return (
-    <div className="section">
-      <div className="section-title">Best Time to Visit</div>
-      <div className="seasonal-grid">
-        {data.seasonal_patterns.slice(0, 6).map((p: any, i: number) => (
-          <div key={i} className="seasonal-card">
-            <div className="seasonal-group">{p.taxon_group}</div>
-            <div className="seasonal-peak">Peak: {MONTHS[p.peak_month] || '?'}</div>
-            <div className="seasonal-obs">{p.avg_observations} avg obs</div>
-          </div>
-        ))}
-      </div>
-      {data.hatch_chart?.length > 0 && (
-        <>
-          <div className="section-title" style={{ marginTop: 12 }}>Insect Hatch Chart</div>
-          <div className="hatch-mini">
-            {data.hatch_chart.slice(0, 10).map((h: any, i: number) => (
-              <div key={i} className="hatch-row">
-                <span className="hatch-name">{h.common_name || h.taxon_name}</span>
-                <span className="hatch-month">{h.month_name}</span>
-                <span className="hatch-count">{h.count}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
 
 
 /* ── Fish Passage Barriers Table ── */

@@ -3,9 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import logo from '../assets/riversignal-logo.svg'
 import MapView from '../components/MapView'
 import '../App.css'
+import { API_BASE } from '../config'
 import './DeepSignalPage.css'
-
-const API_BASE = 'http://localhost:8001/api/v1'
 
 const WATERSHEDS = ['klamath', 'mckenzie', 'deschutes', 'metolius', 'johnday', 'skagit']
 const NAMES: Record<string, string> = {

@@ -41,6 +41,16 @@ output "database_url" {
   sensitive   = true
 }
 
+output "github_workload_identity_provider" {
+  description = "Workload Identity Provider for GitHub Actions (set as GCP_WORKLOAD_IDENTITY_PROVIDER secret)"
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "github_service_account" {
+  description = "Service account for GitHub Actions (set as GCP_SERVICE_ACCOUNT secret)"
+  value       = google_service_account.github_deploy.email
+}
+
 output "next_steps" {
   description = "Manual steps after terraform apply"
   value       = <<-EOT
@@ -74,7 +84,14 @@ output "next_steps" {
        VITE_API_BASE=${google_cloud_run_v2_service.api.uri}/api/v1 npm run build
        firebase deploy --only hosting
 
-    6. Verify:
+    6. Set up GitHub Actions (for auto-deploy on push to main):
+       In GitHub repo Settings → Secrets → Actions, add:
+         GCP_PROJECT_ID              = ${var.project_id}
+         GCP_WORKLOAD_IDENTITY_PROVIDER = <from terraform output github_workload_identity_provider>
+         GCP_SERVICE_ACCOUNT         = <from terraform output github_service_account>
+         FIREBASE_SERVICE_ACCOUNT    = <Firebase service account JSON>
+
+    7. Verify:
        curl ${google_cloud_run_v2_service.api.uri}/health
   EOT
 }

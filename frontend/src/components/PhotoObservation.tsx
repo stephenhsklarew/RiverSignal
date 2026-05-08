@@ -1,9 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 import { LoginNudge } from './LoginModal'
+import { API_BASE } from '../config'
 import './PhotoObservation.css'
-
-const API_BASE = 'http://localhost:8001/api/v1'
 
 interface PhotoObservationProps {
   app: 'riverpath' | 'deeptrail'
@@ -33,7 +32,6 @@ function parseExif(buffer: ArrayBuffer): ExifData {
     const marker = view.getUint16(offset)
     if (marker === 0xFFE1) {
       // APP1 — EXIF
-      const _length = view.getUint16(offset + 2)
       const exifStart = offset + 4
 
       // Check "Exif\0\0"

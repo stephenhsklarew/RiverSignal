@@ -5,9 +5,8 @@ import DataFreshness from '../components/DataFreshness'
 import UserMenu from '../components/UserMenu'
 import MapView from '../components/MapView'
 import SitePanel from '../components/SitePanel'
+import { API_BASE } from '../config'
 import '../App.css'
-
-const API_BASE = 'http://localhost:8001/api/v1'
 
 export interface Site {
   id: string

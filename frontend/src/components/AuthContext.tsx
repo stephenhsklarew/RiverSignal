@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-
-const API_BASE = 'http://localhost:8001/api/v1'
+import { API_BASE } from '../config'
 
 export interface User {
   id: string

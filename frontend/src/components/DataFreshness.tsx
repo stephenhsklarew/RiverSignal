@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-
-const API_BASE = 'http://localhost:8001/api/v1'
+import { API_BASE } from '../config'
 
 interface Pipeline {
   source: string
