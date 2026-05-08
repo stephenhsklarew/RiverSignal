@@ -50,10 +50,6 @@ export default function RiverNowPage() {
 import logo from '../assets/riverpath-logo.svg'
 
 const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'skagit']
-const WATERSHED_LABELS: Record<string, string> = {
-  deschutes: 'Deschutes', green_river: 'Green River', johnday: 'John Day',
-  klamath: 'Klamath', mckenzie: 'McKenzie', metolius: 'Metolius', skagit: 'Skagit',
-}
 const PHOTOS: Record<string, string> = {
   deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop',
