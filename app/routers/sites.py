@@ -203,22 +203,18 @@ def get_site(watershed: str):
 def search_observations(
     watershed: str,
     q: str = Query(..., description="Search term (taxon name or common name)"),
+    lat: float | None = Query(None, description="Latitude for proximity search"),
+    lon: float | None = Query(None, description="Longitude for proximity search"),
+    radius_km: float = Query(50, le=200, description="Search radius in km (when lat/lon provided)"),
     limit: int = Query(5000, le=10000),
 ):
     """Search observations by species name, returning GeoJSON for map display.
 
-    Searches taxon_name, common_name, and iconic_taxon. Handles plurals
-    by also trying a truncated stem (e.g. "mayfly" → "mayfl").
+    When lat/lon are provided, searches within radius_km of that point
+    across all watersheds. Otherwise searches within the specified watershed.
     """
     with engine.connect() as conn:
-        site = conn.execute(text(
-            "SELECT id FROM sites WHERE watershed = :ws"
-        ), {"ws": watershed}).fetchone()
-        if not site:
-            raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
-
-        # Handle multi-term searches (e.g. "Rainbow Trout" → OR query)
-        # and simple plural stripping (drop trailing 's' or 'es')
+        # Plural stripping
         term = q.strip()
         if term.endswith('es') and len(term) > 4:
             search_term = term[:-2]
@@ -228,23 +224,55 @@ def search_observations(
             search_term = term
         pattern = f"%{search_term}%"
 
-        rows = conn.execute(text("""
-            SELECT o.taxon_name,
-                   o.data_payload->>'common_name' as common_name,
-                   o.latitude, o.longitude,
-                   o.observed_at::date as obs_date,
-                   o.data_payload->>'photo_url' as photo_url,
-                   o.quality_grade,
-                   o.source_type
-            FROM observations o
-            WHERE o.site_id = :site_id
-              AND o.latitude IS NOT NULL
-              AND (o.taxon_name ILIKE :q
-                   OR o.data_payload->>'common_name' ILIKE :q
-                   OR o.iconic_taxon ILIKE :q)
-            ORDER BY o.observed_at DESC
-            LIMIT :limit
-        """), {"site_id": site[0], "q": pattern, "limit": limit}).fetchall()
+        if lat is not None and lon is not None:
+            # Proximity search — across all watersheds near the coordinates
+            rows = conn.execute(text("""
+                SELECT o.taxon_name,
+                       o.data_payload->>'common_name' as common_name,
+                       o.latitude, o.longitude,
+                       o.observed_at::date as obs_date,
+                       o.data_payload->>'photo_url' as photo_url,
+                       o.quality_grade,
+                       o.source_type
+                FROM observations o
+                WHERE o.latitude IS NOT NULL
+                  AND ST_DWithin(
+                      o.location::geography,
+                      ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
+                      :radius_m)
+                  AND (o.taxon_name ILIKE :q
+                       OR o.data_payload->>'common_name' ILIKE :q
+                       OR o.iconic_taxon ILIKE :q)
+                ORDER BY ST_Distance(
+                    o.location::geography,
+                    ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography)
+                LIMIT :limit
+            """), {"lat": lat, "lon": lon, "radius_m": radius_km * 1000, "q": pattern, "limit": limit}).fetchall()
+        else:
+            # Watershed-scoped search
+            site = conn.execute(text(
+                "SELECT id FROM sites WHERE watershed = :ws"
+            ), {"ws": watershed}).fetchone()
+            if not site:
+                raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
+
+            rows = conn.execute(text("""
+                SELECT o.taxon_name,
+                       o.data_payload->>'common_name' as common_name,
+                       o.latitude, o.longitude,
+                       o.observed_at::date as obs_date,
+                       o.data_payload->>'photo_url' as photo_url,
+                       o.quality_grade,
+                       o.source_type
+                FROM observations o
+                WHERE o.site_id = :site_id
+                  AND o.latitude IS NOT NULL
+                  AND (o.taxon_name ILIKE :q
+                       OR o.data_payload->>'common_name' ILIKE :q
+                       OR o.iconic_taxon ILIKE :q)
+                ORDER BY o.observed_at DESC
+                LIMIT :limit
+            """), {"site_id": site[0], "q": pattern, "limit": limit}).fetchall()
 
     features = []
     for r in rows:

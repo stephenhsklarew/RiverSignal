@@ -94,9 +94,45 @@ export default function MapPage() {
 
   const handleObsSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!obsSearch.trim() || !selectedSite) return
+    const term = obsSearch.trim()
+    if (!term) return
+
+    // Extract coordinates from input if present (end of string)
+    // Handles: "43.74, -122.48" or "Oncorhynchus mykiss 43.74, -122.48"
+    const coordPattern = /(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)\s*$/
+    const coordMatch = term.match(coordPattern)
+
+    let searchTerm = term
+    let coords: { lat: number; lon: number } | null = null
+
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1])
+      const lon = parseFloat(coordMatch[2])
+      if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+        coords = { lat, lon }
+        searchTerm = term.replace(coordPattern, '').trim()
+      }
+    }
+
+    // If we have coordinates but no species term, just show a pin
+    if (coords && !searchTerm) {
+      setObsOverlay({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [coords.lon, coords.lat] },
+          properties: { taxon_name: `Location (${coords.lat}, ${coords.lon})`, common_name: '', observed_at: '', photo_url: '', quality_grade: '', source: 'coordinate' },
+        }],
+        count: 1,
+      })
+      return
+    }
+
+    // Species search — use proximity when coordinates provided
+    const ws = selectedSite || 'mckenzie'
+    const coordParams = coords ? `&lat=${coords.lat}&lon=${coords.lon}&radius_km=50` : ''
     setObsSearching(true)
-    fetch(`${API_BASE}/sites/${selectedSite}/observations/search?q=${encodeURIComponent(obsSearch.trim())}&limit=5000`)
+    fetch(`${API_BASE}/sites/${ws}/observations/search?q=${encodeURIComponent(searchTerm)}&limit=5000${coordParams}`)
       .then(r => r.json())
       .then(data => { setObsOverlay(data); setObsSearching(false) })
       .catch(() => setObsSearching(false))
@@ -127,7 +163,7 @@ export default function MapPage() {
             type="text"
             value={obsSearch}
             onChange={e => setObsSearch(e.target.value)}
-            placeholder={selectedSite ? "Map observations: mayfly, salmon, eagle..." : "Select a watershed to search"}
+            placeholder={selectedSite ? "Search species or enter lat, lon..." : "Search species or enter lat, lon..."}
             disabled={!selectedSite}
             className={`obs-search-input${obsOverlay?.count > 0 ? ' has-results' : ''}`}
           />
