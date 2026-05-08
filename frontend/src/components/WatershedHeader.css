@@ -5,11 +5,13 @@
   background: var(--bg, #fff);
 }
 .ws-header-logo { height: 24px; width: auto; flex-shrink: 0; }
-.ws-header-name { font-weight: 500; }
-.ws-header-change {
-  background: none; border: none; color: var(--accent);
-  cursor: pointer; font-size: 12px; font-family: inherit; padding: 4px 8px;
+.ws-header-name {
+  font-weight: 500; background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: 15px; padding: 0; color: inherit;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
 }
+.ws-header-caret { font-size: 10px; color: var(--text-muted, #9e9b96); margin-left: 2px; }
 
 /* Modal */
 .ws-modal-overlay {

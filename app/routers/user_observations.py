@@ -198,10 +198,11 @@ def create_user_observation(body: ObservationCreate, request: Request):
         # 2. Also insert into bronze observations table
         #    source_type = username if logged in, else 'user'
         if body.species_name and body.latitude and body.longitude:
+          try:
             # Determine source_type: use username if logged in
-            username = current_user.get("username", "") if current_user else ""
+            username = (current_user.get("username", "") or "") if isinstance(current_user, dict) else ""
             source_type = username if username else "user"
-            user_id = current_user["id"] if current_user else None
+            user_id = current_user["id"] if isinstance(current_user, dict) and "id" in current_user else None
 
             # Link user_observation to user account
             if user_id:
@@ -264,6 +265,8 @@ def create_user_observation(body: ObservationCreate, request: Request):
                         "app": body.source_app,
                     }),
                 })
+          except Exception as e:
+            print(f"WARNING: Failed to insert into bronze observations: {e}")
 
         conn.commit()
 

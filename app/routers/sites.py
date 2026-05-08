@@ -217,10 +217,13 @@ def search_observations(
         if not site:
             raise HTTPException(status_code=404, detail=f"Watershed '{watershed}' not found")
 
-        # Truncate search term to handle plurals: "mayfly" → "mayfl", "eagles" → "eagle"
+        # Handle multi-term searches (e.g. "Rainbow Trout" → OR query)
+        # and simple plural stripping (drop trailing 's' or 'es')
         term = q.strip()
-        if len(term) > 4:
-            search_term = term[:-2]  # drop last 2 chars to match plural/conjugation variants
+        if term.endswith('es') and len(term) > 4:
+            search_term = term[:-2]
+        elif term.endswith('s') and len(term) > 4:
+            search_term = term[:-1]
         else:
             search_term = term
         pattern = f"%{search_term}%"
@@ -239,7 +242,7 @@ def search_observations(
               AND (o.taxon_name ILIKE :q
                    OR o.data_payload->>'common_name' ILIKE :q
                    OR o.iconic_taxon ILIKE :q)
-            ORDER BY o.observed_at
+            ORDER BY o.observed_at DESC
             LIMIT :limit
         """), {"site_id": site[0], "q": pattern, "limit": limit}).fetchall()
 

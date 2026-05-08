@@ -45,8 +45,9 @@ export default function WatershedHeader({ watershed, basePath }: WatershedHeader
     <>
       <div className="ws-header">
         <img src={rpLogo} alt="RiverPath" className="ws-header-logo" />
-        <span className="ws-header-name">{WATERSHED_LABELS[watershed] || watershed}</span>
-        <button className="ws-header-change" onClick={() => setShowPicker(true)}>Change</button>
+        <button className="ws-header-name" onClick={() => setShowPicker(true)}>
+          {WATERSHED_LABELS[watershed] || watershed} <span className="ws-header-caret">▾</span>
+        </button>
         <UserMenu />
       </div>
 
