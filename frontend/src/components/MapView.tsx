@@ -186,9 +186,19 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     return () => { map.remove(); mapRef.current = null; mapLoadedRef.current = false }
   }, [])
 
-  // Push observation overlay data whenever it changes
+  // Push observation overlay data and zoom to fit results
   useEffect(() => {
     pushOverlay(observationOverlay)
+    const map = mapRef.current
+    if (!map || !observationOverlay?.features?.length) return
+    const bounds = new maplibregl.LngLatBounds()
+    for (const f of observationOverlay.features) {
+      const [lon, lat] = f.geometry.coordinates
+      if (lon && lat) bounds.extend([lon, lat])
+    }
+    if (!bounds.isEmpty()) {
+      map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 600 })
+    }
   }, [observationOverlay, pushOverlay])
 
   // Push fossil overlay data (separate source, no timeline filter)
