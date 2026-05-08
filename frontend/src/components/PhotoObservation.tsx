@@ -141,6 +141,8 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
   const [showTypeahead, setShowTypeahead] = useState(false)
 
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const [showSourcePicker, setShowSourcePicker] = useState(false)
   const typeaheadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const categories = app === 'deeptrail' ? DT_CATEGORIES : RP_CATEGORIES
@@ -273,15 +275,41 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
       {/* Floating action button */}
       <button
         className={`photo-fab ${isDark ? 'dark' : ''}`}
-        onClick={() => fileRef.current?.click()}
+        onClick={() => setShowSourcePicker(true)}
         title="Add observation"
       >
         📷
       </button>
 
-      {/* Hidden file input */}
+      {/* Source picker menu */}
+      {showSourcePicker && (
+        <div className="photo-source-overlay" onClick={() => setShowSourcePicker(false)}>
+          <div className={`photo-source-menu ${isDark ? 'dark' : ''}`} onClick={e => e.stopPropagation()}>
+            <button className="photo-source-option" onClick={() => { setShowSourcePicker(false); cameraRef.current?.click() }}>
+              <span className="photo-source-icon">📸</span>
+              <span>Take Photo</span>
+            </button>
+            <button className="photo-source-option" onClick={() => { setShowSourcePicker(false); fileRef.current?.click() }}>
+              <span className="photo-source-icon">🖼</span>
+              <span>Choose from Library</span>
+            </button>
+            <button className="photo-source-cancel" onClick={() => setShowSourcePicker(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden file input — photo library (no capture attribute) */}
       <input
         ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFile}
+      />
+
+      {/* Hidden file input — camera (capture="environment") */}
+      <input
+        ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"

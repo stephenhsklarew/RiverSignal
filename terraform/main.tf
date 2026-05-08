@@ -43,6 +43,7 @@ resource "google_project_service" "apis" {
     "artifactregistry.googleapis.com",
     "cloudbuild.googleapis.com",
     "servicenetworking.googleapis.com",
+    "essentialcontacts.googleapis.com",
   ])
 
   service            = each.value

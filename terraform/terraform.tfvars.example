@@ -33,7 +33,7 @@ github_repo = "stephenhsklarew/RiverSignal"
 # vpc_connector_machine_type = "f1-micro"
 
 # ── Option B: Production (~$57/mo) — DEFAULT ──
-db_tier                    = "db-g1-small"
+db_tier                    = "db-custom-2-4096"
 db_disk_size_gb            = 20
 db_backup_retention_days   = 14
 cloud_run_min_instances    = 1

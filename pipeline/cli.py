@@ -113,14 +113,27 @@ def ingest(source: str, watershed: str):
     finally:
         session.close()
 
+    from app.routers.data_status import refresh_data_status_cache
+    refresh_data_status_cache()
+    console.print("[dim]Refreshed /data-status cache.[/dim]")
+
 
 @main.command()
-def refresh():
-    """Refresh all Silver and Gold layer materialized views."""
-    from pipeline.medallion import refresh_all
+@click.option("--mode", "-m", type=click.Choice(["all", "light", "heavy"]), default="all",
+              help="all=everything, light=silver+fast gold, heavy=slow gold only")
+def refresh(mode: str):
+    """Refresh Silver and Gold layer materialized views."""
+    from pipeline.medallion import refresh_all, refresh_light, refresh_heavy
 
-    console.print("\n[bold]Refreshing medallion layers...[/bold]")
-    refresh_all()
+    console.print(f"\n[bold]Refreshing medallion layers ({mode})...[/bold]")
+    if mode == "light":
+        refresh_light()
+    elif mode == "heavy":
+        refresh_heavy()
+    else:
+        refresh_all()
+    from app.routers.data_status import refresh_data_status_cache
+    refresh_data_status_cache()
     console.print("[green]Done.[/green]")
 
 

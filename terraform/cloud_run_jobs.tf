@@ -206,7 +206,60 @@ resource "google_cloud_run_v2_job" "refresh_views" {
 
       containers {
         image   = local.image
-        command = ["python", "-m", "pipeline.cli", "refresh"]
+        command = ["python", "-m", "pipeline.cli", "refresh", "--mode", "light"]
+
+        resources {
+          limits = {
+            cpu    = "2"
+            memory = "2Gi"
+          }
+        }
+
+        env {
+          name  = "DATABASE_URL"
+          value = local.db_url
+        }
+
+        volume_mounts {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [local.db_connection_name]
+        }
+      }
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_cloud_run_v2_job" "refresh_heavy" {
+  name     = "${var.app_name}-refresh-heavy"
+  location = var.region
+
+  template {
+    task_count  = 1
+    parallelism = 1
+
+    template {
+      max_retries = 1
+      timeout     = "3600s"
+
+      service_account = google_service_account.pipeline.email
+
+      vpc_access {
+        connector = google_vpc_access_connector.connector.id
+        egress    = "PRIVATE_RANGES_ONLY"
+      }
+
+      containers {
+        image   = local.image
+        command = ["python", "-m", "pipeline.cli", "refresh", "--mode", "heavy"]
 
         resources {
           limits = {

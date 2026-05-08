@@ -51,6 +51,12 @@ variable "github_repo" {
   default     = "stephenhsklarew/RiverSignal"
 }
 
+variable "notification_email" {
+  description = "Email address for all GCP notifications (build alerts, billing, security)"
+  type        = string
+  default     = "sklarew@gmail.com"
+}
+
 # ── Cloud SQL ──
 
 variable "db_tier" {

@@ -724,14 +724,22 @@ def river_story(watershed: str, reading_level: str = Query("adult")):
         """), {"ws": watershed, "lvl": reading_level}).fetchone()
 
     if row:
-        import pathlib
-        audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".river_story_audio" / f"{watershed}_{reading_level}.mp3"
+        from app.audio_cache import get_audio_url
+        filename = f"{watershed}_{reading_level}.mp3"
+        audio = get_audio_url("river_stories", filename)
+        # In GCS mode, return direct GCS URL; in local mode, return API path
+        if audio and audio.startswith("http"):
+            audio_url = audio
+        elif audio:
+            audio_url = f"/api/v1/sites/{watershed}/river-story-audio?reading_level={reading_level}"
+        else:
+            audio_url = None
         return {
             "watershed": watershed,
             "reading_level": reading_level,
             "narrative": row[0],
             "generated_at": str(row[1]) if row[1] else None,
-            "audio_url": f"/api/v1/sites/{watershed}/river-story-audio?reading_level={reading_level}" if audio_file.exists() else None,
+            "audio_url": audio_url,
             "cached": True,
         }
 
@@ -741,17 +749,17 @@ def river_story(watershed: str, reading_level: str = Query("adult")):
 @router.get("/sites/{watershed}/river-story-audio")
 def river_story_audio(watershed: str, reading_level: str = Query("adult")):
     """Serve cached River Path story audio (MP3)."""
-    import pathlib
     from fastapi.responses import Response
+    from app.audio_cache import get_audio_bytes
 
     if reading_level not in ("kids", "adult", "expert"):
         reading_level = "adult"
 
-    audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".river_story_audio" / f"{watershed}_{reading_level}.mp3"
-    if not audio_file.exists():
+    audio = get_audio_bytes("river_stories", f"{watershed}_{reading_level}.mp3")
+    if not audio:
         raise HTTPException(404, "No cached audio for this story.")
 
-    return Response(content=audio_file.read_bytes(), media_type="audio/mpeg")
+    return Response(content=audio, media_type="audio/mpeg")
 
 
 def _table_exists(conn, table_name: str) -> bool:

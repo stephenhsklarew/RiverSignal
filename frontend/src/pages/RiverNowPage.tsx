@@ -332,7 +332,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     // Prefer cached OpenAI audio
     if (riverStoryAudioUrl) {
       setRiverStoryAudioLoading(true)
-      fetch(`${new URL(API_BASE).origin}${riverStoryAudioUrl}`)
+      const audioFetchUrl = riverStoryAudioUrl.startsWith('http') ? riverStoryAudioUrl : `${new URL(API_BASE).origin}${riverStoryAudioUrl}`
+      fetch(audioFetchUrl)
         .then(r => r.blob())
         .then(blob => {
           const url = URL.createObjectURL(blob)

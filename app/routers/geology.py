@@ -469,13 +469,20 @@ def generate_deep_time_story(body: dict):
             """), {"lat": lat, "lon": lon, "level": reading_level}).fetchone()
             if sid_row:
                 story_id = str(sid_row[0])
-        audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".deep_time_audio" / f"{story_id}_{reading_level}.mp3" if story_id else None
-        has_audio = audio_file and audio_file.exists()
+        from app.audio_cache import get_audio_url
+        audio_url = None
+        if story_id:
+            filename = f"{story_id}_{reading_level}.mp3"
+            audio = get_audio_url("deep_time", filename)
+            if audio and audio.startswith("http"):
+                audio_url = audio
+            elif audio:
+                audio_url = f"/api/v1/deep-time/audio/{story_id}?reading_level={reading_level}"
         return {
             "narrative": cached[0],
             "evidence_cited": cached[1],
             "generated_at": str(cached[2]),
-            "audio_url": f"/api/v1/deep-time/audio/{story_id}?reading_level={reading_level}" if has_audio else None,
+            "audio_url": audio_url,
             "cached": True,
         }
 
@@ -648,13 +655,13 @@ def text_to_speech(body: dict):
 @router.get("/deep-time/audio/{story_id}")
 def deep_time_cached_audio(story_id: str, reading_level: str = "adult"):
     """Serve pre-cached Deep Trail story audio (MP3)."""
-    import pathlib
+    from app.audio_cache import get_audio_bytes
 
     if reading_level not in ("adult", "kid_friendly", "expert"):
         reading_level = "adult"
 
-    audio_file = pathlib.Path(__file__).resolve().parent.parent.parent / ".deep_time_audio" / f"{story_id}_{reading_level}.mp3"
-    if not audio_file.exists():
+    audio = get_audio_bytes("deep_time", f"{story_id}_{reading_level}.mp3")
+    if not audio:
         raise HTTPException(404, "No cached audio for this story.")
 
-    return Response(content=audio_file.read_bytes(), media_type="audio/mpeg")
+    return Response(content=audio, media_type="audio/mpeg")
