@@ -470,6 +470,7 @@
 .alert-dismiss-all:hover { color: #888; }
 
 /* Barrier toggle */
+.map-toggles { display: flex; gap: 10px; flex-shrink: 0; }
 .barrier-toggle {
   display: flex; align-items: center; gap: 4px;
   font-size: 11px; color: var(--text-muted); cursor: pointer;

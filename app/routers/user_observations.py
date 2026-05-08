@@ -317,6 +317,49 @@ def list_user_observations(
     } for r in rows]
 
 
+@router.get("/observations/user/geojson")
+def user_observations_geojson(
+    watershed: str | None = Query(None),
+    limit: int = Query(500, le=5000),
+):
+    """Return all user-submitted observations as GeoJSON for map display."""
+    conditions = ["latitude IS NOT NULL AND longitude IS NOT NULL"]
+    params: dict = {"limit": limit}
+
+    if watershed:
+        conditions.append("watershed = :ws")
+        params["ws"] = watershed
+
+    where = " AND ".join(conditions)
+    with engine.connect() as conn:
+        rows = conn.execute(text(f"""
+            SELECT species_name, common_name, latitude, longitude,
+                   observed_at, photo_path, category, notes, watershed
+            FROM user_observations
+            WHERE {where}
+            ORDER BY created_at DESC
+            LIMIT :limit
+        """), params).fetchall()
+
+    features = [{
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [r[3], r[2]]},
+        "properties": {
+            "taxon_name": r[0] or "",
+            "common_name": r[1] or "",
+            "observed_at": str(r[4].date()) if r[4] else "",
+            "photo_url": r[5] or "",
+            "quality_grade": "user_submitted",
+            "source": "user",
+            "category": r[6] or "",
+            "notes": r[7] or "",
+            "watershed": r[8] or "",
+        },
+    } for r in rows]
+
+    return {"type": "FeatureCollection", "features": features, "count": len(features)}
+
+
 @router.get("/observations/user/photo/{filename}")
 def serve_user_photo(filename: str):
     """Serve a user-uploaded photo."""

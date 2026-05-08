@@ -42,6 +42,7 @@ export default function MapPage() {
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set())
   const [barrierOverlay, setBarrierOverlay] = useState<any>(null)
   const [showBarriers, setShowBarriers] = useState(false)
+  const [showMyObs, setShowMyObs] = useState(false)
 
   useEffect(() => {
     fetch(`${API_BASE}/sites`)
@@ -77,6 +78,19 @@ export default function MapPage() {
     if (showBarriers && selectedSite) loadBarriers(selectedSite)
     else setBarrierOverlay(null)
   }, [showBarriers, selectedSite])
+
+  // My Observations toggle
+  useEffect(() => {
+    if (showMyObs) {
+      const wsParam = selectedSite ? `?watershed=${selectedSite}` : ''
+      fetch(`${API_BASE}/observations/user/geojson${wsParam}`)
+        .then(r => r.json())
+        .then(data => setObsOverlay(data))
+        .catch(() => {})
+    } else if (!obsSearch) {
+      setObsOverlay(null)
+    }
+  }, [showMyObs, selectedSite])
 
   const loadBarriers = (ws: string) => {
     fetch(`${API_BASE}/sites/${ws}/fishing/barriers`)
@@ -175,13 +189,19 @@ export default function MapPage() {
           )}
         </form>
 
-        {/* Barrier toggle */}
-        {selectedSite && (
+        {/* Map toggles */}
+        <div className="map-toggles">
           <label className="barrier-toggle">
-            <input type="checkbox" checked={showBarriers} onChange={e => setShowBarriers(e.target.checked)} />
-            <span className="barrier-toggle-label">Barriers</span>
+            <input type="checkbox" checked={showMyObs} onChange={e => { setShowMyObs(e.target.checked); if (e.target.checked) setObsSearch('') }} />
+            <span className="barrier-toggle-label">My Obs</span>
           </label>
-        )}
+          {selectedSite && (
+            <label className="barrier-toggle">
+              <input type="checkbox" checked={showBarriers} onChange={e => setShowBarriers(e.target.checked)} />
+              <span className="barrier-toggle-label">Barriers</span>
+            </label>
+          )}
+        </div>
 
         <div className="topbar-status">
           <DataFreshness compact />
