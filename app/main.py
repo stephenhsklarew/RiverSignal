@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.routers import sites, reasoning, fishing, reports, health, data_status, geology, weather, predictions, ai_features, deeptrail_ai, user_observations, auth
+from app.routers import sites, reasoning, fishing, reports, health, data_status, geology, weather, predictions, ai_features, deeptrail_ai, user_observations, auth, intelligence
 
 
 @asynccontextmanager
@@ -48,6 +48,7 @@ app.include_router(ai_features.router, prefix="/api/v1")
 app.include_router(deeptrail_ai.router, prefix="/api/v1")
 app.include_router(user_observations.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(intelligence.router, prefix="/api/v1")
 
 # ── Serve frontend SPA (production) ──
 # In production, the frontend build is copied into the Docker image at /app/frontend/dist

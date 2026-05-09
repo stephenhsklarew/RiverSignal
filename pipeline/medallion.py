@@ -126,6 +126,13 @@ def refresh_all():
             print(f"  {name:45s}: {str(count):>10s} rows  ({secs:.1f}s)")
             conn.commit()
 
+    # Phase 4: Predictive models (run after gold views are fresh)
+    try:
+        from pipeline.predictions.run_all import refresh_predictions
+        refresh_predictions()
+    except Exception as e:
+        print(f"  Predictions error (non-fatal): {e}")
+
     total_elapsed = time.time() - total_start
     print(f"\nDone. Total refresh time: {total_elapsed / 60:.1f} minutes")
 

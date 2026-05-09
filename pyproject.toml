@@ -18,6 +18,8 @@ dependencies = [
     "anthropic>=0.52",
     "pydantic>=2.10",
     "python-jose[cryptography]>=3.3",
+    "scikit-learn>=1.5",
+    "numpy>=1.26",
 ]
 
 [project.scripts]
