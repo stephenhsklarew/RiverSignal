@@ -1,0 +1,38 @@
+.info-tooltip-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; color: var(--text-muted, #9e9b96);
+  padding: 0 4px; line-height: 1; opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.info-tooltip-btn:hover { opacity: 1; }
+.info-tooltip-btn.dark { color: #8a7e6e; }
+
+.info-tooltip-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  z-index: 300; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.info-tooltip-card {
+  background: #fff; border-radius: 12px; padding: 20px;
+  max-width: 360px; width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  animation: info-fade-in 0.15s ease-out;
+}
+.info-tooltip-card.dark { background: #2a2318; color: #e8e0d4; }
+@keyframes info-fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+.info-tooltip-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; font-size: 15px; font-weight: 600;
+}
+.info-tooltip-close {
+  background: none; border: none; font-size: 18px; cursor: pointer;
+  color: var(--text-muted, #9e9b96); padding: 4px 8px;
+}
+.info-tooltip-card.dark .info-tooltip-close { color: #8a7e6e; }
+
+.info-tooltip-text {
+  font-size: 13px; line-height: 1.6; color: var(--text-secondary, #555);
+  margin: 0;
+}
+.info-tooltip-card.dark .info-tooltip-text { color: #c4b8a8; }
