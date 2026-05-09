@@ -13,10 +13,16 @@ function DynamicFavicon() {
     if (!link) return
     if (pathname.startsWith('/trail')) {
       link.href = '/favicon-deeptrail.svg'
+      link.type = 'image/svg+xml'
     } else if (pathname.startsWith('/path')) {
       link.href = '/favicon-riverpath.svg'
+      link.type = 'image/svg+xml'
+    } else if (pathname === '/' || pathname.startsWith('/status')) {
+      link.href = '/liquid-marble-favicon.png'
+      link.type = 'image/png'
     } else {
       link.href = '/favicon.svg'
+      link.type = 'image/svg+xml'
     }
   }, [pathname])
   return null

@@ -1161,3 +1161,59 @@ CREATE MATERIALIZED VIEW gold.hatch_fly_recommendations AS
   GROUP BY s.watershed, o.taxon_name, (o.data_payload ->> 'common_name'::text), (EXTRACT(month FROM o.observed_at)), fp.fly_pattern_name, fp.fly_size, fp.fly_type, fp.fly_image_url, fp.life_stage, fp.time_of_day, fp.water_type, fp.notes, fp.insect_common_name, fp.oregon_rivers
   ORDER BY s.watershed, (EXTRACT(month FROM o.observed_at)::integer), (count(*)) DESC;;
 
+-- gold.snowpack_current — latest SNOTEL readings per (watershed, station), pivoted
+DROP MATERIALIZED VIEW IF EXISTS gold.snowpack_current CASCADE;
+CREATE MATERIALIZED VIEW gold.snowpack_current AS
+WITH snotel AS (
+    SELECT s.watershed,
+           t.station_id,
+           t.parameter,
+           t."timestamp",
+           t.value
+    FROM time_series t
+    JOIN sites s ON s.id = t.site_id
+    WHERE t.source_type = 'snotel'
+      AND t.value IS NOT NULL
+      AND t.value > '-999998'::integer::double precision
+),
+latest_per_param AS (
+    SELECT DISTINCT ON (watershed, station_id, parameter)
+           watershed, station_id, parameter, "timestamp", value
+    FROM snotel
+    ORDER BY watershed, station_id, parameter, "timestamp" DESC
+),
+swe_latest_ts AS (
+    SELECT watershed, station_id, "timestamp" AS latest_ts
+    FROM latest_per_param
+    WHERE parameter = 'snow_water_equivalent'
+),
+swe_7d_back AS (
+    SELECT DISTINCT ON (n.watershed, n.station_id)
+           n.watershed, n.station_id, n.value AS swe_7d_ago
+    FROM snotel n
+    JOIN swe_latest_ts m
+      ON m.watershed = n.watershed AND m.station_id = n.station_id
+    WHERE n.parameter = 'snow_water_equivalent'
+      AND n."timestamp" <= m.latest_ts - INTERVAL '7 days'
+    ORDER BY n.watershed, n.station_id, n."timestamp" DESC
+)
+SELECT l.watershed,
+       l.station_id,
+       MAX(l."timestamp") AS latest_timestamp,
+       MAX(l.value) FILTER (WHERE l.parameter = 'snow_depth')               AS snow_depth_in,
+       MAX(l.value) FILTER (WHERE l.parameter = 'snow_water_equivalent')    AS swe_in,
+       MAX(l.value) FILTER (WHERE l.parameter = 'precipitation_cumulative') AS precip_cumulative_in,
+       COALESCE(
+           MAX(l.value) FILTER (WHERE l.parameter = 'air_temperature'),
+           MAX(l.value) FILTER (WHERE l.parameter = 'air_temperature_avg')
+       )                                                                    AS air_temp_f,
+       MAX(l.value) FILTER (WHERE l.parameter = 'snow_water_equivalent')
+           - MAX(b.swe_7d_ago)                                              AS swe_7day_change,
+       NULL::numeric                                                        AS pct_of_normal
+FROM latest_per_param l
+LEFT JOIN swe_7d_back b
+  ON b.watershed = l.watershed AND b.station_id = l.station_id
+GROUP BY l.watershed, l.station_id;;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_snowpack_current_uniq
+    ON gold.snowpack_current(watershed, station_id);;

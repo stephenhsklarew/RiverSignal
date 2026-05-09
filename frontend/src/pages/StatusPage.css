@@ -1,11 +1,34 @@
 .status-page {
-  max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px;
-  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  background: #040403;
+  color: #fff;
+  font-family: 'Cormorant Garamond', serif;
+  padding: 24px max(16px, calc((100% - 1100px) / 2)) 60px;
+  /* Dark-theme overrides scoped to this page */
+  --text: #fff;
+  --text-secondary: #d8d8d8;
+  --text-muted: #9a9a9a;
+  --bg: #1a1a1a;
+  --surface: #161616;
+  --border: #2a2a2a;
+  --accent: #4cc28b;
+  --accent-light: #1a3328;
+  --warm-light: #3d2f10;
+  --alert-light: #3d1c14;
+  --blue-light: #1a2540;
 }
 
-.status-header { margin-bottom: 24px; }
-.status-title { font-family: 'Fraunces', serif; font-size: 24px; margin: 0 0 6px; }
+.status-header { margin-bottom: 24px; text-align: center; }
+.status-home-link { display: inline-block; }
+.status-logo { display: block; max-width: 160px; width: 100%; height: auto; margin: 0 auto 12px; }
+.status-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; margin: 0 0 6px; }
+.status-back-link {
+  display: inline-block; margin-bottom: 16px; font-size: 13px;
+  color: #fff; text-decoration: none; opacity: 0.8;
+}
+.status-back-link:hover { opacity: 1; text-decoration: underline; }
 .status-summary { font-size: 14px; color: var(--text-secondary); margin: 0 0 16px; }
+.status-stats, .status-legend { justify-content: center; }
 
 .status-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
 .status-stat {
@@ -43,6 +66,11 @@
 .status-table tbody tr:hover { background: var(--bg); }
 
 .status-source { font-weight: 600; font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+.status-curated-source {
+  color: var(--text-muted); font-size: 11px; line-height: 1.3;
+  max-width: 130px; width: 130px;
+  white-space: normal; overflow-wrap: anywhere;
+}
 .status-desc { color: var(--text-secondary); max-width: 300px; line-height: 1.4; }
 .status-freq { color: var(--text-muted); white-space: nowrap; }
 .status-license { font-size: 10px; white-space: nowrap; }
@@ -67,8 +95,8 @@
 .status-badge.error { background: var(--alert-light); color: var(--alert); }
 
 .status-layer-desc { font-size: 12px; color: var(--text-muted); margin: -8px 0 12px; }
-.status-num-col { text-align: right; }
-.status-num { text-align: right; font-family: var(--mono); font-size: 12px; }
+.status-num-col { text-align: right; white-space: nowrap; min-width: 90px; }
+.status-num { text-align: right; font-family: var(--mono); font-size: 12px; white-space: nowrap; padding-right: 14px; }
 .status-total-label { font-weight: 600; }
 .status-total { font-weight: 700; color: var(--accent); border-top: 2px solid var(--border); }
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { API_BASE } from '../config'
+import lmLogo from '../assets/liquid-marble-logo.png'
 import './StatusPage.css'
 
 const API = API_BASE
@@ -137,6 +139,11 @@ export default function StatusPage() {
   const [totalRecords, setTotalRecords] = useState(0)
 
   useEffect(() => {
+    document.title = 'Liquid Marble'
+    return () => { document.title = 'River Signal' }
+  }, [])
+
+  useEffect(() => {
     fetch(`${API}/data-status`)
       .then(r => r.json())
       .then(data => {
@@ -185,10 +192,11 @@ export default function StatusPage() {
   return (
     <div className="status-page">
       <div className="status-header">
-        <h1 className="status-title">Liquid Marble Data Status</h1>
-        <p className="status-summary">
-          {sourceCount} data sources feeding {totalRecords.toLocaleString()} records across 7 watersheds
-        </p>
+        <Link to="/" className="status-home-link" aria-label="Back to home">
+          <img src={lmLogo} alt="Liquid Marble" className="status-logo" />
+        </Link>
+        <h1 className="status-title">Data Platform Status</h1>
+        <Link to="/" className="status-back-link">← Back to home</Link>
         <div className="status-stats">
           <div className="status-stat">
             <span className="status-stat-value">{sourceCount}</span>
@@ -203,7 +211,7 @@ export default function StatusPage() {
             <span className="status-stat-label">Materialized Views</span>
           </div>
           <div className="status-stat">
-            <span className="status-stat-value">5</span>
+            <span className="status-stat-value">7</span>
             <span className="status-stat-label">Watersheds</span>
           </div>
         </div>
@@ -392,7 +400,7 @@ export default function StatusPage() {
                       <tr key={i}>
                         <td className="status-source">{c.name}</td>
                         <td className="status-desc">{c.description}</td>
-                        <td className="status-freq">{c.source}</td>
+                        <td className="status-curated-source">{c.source}</td>
                         <td className="status-source">{c.table}</td>
                         <td className="status-num">{c.records?.toLocaleString()}</td>
                       </tr>

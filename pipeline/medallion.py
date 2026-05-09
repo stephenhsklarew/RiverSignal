@@ -41,6 +41,7 @@ GOLD_LIGHT = [
     "gold.seasonal_observation_patterns",
     "gold.post_fire_recovery",
     "gold.geology_watershed_link",
+    "gold.snowpack_current",
 ]
 
 # Heavy gold views (minutes each — large joins)

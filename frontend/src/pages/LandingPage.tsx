@@ -1,15 +1,17 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import rsLogo from '../assets/riversignal-logo.svg'
 import rpLogo from '../assets/riverpath-logo.svg'
 import dtLogo from '../assets/deeptrail-logo.svg'
+import lmLogo from '../assets/liquid-marble-logo.png'
 import './LandingPage.css'
 
 const products = [
   {
     name: 'RiverSignal',
-    tagline: 'Watershed Intelligence Copilot',
-    description: 'Professional grade analytics for watershed managers, restoration ecologists, and conservation agencies.',
-    audience: 'B2B — Desktop-first',
+    tagline: 'Watershed Research Assistant',
+    description: 'Professional grade analytics for citizen scientists and amateur naturalists.',
+    audience: 'Desktop-first',
     path: '/riversignal',
     icon: '🔬',
     color: '#1a6b4a',
@@ -17,8 +19,8 @@ const products = [
   {
     name: 'RiverPath',
     tagline: 'River Field Companion',
-    description: 'Story-driven mobile guide for families, anglers, and educators exploring living rivers.',
-    audience: 'B2C — Mobile-first',
+    description: 'Story-driven mobile guide for fly fishing anglers and educators exploring living rivers.',
+    audience: 'Mobile-first',
     path: '/path/now',
     icon: '🏞️',
     color: '#2d7a9c',
@@ -26,8 +28,8 @@ const products = [
   {
     name: 'DeepTrail',
     tagline: 'Ancient World Explorer',
-    description: 'Adventure-focused mobile guide for families and rockhounds discovering fossils and deep time stories.',
-    audience: 'B2C — Mobile-first',
+    description: 'Adventure-focused mobile guide for rockhounds exploring places to make new discoveries.',
+    audience: 'Mobile-first',
     path: '/trail',
     icon: '🦴',
     color: '#996633',
@@ -35,15 +37,20 @@ const products = [
 ]
 
 export default function LandingPage() {
+  useEffect(() => {
+    document.title = 'Liquid Marble'
+    return () => { document.title = 'River Signal' }
+  }, [])
   return (
     <div className="landing">
       <header className="landing-header">
-        <h1 className="landing-title">Liquid Marble</h1>
+        <img src={lmLogo} alt="Liquid Marble" className="landing-title-logo" />
         <p className="landing-subtitle">
-          Watershed ecology meets deep time geology. One data platform power three apps.
+          One data platform where watershed ecology meets deep time geology.
         </p>
       </header>
 
+      <p className="landing-powers-label">Liquid Marble powers:</p>
       <div className="landing-grid">
         {products.map(p => (
           <Link to={p.path} key={p.name} className="product-card" style={{ '--accent': p.color } as React.CSSProperties}>
@@ -56,7 +63,6 @@ export default function LandingPage() {
                 ? <img src={dtLogo} alt="DeepTrail" className="product-logo" />
                 : p.icon}
             </div>
-            <h2 className="product-name">{p.name}</h2>
             <p className="product-tagline">{p.tagline}</p>
             <p className="product-desc">{p.description}</p>
             <span className="product-audience">{p.audience}</span>
@@ -67,7 +73,7 @@ export default function LandingPage() {
       <footer className="landing-footer">
         <Link to="/status" className="landing-status-link">View data status →</Link>
         <p className="landing-note">
-          Powered by dozens of curated public data sources and thoughtful artificial intelligence.
+          Powered by dozens of curated public data sources and thoughtful use of artificial intelligence.
         </p>
       </footer>
     </div>
