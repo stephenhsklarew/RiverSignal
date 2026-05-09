@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
+import UserMenu from '../components/UserMenu'
 import { CardSettingsPanel, loadCardSettings, type CardConfig } from '../components/CardSettings'
 import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
@@ -389,7 +390,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     <div className="rnow">
       <style dangerouslySetInnerHTML={{ __html: cardStyle }} />
       <div className="rnow-header-row">
-        <WatershedHeader watershed={watershed} basePath="/path/now" />
+        <WatershedHeader watershed={watershed} basePath="/path/now" hideUserMenu />
+        <UserMenu />
         <button className="rnow-customize-btn" onClick={() => setShowSettings(true)} title="Customize cards">⚙</button>
       </div>
       {showSettings && (
@@ -404,10 +406,11 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
         <>
           {/* ── Hero Card ── */}
           <div className="rnow-hero">
-            <div className="rnow-hero-top">
-              <h2 className="rnow-hero-title">{site.name}</h2>
-              {isLive && <span className="rnow-live-badge">LIVE</span>}
-            </div>
+            {isLive && (
+              <div className="rnow-hero-top">
+                <span className="rnow-live-badge">LIVE</span>
+              </div>
+            )}
             <div className="rnow-hero-metrics">
               {displayTemp && (
                 <div className="rnow-metric">

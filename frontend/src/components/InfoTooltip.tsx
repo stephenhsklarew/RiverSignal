@@ -15,8 +15,13 @@ export default function InfoTooltip({ text, dark }: InfoTooltipProps) {
         className={`info-tooltip-btn ${dark ? 'dark' : ''}`}
         onClick={(e) => { e.stopPropagation(); setOpen(true) }}
         title="How this works"
+        aria-label="How this works"
       >
-        ⓘ
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+          <circle cx="8" cy="4.6" r="0.95" fill="currentColor" />
+          <rect x="7.05" y="6.6" width="1.9" height="5.4" rx="0.6" fill="currentColor" />
+        </svg>
       </button>
 
       {open && (

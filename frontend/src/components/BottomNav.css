@@ -44,6 +44,16 @@
   line-height: 1;
 }
 
+/* `◬` renders shorter than the other glyphs in most system fonts — bump it. */
+.bottom-nav-icon-hatch { font-size: 22px; }
+
+/* `♻` is rendered as a color emoji on iOS/Android, ignoring CSS color.
+   Force text presentation so the tab's gray/active color applies. */
+.bottom-nav-icon-steward {
+  font-variant-emoji: text;
+  -webkit-font-feature-settings: "liga" off;
+}
+
 .bottom-nav-label {
   font-size: 10px;
   letter-spacing: 0.02em;

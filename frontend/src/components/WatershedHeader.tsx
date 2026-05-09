@@ -29,9 +29,11 @@ interface WatershedHeaderProps {
   watershed: string
   /** Base path for navigation when changing watershed (e.g. "/path/now") */
   basePath: string
+  /** Hide the embedded UserMenu — caller will render its own. */
+  hideUserMenu?: boolean
 }
 
-export default function WatershedHeader({ watershed, basePath }: WatershedHeaderProps) {
+export default function WatershedHeader({ watershed, basePath, hideUserMenu }: WatershedHeaderProps) {
   const navigate = useNavigate()
   const [showPicker, setShowPicker] = useState(false)
 
@@ -48,7 +50,7 @@ export default function WatershedHeader({ watershed, basePath }: WatershedHeader
         <button className="ws-header-name" onClick={() => setShowPicker(true)}>
           {WATERSHED_LABELS[watershed] || watershed} <span className="ws-header-caret">▾</span>
         </button>
-        <UserMenu />
+        {!hideUserMenu && <UserMenu />}
       </div>
 
       {showPicker && (
