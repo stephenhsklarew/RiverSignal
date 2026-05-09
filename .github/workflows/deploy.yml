@@ -55,18 +55,3 @@ jobs:
           gcloud run services update ${{ env.APP_NAME }}-api \
             --region ${{ env.REGION }} \
             --image ${{ env.IMAGE }}:${{ github.sha }}
-
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm ci
-          VITE_API_BASE=$(gcloud run services describe ${{ env.APP_NAME }}-api --region ${{ env.REGION }} --format='value(status.url)')/api/v1 \
-            npm run build
-
-      - name: Deploy frontend to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          entryPoint: frontend
