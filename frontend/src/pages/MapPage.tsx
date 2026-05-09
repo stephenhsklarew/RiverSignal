@@ -42,7 +42,7 @@ export default function MapPage() {
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set())
   const [barrierOverlay, setBarrierOverlay] = useState<any>(null)
   const [showBarriers, setShowBarriers] = useState(false)
-  const [showMyObs, setShowMyObs] = useState(false)
+  const [showMyObs, setShowMyObs] = useState(searchParams.get('myobs') === 'true')
 
   useEffect(() => {
     fetch(`${API_BASE}/sites`)
@@ -82,8 +82,8 @@ export default function MapPage() {
   // My Observations toggle
   useEffect(() => {
     if (showMyObs) {
-      const wsParam = selectedSite ? `?watershed=${selectedSite}` : ''
-      fetch(`${API_BASE}/observations/user/geojson${wsParam}`)
+      const wsParam = selectedSite ? `&watershed=${selectedSite}` : ''
+      fetch(`${API_BASE}/observations/user/geojson?mine=true${wsParam}`, { credentials: 'include' })
         .then(r => r.json())
         .then(data => setObsOverlay(data))
         .catch(() => {})
@@ -193,7 +193,7 @@ export default function MapPage() {
         <div className="map-toggles">
           <label className="barrier-toggle">
             <input type="checkbox" checked={showMyObs} onChange={e => { setShowMyObs(e.target.checked); if (e.target.checked) setObsSearch('') }} />
-            <span className="barrier-toggle-label">My Obs</span>
+            <span className="barrier-toggle-label">My Observations</span>
           </label>
           {selectedSite && (
             <label className="barrier-toggle">

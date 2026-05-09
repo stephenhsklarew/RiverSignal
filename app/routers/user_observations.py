@@ -329,13 +329,31 @@ def create_user_observation(body: ObservationCreate, request: Request):
 
 @router.get("/observations/user")
 def list_user_observations(
+    request: Request,
     source_app: str = Query("riverpath"),
     watershed: str | None = Query(None),
+    mine: bool = Query(False),
     limit: int = Query(100, le=500),
 ):
-    """List user-submitted observations (excludes private observations)."""
-    conditions = ["source_app = :app", "COALESCE(visibility, 'public') = 'public'"]
+    """List user-submitted observations.
+
+    When mine=true, returns only the authenticated user's observations
+    (both public and private). Otherwise returns all public observations.
+    """
+    from app.routers.auth import get_current_user
+
+    conditions = ["source_app = :app"]
     params: dict = {"app": source_app, "limit": limit}
+
+    if mine:
+        current_user = get_current_user(request)
+        if current_user and current_user.get("id"):
+            conditions.append("user_id = :uid")
+            params["uid"] = current_user["id"]
+        else:
+            return []
+    else:
+        conditions.append("COALESCE(visibility, 'public') = 'public'")
 
     if watershed:
         conditions.append("watershed = :ws")
@@ -345,7 +363,8 @@ def list_user_observations(
     with engine.connect() as conn:
         rows = conn.execute(text(f"""
             SELECT id, photo_path, photo_thumbnail, latitude, longitude,
-                   observed_at, species_name, common_name, category, notes, watershed
+                   observed_at, species_name, common_name, category, notes, watershed,
+                   COALESCE(visibility, 'public') as visibility, scientific_name
             FROM user_observations
             WHERE {where}
             ORDER BY created_at DESC
@@ -364,18 +383,38 @@ def list_user_observations(
         "category": r[8],
         "notes": r[9],
         "watershed": r[10],
+        "visibility": r[11],
+        "scientific_name": r[12],
     } for r in rows]
 
 
 @router.get("/observations/user/geojson")
 def user_observations_geojson(
+    request: Request,
     watershed: str | None = Query(None),
+    mine: bool = Query(False),
     limit: int = Query(500, le=5000),
 ):
-    """Return all user-submitted observations as GeoJSON for map display."""
-    conditions = ["latitude IS NOT NULL AND longitude IS NOT NULL",
-                   "COALESCE(visibility, 'public') = 'public'"]
+    """Return user-submitted observations as GeoJSON for map display.
+
+    When mine=true, returns only the authenticated user's observations
+    (both public and private). Otherwise returns all public observations.
+    """
+    from app.routers.auth import get_current_user
+
+    conditions = ["latitude IS NOT NULL AND longitude IS NOT NULL"]
     params: dict = {"limit": limit}
+
+    if mine:
+        current_user = get_current_user(request)
+        if current_user and current_user.get("id"):
+            conditions.append("user_id = :uid")
+            params["uid"] = current_user["id"]
+        else:
+            # Not logged in — return empty
+            return {"type": "FeatureCollection", "features": [], "count": 0}
+    else:
+        conditions.append("COALESCE(visibility, 'public') = 'public'")
 
     if watershed:
         conditions.append("watershed = :ws")

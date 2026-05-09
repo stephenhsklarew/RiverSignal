@@ -7,6 +7,8 @@ export interface SavedItem {
   label: string
   sublabel?: string
   thumbnail?: string
+  latitude?: number
+  longitude?: number
   savedAt: string
 }
 

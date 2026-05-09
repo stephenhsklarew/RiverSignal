@@ -40,3 +40,16 @@
   display: flex; align-items: center; justify-content: center;
 }
 .saved-item-delete:hover { color: var(--alert); }
+
+/* "View all on map" link in observation section header */
+.saved-map-all {
+  margin-left: auto; font-size: 12px; font-weight: 500;
+  color: var(--accent, #1a6b4a); text-decoration: none;
+}
+.saved-map-all:hover { text-decoration: underline; }
+
+/* Map pin link on individual observation rows */
+.saved-item-map-link {
+  text-decoration: none; font-size: 16px; padding: 4px;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}

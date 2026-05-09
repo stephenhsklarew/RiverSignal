@@ -274,6 +274,8 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
           label: speciesName || category || 'Observation',
           sublabel: scientificName || undefined,
           thumbnail: data.photo_url || undefined,
+          latitude: latitude ? parseFloat(latitude) : undefined,
+          longitude: longitude ? parseFloat(longitude) : undefined,
         })
         setSuccess(true)
         onSaved?.()
