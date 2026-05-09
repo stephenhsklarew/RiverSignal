@@ -41,6 +41,15 @@ jobs:
             --tag ${{ env.IMAGE }}:latest \
             --timeout=600s
 
+      - name: Run database migrations
+        run: |
+          gcloud run jobs update ${{ env.APP_NAME }}-migrate \
+            --region ${{ env.REGION }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }}
+          gcloud run jobs execute ${{ env.APP_NAME }}-migrate \
+            --region ${{ env.REGION }} \
+            --wait
+
       - name: Deploy API to Cloud Run
         run: |
           gcloud run services update ${{ env.APP_NAME }}-api \

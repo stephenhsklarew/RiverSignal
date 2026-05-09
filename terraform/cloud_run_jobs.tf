@@ -1,5 +1,58 @@
 # Cloud Run Jobs — Pipeline ingestion and view refresh
 
+resource "google_cloud_run_v2_job" "migrate" {
+  name     = "${var.app_name}-migrate"
+  location = var.region
+
+  template {
+    task_count  = 1
+    parallelism = 1
+
+    template {
+      max_retries = 0
+      timeout     = "600s"
+
+      service_account = google_service_account.pipeline.email
+
+      vpc_access {
+        connector = google_vpc_access_connector.connector.id
+        egress    = "PRIVATE_RANGES_ONLY"
+      }
+
+      containers {
+        image   = local.image
+        command = ["alembic", "upgrade", "head"]
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "1Gi"
+          }
+        }
+
+        env {
+          name  = "DATABASE_URL"
+          value = local.db_url
+        }
+
+        volume_mounts {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [local.db_connection_name]
+        }
+      }
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
 resource "google_cloud_run_v2_job" "pipeline_daily" {
   name     = "${var.app_name}-pipeline-daily"
   location = var.region
