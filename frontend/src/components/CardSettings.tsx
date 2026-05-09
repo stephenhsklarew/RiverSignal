@@ -16,7 +16,7 @@ const RIVERPATH_DEFAULT_CARDS: CardConfig[] = [
   { id: 'fish_present', label: 'Fish Present', icon: '🐟', visible: true },
   { id: 'stocking', label: 'Fish Stocking', icon: '🐟', visible: true },
   { id: 'catch_probability', label: 'Catch Probability', icon: '🎯', visible: true },
-  { id: 'species_spotter', label: 'Likely Sightings Today', icon: '👀', visible: true },
+  { id: 'species_spotter', label: 'What Fish Are Eating Now', icon: '🪰', visible: true },
   { id: 'barriers', label: 'Fish Passage Barriers', icon: '⚠', visible: true },
   { id: 'snowpack', label: 'Snowpack & Mountain', icon: '❄', visible: true },
   { id: 'river_replay', label: 'River Replay — What Changed', icon: '🔄', visible: false },
