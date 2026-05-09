@@ -138,12 +138,19 @@ def refresh_all():
 
 
 def refresh_light():
-    """Refresh only silver + light gold views (fast, for frequent runs)."""
+    """Refresh only silver + light gold views + predictions (fast, for daily runs)."""
     with engine.connect() as conn:
         for view in SILVER_VIEWS + GOLD_LIGHT:
             name, count, secs = _refresh_view(conn, view, concurrent=True)
             print(f"  {name:45s}: {str(count):>10s} rows  ({secs:.1f}s)")
             conn.commit()
+
+    try:
+        from pipeline.predictions.run_all import refresh_predictions
+        refresh_predictions()
+    except Exception as e:
+        print(f"  Predictions error (non-fatal): {e}")
+
     print("Done.")
 
 
