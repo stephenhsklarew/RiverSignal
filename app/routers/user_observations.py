@@ -65,6 +65,19 @@ def _validate_image(photo_bytes: bytes) -> str:
     raise HTTPException(400, "Invalid image format. Only JPEG and PNG are accepted.")
 
 
+def _get_gcs_token() -> str:
+    """Get an access token for GCS uploads (works on Cloud Run via metadata server)."""
+    import httpx
+    try:
+        resp = httpx.get(
+            "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+            headers={"Metadata-Flavor": "Google"}, timeout=5,
+        )
+        return resp.json().get("access_token", "")
+    except Exception:
+        return ""
+
+
 class ObservationCreate(BaseModel):
     source_app: str = "riverpath"
     photo_base64: str | None = None
@@ -126,7 +139,7 @@ def create_user_observation(body: ObservationCreate, request: Request):
     body.notes = _sanitize_text(body.notes, 1000)
     body.watershed = _sanitize_text(body.watershed, 50)
 
-    # Save photo to disk
+    # Save photo
     if body.photo_base64:
         try:
             # Strip data URI prefix if present
@@ -145,11 +158,33 @@ def create_user_observation(body: ObservationCreate, request: Request):
 
             # Validate image magic bytes
             ext = _validate_image(photo_bytes)
-
             photo_filename = f"{obs_id}{ext}"
-            photo_file = PHOTO_DIR / photo_filename
-            photo_file.write_bytes(photo_bytes)
-            photo_path = f"/api/v1/observations/user/photo/{photo_filename}"
+
+            # Save to GCS in production, local filesystem in dev
+            import os
+            gcs_bucket = os.environ.get("GCS_BUCKET_ASSETS")
+            storage_backend = os.environ.get("STORAGE_BACKEND", "local")
+
+            if storage_backend == "gcs" and gcs_bucket:
+                import httpx
+                gcs_url = f"https://storage.googleapis.com/upload/storage/v1/b/{gcs_bucket}/o?uploadType=media&name=user_photos/{photo_filename}"
+                content_type = "image/png" if ext == ".png" else "image/jpeg"
+                resp = httpx.post(gcs_url, content=photo_bytes, headers={
+                    "Content-Type": content_type,
+                    "Authorization": f"Bearer {_get_gcs_token()}",
+                }, timeout=30)
+                if resp.status_code in (200, 201):
+                    photo_path = f"https://storage.googleapis.com/{gcs_bucket}/user_photos/{photo_filename}"
+                else:
+                    # Fallback to local
+                    photo_file = PHOTO_DIR / photo_filename
+                    photo_file.write_bytes(photo_bytes)
+                    photo_path = f"/api/v1/observations/user/photo/{photo_filename}"
+            else:
+                photo_file = PHOTO_DIR / photo_filename
+                photo_file.write_bytes(photo_bytes)
+                photo_path = f"/api/v1/observations/user/photo/{photo_filename}"
+
             thumb_path = photo_path
         except HTTPException:
             raise
@@ -362,11 +397,22 @@ def user_observations_geojson(
 
 @router.get("/observations/user/photo/{filename}")
 def serve_user_photo(filename: str):
-    """Serve a user-uploaded photo."""
-    from fastapi.responses import FileResponse
+    """Serve a user-uploaded photo. Checks GCS first, then local filesystem."""
+    import os
+    from fastapi.responses import FileResponse, RedirectResponse
 
-    # Sanitize filename
     safe_name = pathlib.Path(filename).name
+    gcs_bucket = os.environ.get("GCS_BUCKET_ASSETS")
+    storage_backend = os.environ.get("STORAGE_BACKEND", "local")
+
+    # In GCS mode, redirect to the public GCS URL
+    if storage_backend == "gcs" and gcs_bucket:
+        return RedirectResponse(
+            url=f"https://storage.googleapis.com/{gcs_bucket}/user_photos/{safe_name}",
+            status_code=302,
+        )
+
+    # Local filesystem fallback
     photo_file = PHOTO_DIR / safe_name
     if not photo_file.exists():
         raise HTTPException(404, "Photo not found")
