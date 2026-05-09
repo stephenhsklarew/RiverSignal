@@ -7,9 +7,11 @@ import logo from '../assets/deeptrail-logo.svg'
 interface DeepTrailHeaderProps {
   /** Current tab path segment (e.g. "story", "explore", "collect", "learn") */
   tab: string
+  /** Optional handler for the settings (⚙) button. If omitted, the button is hidden. */
+  onSettingsClick?: () => void
 }
 
-export default function DeepTrailHeader({ tab }: DeepTrailHeaderProps) {
+export default function DeepTrailHeader({ tab, onSettingsClick }: DeepTrailHeaderProps) {
   const navigate = useNavigate()
   const { loc, selectLocation } = useDeepTrail()
   const [showPicker, setShowPicker] = useState(false)
@@ -25,12 +27,14 @@ export default function DeepTrailHeader({ tab }: DeepTrailHeaderProps) {
       <header className="dt-detail-header">
         <img src={logo} alt="DeepTrail" className="dt-logo" />
         {loc && (
-          <>
-            <span className="dt-header-name">{loc.name}</span>
-            <button className="dt-header-change" onClick={() => setShowPicker(true)}>Change</button>
-          </>
+          <button className="dt-header-name" onClick={() => setShowPicker(true)}>
+            {loc.name} <span className="dt-header-caret">▾</span>
+          </button>
         )}
         <UserMenu dark />
+        {onSettingsClick && (
+          <button className="dt-header-settings" onClick={onSettingsClick} title="Customize sections">⚙</button>
+        )}
       </header>
 
       {showPicker && (

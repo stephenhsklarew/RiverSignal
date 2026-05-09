@@ -124,7 +124,7 @@ export default function TrailCollectPage() {
 
   return (
     <div className="dt-app">
-      <DeepTrailHeader tab="collect" />
+      <DeepTrailHeader tab="collect" onSettingsClick={() => setShowSettings(true)} />
 
       {showSettings && (
         <CardSettingsPanel
@@ -145,14 +145,6 @@ export default function TrailCollectPage() {
             if (!c.visible) rules.push(`[data-dtcard="${c.id}"] { display: none !important; }`)
             return rules.join('\n')
           }).join('\n')}</style>
-
-          <section className="dt-loc-hero">
-            <div className="dt-hero-top-row">
-              <h1>{loc.name}</h1>
-              <button className="dt-settings-btn" onClick={() => setShowSettings(true)} title="Customize sections">⚙</button>
-            </div>
-            <p className="dt-loc-coords">{loc.lat.toFixed(4)}°N, {Math.abs(loc.lon).toFixed(4)}°W</p>
-          </section>
 
           <div className="dt-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
 

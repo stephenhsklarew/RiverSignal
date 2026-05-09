@@ -136,3 +136,8 @@ variable "domain_name" {
   type        = string
   default     = ""
 }
+
+variable "public_base_url" {
+  description = "Public base URL the frontend is served from (used for OAuth redirect URIs and post-login redirect). Cloud Run can't self-reference its own URL inside its definition, so set this explicitly to the deployed Cloud Run URL or custom domain."
+  type        = string
+}

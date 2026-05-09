@@ -129,22 +129,17 @@
   border-top: 1px solid #e8e5de;
 }
 
-.landing-stats {
-  display: flex;
-  justify-content: center;
-  gap: 32px;
-  flex-wrap: wrap;
+.landing-status-link {
+  display: inline-block;
   margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: #2d7a9c;
+  text-decoration: none;
+  font-weight: 500;
 }
 
-.stat {
-  font-size: 0.85rem;
-  color: #64705b;
-}
-
-.stat strong {
-  color: #2a2a2a;
-  font-weight: 600;
+.landing-status-link:hover {
+  text-decoration: underline;
 }
 
 .landing-note {
@@ -158,5 +153,4 @@
     grid-template-columns: 1fr;
   }
   .landing-header { padding: 40px 0 20px; }
-  .landing-stats { gap: 16px; }
 }

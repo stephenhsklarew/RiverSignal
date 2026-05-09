@@ -24,14 +24,20 @@
 }
 .dt-detail-header .dt-logo { height: 28px; flex-shrink: 0; }
 .dt-header-name {
-  font-size: 14px; font-weight: 500; color: #e8e0d4; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
+  background: none; border: none; padding: 4px 0; cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 500; color: #e8e0d4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px; margin-right: auto;
 }
-.dt-header-change {
-  background: none; border: none; color: #d4a96a; cursor: pointer;
-  font-size: 12px; font-family: inherit; padding: 4px 8px; margin-left: auto; flex-shrink: 0;
+.dt-header-name:hover { color: #d4a96a; }
+.dt-header-caret { font-size: 11px; color: #d4a96a; }
+.dt-header-settings {
+  background: none; border: 1px solid #3d3328; border-radius: 6px;
+  width: 32px; height: 32px; font-size: 16px; cursor: pointer;
+  color: #d4a96a; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-family: inherit;
 }
-.dt-header-change:hover { color: #e0b97a; }
+.dt-header-settings:hover { border-color: #d4a96a; color: #e0b97a; }
 .dt-back {
   background: none; border: none; color: #d4a96a; font-size: 0.88rem;
   cursor: pointer; font-family: inherit; min-height: 48px; display: flex; align-items: center;

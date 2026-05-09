@@ -60,6 +60,21 @@ resource "google_cloud_run_v2_service" "api" {
         value = "*"
       }
 
+      env {
+        name  = "AUTH_FRONTEND_URL"
+        value = var.public_base_url
+      }
+
+      env {
+        name  = "GOOGLE_REDIRECT_URI"
+        value = "${var.public_base_url}/api/v1/auth/google/callback"
+      }
+
+      env {
+        name  = "APPLE_REDIRECT_URI"
+        value = "${var.public_base_url}/api/v1/auth/apple/callback-async"
+      }
+
       # Secrets from Secret Manager
       dynamic "env" {
         for_each = {

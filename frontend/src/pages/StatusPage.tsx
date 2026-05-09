@@ -185,7 +185,7 @@ export default function StatusPage() {
   return (
     <div className="status-page">
       <div className="status-header">
-        <h1 className="status-title">Data Pipeline Status</h1>
+        <h1 className="status-title">Liquid Marble Data Status</h1>
         <p className="status-summary">
           {sourceCount} data sources feeding {totalRecords.toLocaleString()} records across 7 watersheds
         </p>

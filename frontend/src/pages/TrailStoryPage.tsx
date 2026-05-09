@@ -66,7 +66,7 @@ export default function TrailStoryPage() {
 
   return (
     <div className="dt-app">
-      <DeepTrailHeader tab="story" />
+      <DeepTrailHeader tab="story" onSettingsClick={() => setShowSettings(true)} />
 
       {showSettings && (
         <CardSettingsPanel
@@ -89,17 +89,11 @@ export default function TrailStoryPage() {
             return rules.join('\n')
           }).join('\n')}</style>
 
-          {/* Location hero */}
-          <section className="dt-loc-hero">
-            <div className="dt-hero-top-row">
-              <h1>{loc.name}</h1>
-              <button className="dt-settings-btn" onClick={() => setShowSettings(true)} title="Customize sections">⚙</button>
-            </div>
-            <p className="dt-loc-coords">{loc.lat.toFixed(4)}°N, {Math.abs(loc.lon).toFixed(4)}°W</p>
-            {loc.photo && (
+          {loc.photo && (
+            <section className="dt-loc-hero">
               <img src={loc.photo} alt={loc.name} className="dt-hero-img" />
-            )}
-          </section>
+            </section>
+          )}
 
           <div className="dt-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
 
