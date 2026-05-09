@@ -145,7 +145,9 @@ museums_and_sites       — visitor centers, museums, interpretive sites
 ### Mobile-First Responsive (RiverPath + DeepTrail)
 - Story-driven scroll layout (existing design)
 - Location-aware: "What's here?" as the primary interaction
-- DeepTrail adds: geologic time slider, fossil photo cards, legal collecting status badge, museum finder
+- DeepTrail uses a **5-tab bottom navigation architecture**: Story, Explore, Collect, Learn, Saved
+- **DeepTrailHeader** with watershed switching modal for navigating between locations
+- DeepTrail adds: geologic time slider, fossil photo cards, legal collecting status badge, museum finder, save buttons on fossils/minerals, audio stories via OpenAI gpt-4o-audio-preview narration
 - Progressive Web App (PWA) for offline support in remote areas
 
 ### Shared Components
@@ -155,7 +157,11 @@ museums_and_sites       — visitor centers, museums, interpretive sites
 - Data freshness indicator
 - Report generator
 
-## MVP Geography: Oregon's Deep Time Loop
+## Geography: Pacific Northwest + Utah Deep Time (7 Watersheds)
+
+The platform now covers 7 watersheds across 3 states (5 Oregon, 1 Washington, 1 Utah), with geology data available at all locations via Macrostrat continental coverage and state-specific adapters (DOGAMI for Oregon, WA DNR for Washington).
+
+## Signature Locations: Deep Time Loop
 
 | Location | Deep Time Story | Integration with Watershed Ecology |
 |---|---|---|

@@ -13,15 +13,17 @@ This project builds a shared data platform serving four products across two doma
 - **DeepSignal** (B2B) — geologic and paleontological intelligence for researchers, land managers
 - **DeepTrail** (B2C) — AI geology field companion for families, rockhounds, educators
 
-The data platform is operational with 15+ ingestion pipelines feeding 2.5M+ records across 5 Oregon watersheds from 15+ public data sources, a 27-view medallion architecture, and a FastAPI + React application with LLM reasoning. The geology/paleontology expansion adds 7+ new data sources (USGS NGMDB, Paleobiology Database, Macrostrat, BLM lands, DOGAMI, mineral deposits, volcanic features), 8 new bronze tables, 3 silver views, and 10 gold views. The key integration insight: geology IS the foundation of watershed ecology — every river, species habitat, and water quality reading is shaped by the rocks beneath.
+The data platform is operational with 22+ ingestion pipelines feeding 2.3M+ records across **7 watersheds in 3 states** (5 Oregon, 1 Washington, 1 Utah) from **30+ public data sources**, a 37-view medallion architecture, and a FastAPI + React application with LLM reasoning and 5 predictive intelligence models. The geology/paleontology expansion adds 7+ new data sources (USGS NGMDB, Paleobiology Database, Macrostrat, BLM lands, DOGAMI, mineral deposits, volcanic features), 8 new bronze tables, 3 silver views, and 10 gold views. The key integration insight: geology IS the foundation of watershed ecology — every river, species habitat, and water quality reading is shaped by the rocks beneath.
+
+**Geographic scope** (updated 2026-05-08): Pacific Northwest + Utah. Multi-state data adapter architecture with state-specific adapters for Oregon (ODFW, DOGAMI, OWRI), Washington (WDFW, WA DNR, SRFB, WA Parks), and Utah (UDWR, DWQ, BOR HydroData).
 
 ## Product-Specific Context
 
 ### RiverPath — B2C River Field Companion
 
-**Mission**: Help families, anglers, and educators understand the living ecological story of every Oregon river they visit.
+**Mission**: Help families, anglers, and educators understand the living ecological story of every river they visit across the Pacific Northwest and Utah.
 
-**Target users**: Families visiting Oregon rivers 3-10 times/year, fly fishing guides running 150+ trips/year, teachers running field trips, citizen scientists.
+**Target users**: Families visiting rivers 3-10 times/year across 7 watersheds in 3 states, fly fishing guides running 150+ trips/year, teachers running field trips, citizen scientists.
 
 **Core experience**: A parent opens RiverPath at the McKenzie River. They see that salmon are spawning upstream right now, the forest burned in 2020 and is recovering (species richness up 180%), the cold water comes from Cascade snowmelt, and a watershed council is planting native trees this Saturday. The kids identify caddisfly larvae. The family returns in September for the salmon migration.
 
@@ -101,7 +103,7 @@ Organizations managing Pacific Northwest watersheds collect more ecological data
 - **Real-time field sensor integration**: The MVP ingests data via API polling and manual upload, not live IoT streaming. Real-time edge processing is Phase 2.
 - **Species identification from photos**: RiverSignal reasons over observations already identified in iNaturalist, eBird, or by field staff. It is not a species ID tool competing with Merlin or iNaturalist's CV.
 - **Drone imagery analysis**: Aerial/satellite imagery ingestion is deferred to Phase 2. MVP uses ground-level observations and existing GIS layers.
-- **Multi-state regulatory compliance**: MVP focuses on Oregon OWEB/NOAA/BPA reporting formats. Other state frameworks are expansion scope.
+- **Multi-state regulatory compliance**: The platform now ingests data from Oregon, Washington, and Utah, but funder report generation focuses on Oregon OWEB/NOAA/BPA reporting formats. WA/UT-specific reporting formats are expansion scope.
 - **General-purpose ecological chatbot**: RiverSignal is site-specific and intervention-aware, not a generic ecology Q&A system.
 
 Deferred items tracked in `docs/helix/parking-lot.md`.
@@ -169,6 +171,32 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 4. **Funder report generation**: Given a date range and site boundary, auto-generate a structured report with before/after species counts, intervention timeline, outcome KPIs, and narrative summary in OWEB-compatible format
 5. **Map-first workspace**: Display managed watersheds on an interactive map with site boundaries, observation overlays, alert indicators, and a linked detail/chat panel
 6. **Data ingestion pipeline**: Ingest and normalize data from iNaturalist API, USGS water data services, Oregon Water Data Portal, and manual CSV/PDF upload
+
+### Must Have (P0) — Predictive Intelligence (2026-05-08)
+
+7. **Predictive intelligence models**: Five trained prediction models replacing hardcoded scoring rules: hatch emergence (degree-day logistic regression), catch probability (multi-factor model), river health anomaly detection (z-score against historical baselines), species distribution shift tracking (centroid + range analysis), and restoration impact prediction (regression model). Served via `/sites/{ws}/hatch-forecast`, `/catch-forecast`, `/health-anomaly`, `/species-shifts`, `/restoration-forecast`. See FEAT-017.
+8. **Info tooltips on predictions**: All prediction sections include info tooltips explaining the model, confidence level, and data sources in layman's terms.
+9. **Prediction refresh on pipeline**: Predictions refresh on daily pipeline run via Cloud Scheduler; heavy model retraining runs weekly.
+
+### Must Have (P0) — Production Infrastructure (2026-05-08)
+
+10. **GCP Terraform infrastructure**: Cloud Run (FastAPI, 2 vCPU, 2GB), Cloud SQL (PostgreSQL 17 + PostGIS), Cloud Storage (assets, backups), VPC with serverless connector, Secret Manager (11 secrets), Artifact Registry. See FEAT-018.
+11. **CI/CD pipeline**: GitHub Actions workflow builds Docker image, runs database migrations, and deploys to Cloud Run on push to main.
+12. **Cloud Scheduler pipeline automation**: Daily light refresh, weekly heavy refresh, and monthly prediction model retraining via Cloud Run Jobs triggered by Cloud Scheduler.
+
+### Must Have (P0) — Authentication & User Accounts (2026-05-08)
+
+13. **Google OAuth2 login**: Users authenticate via Google OAuth2 with JWT session cookies (30-day expiry). See FEAT-019.
+14. **Apple OAuth2 login**: Users authenticate via Apple OAuth2 with the same JWT flow.
+15. **Anonymous-first architecture**: All read endpoints work without authentication; auth required only for write operations (observations, saves).
+16. **Username setup flow**: Post-login flow for setting a display username (`UsernameSetupPage`).
+17. **User observation ownership**: Authenticated users own their submitted observations.
+
+### Must Have (P0) — Photo Observations / UGC (2026-05-08)
+
+18. **Photo observation submission**: Camera FAB with source picker (Take Photo / Choose from Library), EXIF GPS and datetime extraction, species typeahead search, category selection chips. See FEAT-020.
+19. **GCS photo storage**: Production photo storage in Google Cloud Storage with thumbnail generation.
+20. **Security hardening**: Rate limiting (10 submissions per 5 minutes per IP), image validation (magic byte check for JPEG/PNG), input sanitization (HTML stripping, null byte removal, file size limits).
 
 ### Should Have (P1)
 
@@ -279,9 +307,9 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 - **Backend**: FastAPI on Python for reasoning, data pipelines, and real-time pass-through APIs (NWS, USGS)
 - **LLM Integration**: Claude API (Anthropic) for ecological reasoning, report generation, and deep time storytelling; tool-using agent architecture with geospatial and data-query tools
 - **Data/Storage**: PostgreSQL 17 with PostGIS 3.6.2 on port 5433
-- **Data Sources (26 ingested + 2 live APIs)**: iNaturalist, USGS NWIS, WQP (chemistry + macroinvertebrates), SNOTEL, BioData, StreamNet, MTBS, NHDPlus HR, OWRI/NOAA/PCSRF, Fish Passage, PRISM, EPA ATTAINS, NWI, USGS WBD, ODFW (sport catch/stocking), Macrostrat, PBDB, iDigBio, GBIF (with fossil images), BLM SMA, DOGAMI, MRDS, USFS Recreation, OSMB Boating Access, curated hatch chart. Live: NWS Weather API, USGS Instantaneous Values.
+- **Data Sources (30+ ingested + 2 live APIs)**: iNaturalist, USGS NWIS, WQP (chemistry + macroinvertebrates), SNOTEL, BioData, StreamNet, MTBS, NHDPlus HR, OWRI/NOAA/PCSRF, Fish Passage, PRISM, EPA ATTAINS, NWI, USGS WBD, ODFW (sport catch/stocking), Macrostrat, PBDB, iDigBio, GBIF (with fossil images), BLM SMA, DOGAMI, MRDS, USFS Recreation, OSMB Boating Access, curated hatch chart. **Washington**: WDFW SalmonScape, WDFW Stocking, WA DNR Surface Geology, SRFB Salmon Recovery, WA State Parks, WDFW Water Access. **Utah**: AGRC Boat Ramps, DWQ Assessment Units, AGRC Trailheads, BOR Flaming Gorge HydroData, UDWR Fish Stocking. Live: NWS Weather API, USGS Instantaneous Values.
 - **Database Tables (15)**: observations (550K), time_series (1.7M), interventions (2.6K), fire_perimeters (277), stream_flowlines (142K), impaired_waters (778), wetlands (13K), watershed_boundaries (975), geologic_units (17.3K), fossil_occurrences (3.7K), mineral_deposits (2K), land_ownership (40), deep_time_stories (7), recreation_sites (566), curated_hatch_chart (50)
-- **Data Volume**: 2.3M+ records loaded across 5 watersheds (Klamath, McKenzie, Deschutes, Metolius, John Day)
+- **Data Volume**: 2.3M+ records loaded across 7 watersheds in 3 states (Klamath, McKenzie, Deschutes, Metolius, John Day in OR; Skagit in WA; Green River in UT)
 - **Medallion Architecture**: 7 silver views + 34 gold views = 41 materialized views
 - **Platform Targets**: Web application; Chrome, Firefox, Safari latest; RiverPath and DeepTrail are mobile-first responsive PWAs; RiverSignal and DeepSignal are desktop-primary
 - **Geology Data Sources (6)**: Macrostrat, USGS NGMDB via DOGAMI OGDC v6, Paleobiology Database (PBDB), iDigBio museum specimens, USGS MRDS mineral deposits, BLM Surface Management Agency

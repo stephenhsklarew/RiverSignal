@@ -253,3 +253,59 @@
 - Tapping "RiverPath" navigates to /path
 - Context is preserved (user can navigate back)
 - RiverPath explains the volcanic aquifer connection in its river story
+
+---
+
+## 5-Tab Navigation Stories (2026-05-08)
+
+Source: FEAT-013 updates, alignment review AR-2026-05-08
+
+### US-054 — Family navigates DeepTrail using bottom tabs
+**As** Rachel (road trip family),
+**I want** to tap between Story, Explore, Collect, Learn, and Saved tabs at the bottom of the screen,
+**So that** I can easily switch between reading the deep time story, browsing fossils, checking collecting rules, taking a quiz, and reviewing my saved items.
+
+**Acceptance Criteria:**
+- 5-tab bottom navigation bar visible on all DeepTrail pages
+- Active tab is visually highlighted
+- Tapping a tab navigates to the corresponding page without losing location context
+- Tab labels: Story, Explore, Collect, Learn, Saved
+
+---
+
+### US-055 — Rockhound switches watersheds via header
+**As** Mike (rockhound),
+**I want** to tap the location name in the DeepTrail header and switch to a different watershed,
+**So that** I can compare geology and collecting sites across different locations without going back to the pick screen.
+
+**Acceptance Criteria:**
+- DeepTrailHeader shows current location name with dropdown trigger
+- Tapping opens a modal with all configured watersheds
+- Selecting a new watershed reloads geology, fossils, minerals, and legal status for the new location
+- All 5 tabs update to reflect the new location
+
+---
+
+### US-056 — Family saves a fossil to view later
+**As** Rachel,
+**I want** to tap a save button on a fossil card in the Explore tab,
+**So that** I can find it later in my Saved tab and show my kids at dinner.
+
+**Acceptance Criteria:**
+- Heart/bookmark icon on fossil cards toggles save/unsave
+- Saved fossil appears in Saved tab (TrailSavedPage)
+- Saved state persists across browser sessions via localStorage
+- Saved item shows: taxon name, period, age, location
+
+---
+
+### US-057 — Family listens to the deep time story
+**As** Rachel,
+**I want** to tap "Listen" on the Story tab and hear the deep time narrative read aloud,
+**So that** the kids can enjoy the story while we drive to our next stop.
+
+**Acceptance Criteria:**
+- "Listen to Story" button visible on TrailStoryPage
+- Audio plays using OpenAI gpt-4o-audio-preview TTS
+- Play/pause controls available
+- Audio stops when switching to a different location

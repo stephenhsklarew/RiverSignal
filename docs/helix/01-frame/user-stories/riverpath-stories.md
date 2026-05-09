@@ -250,3 +250,93 @@ Source: `riverpath_mobile_web_mvp_features_v2.md`, `riverpath_wireframe_screen_m
 - Page auto-scrolls to the target watershed when the response loads
 - Placeholder text is consumer-oriented (e.g., "Is today a good day to fly fish the McKenzie?")
 - Question param is cleared from URL after the response loads
+
+---
+
+## Prediction Stories (2026-05-08)
+
+Source: FEAT-017, alignment review AR-2026-05-08
+
+### US-059 — Guide checks hatch emergence forecast
+**As** Alex (fishing guide),
+**I want** to see when the next major insect hatch is predicted to emerge based on accumulated degree-days,
+**So that** I can plan client trips around peak hatch activity.
+
+**Acceptance Criteria:**
+- Hatch forecast endpoint returns predicted emergence dates per insect species
+- Confidence score (0-1) is displayed for each prediction
+- Degree-day accumulation progress bar shows how close to emergence threshold
+- Info tooltip explains the degree-day model in plain language
+
+---
+
+### US-060 — Angler views catch probability score
+**As** Alex (fishing guide),
+**I want** to see a catch probability score for each target species at my watershed,
+**So that** I can advise clients on which species to target today.
+
+**Acceptance Criteria:**
+- Catch probability score (0-100) displayed per species
+- Contributing factor breakdown shows top 3 factors (e.g., water temp, recent stocking, hatch activity)
+- Score updates daily with pipeline refresh
+- Info tooltip explains the multi-factor model
+
+---
+
+### US-061 — Manager reviews river health anomaly
+**As** Maria (watershed program manager),
+**I want** to see health anomaly alerts when water quality or species diversity deviates significantly from historical baselines,
+**So that** I can investigate potential problems early.
+
+**Acceptance Criteria:**
+- Anomaly flags shown as normal/watch/alert/critical
+- Z-score values and trend direction (improving/stable/declining) displayed
+- Baseline comparison shows current vs. historical range
+- Info tooltip explains z-score methodology in layman's terms
+
+---
+
+## Photo Observation Stories (2026-05-08)
+
+Source: FEAT-020, alignment review AR-2026-05-08
+
+### US-062 — Family submits a photo observation
+**As** Sarah (river-visiting family),
+**I want** to take a photo of a fish we caught and submit it with species identification,
+**So that** our observation contributes to the river's ecological data.
+
+**Acceptance Criteria:**
+- Camera FAB visible on map pages
+- Source picker offers "Take Photo" and "Choose from Library"
+- EXIF GPS coordinates auto-populate location
+- Species typeahead returns matches as user types
+- Submission confirmation shown after successful upload
+
+---
+
+### US-063 — Angler views their submitted observations
+**As** Alex (fishing guide),
+**I want** to see all my submitted photo observations on the map,
+**So that** I can track where I've fished and what I've seen this season.
+
+**Acceptance Criteria:**
+- "My Observations" toggle shows user's own observations as distinct pins
+- Each pin shows photo thumbnail, species, date on click
+- Only authenticated users see the toggle
+
+---
+
+## Audio Story (2026-05-08)
+
+Source: FEAT-010/013, alignment review AR-2026-05-08
+
+### US-064 — Family listens to river story while hiking
+**As** Sarah (river-visiting family),
+**I want** to tap "Listen" on the river story and hear it narrated aloud,
+**So that** the kids can learn about the river while we walk without staring at a screen.
+
+**Acceptance Criteria:**
+- "Listen" button visible on river story pages
+- Audio plays via OpenAI gpt-4o-audio-preview TTS
+- Play/pause controls available
+- Audio stops when navigating away from the page

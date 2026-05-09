@@ -4,11 +4,11 @@
 
 ## Mission Statement
 
-RiverPath is the AI-native field companion for families, anglers, educators, and river advocates to understand the health, ecology, and restoration story of every river they visit across the Pacific Northwest.
+RiverPath is the AI-native field companion for families, anglers, educators, and river advocates to understand the health, ecology, and restoration story of every river they visit across the Pacific Northwest and Utah.
 
 ## Positioning
 
-For **families, outdoor travelers, and river enthusiasts** who visit Oregon rivers for recreation, fishing, and nature education but can't answer basic questions like "Is this river healthy?" or "What fish are spawning here?",
+For **families, outdoor travelers, and river enthusiasts** who visit Pacific Northwest and Utah rivers for recreation, fishing, and nature education but can't answer basic questions like "Is this river healthy?" or "What fish are spawning here?",
 **RiverPath** is a **location-aware mobile river guide** that transforms fragmented hydrology feeds, species data, restoration projects, and access information into living river stories.
 Unlike **USGS gauge dashboards, fishing report websites, and trail apps**, RiverPath combines ecological intelligence with storytelling and stewardship -- turning every river visit into adventure, education, and conservation participation.
 
@@ -16,10 +16,11 @@ Unlike **USGS gauge dashboards, fishing report websites, and trail apps**, River
 
 RiverPath is the **B2C consumer product** built on the same data platform as RiverSignal (B2B/B2G). Both products share:
 
-- The same PostgreSQL + PostGIS database (2.2M+ records)
-- The same 15 ingestion pipelines (bronze layer)
-- The same silver/gold medallion architecture (21 materialized views)
+- The same PostgreSQL + PostGIS database (2.3M+ records)
+- The same 22+ ingestion pipelines (bronze layer) across 3 states
+- The same silver/gold medallion architecture (37+ materialized views)
 - The same LLM reasoning engine (tool-using agent with ecological knowledge)
+- The same predictive intelligence models (hatch emergence, catch probability, health anomaly, species shifts, restoration impact)
 
 The products differ in:
 
@@ -33,7 +34,7 @@ The products differ in:
 
 ## Vision
 
-Every family visiting an Oregon river understands its living ecological story. A parent opens RiverPath at the McKenzie River and learns that salmon are spawning upstream right now, that the forest here burned in the Holiday Farm Fire four years ago and is recovering (species richness up 180% since), that the cold water comes from Cascade snowmelt, and that a local watershed council is planting native trees this Saturday. The kids identify caddisfly larvae on rocks. The family decides to return in September for the salmon migration. They've become river stewards without trying.
+Every family visiting a Pacific Northwest or Utah river understands its living ecological story. A parent opens RiverPath at the McKenzie River and learns that salmon are spawning upstream right now, that the forest here burned in the Holiday Farm Fire four years ago and is recovering (species richness up 180% since), that the cold water comes from Cascade snowmelt, and that a local watershed council is planting native trees this Saturday. The kids identify caddisfly larvae on rocks. The family decides to return in September for the salmon migration. They've become river stewards without trying.
 
 **North Star**: River visits become repeatable conservation adventures for 100,000 Pacific Northwest families.
 
@@ -78,31 +79,37 @@ High-frequency prosumer segment (already partially served by FEAT-007).
 | Species photo gallery by river mile | Kids and adults identify what they see with CC-licensed observation photos |
 | Restoration and recovery narratives | Understanding why the forest is bare (fire), why the river is cold (springs), why salmon returned (dam removal) |
 | Seasonal trip optimization | When to visit for salmon migration, insect hatches, wildflower season, or swimming |
+| Predictive intelligence | Hatch emergence forecasts, catch probability scores, and river health anomaly detection — with info tooltips explaining predictions in layman's terms |
+| Audio stories | AI-narrated river stories via OpenAI gpt-4o-audio-preview — listen to the living story of the river while driving or on the trail |
+| Photo observations | Submit geotagged photos with species identification, EXIF GPS extraction, and community observation feed |
 | Stewardship connection | Nearby volunteer events, watershed council links, "how to help" actions |
 | Fishing intelligence | Water temp, flow, species by reach, stocking schedule, harvest trends (highest-retention feature) |
 
-## MVP Geography: Oregon's Living Rivers Loop
+## MVP Geography: Pacific Northwest + Utah Rivers (7 Watersheds)
 
-| River | Miles | Story | Family Appeal |
-|-------|-------|-------|--------------|
-| McKenzie River | 64.6 | Holiday Farm Fire recovery + Chinook spawning + cold-water springs | Clear water, swimming holes, old growth |
-| Metolius River | 41.0 | Spring-fed cold-water refuge + bull trout + pristine ecosystem | Camp Sherman, headwaters walk |
-| Deschutes River | 111.6 | Canyon ecology + steelhead + thermal gradients + smallmouth bass | Bend access, family float trips |
-| Upper Klamath | 102.7 (Williamson) | Dam removal + sucker recovery + tribal stewardship + lake ecology | Crater Lake proximity |
-| John Day River | TBD | Wild & Scenic + rangeland ecology + fossil beds | Remote adventure, dark skies |
+| River | State | Miles | Story | Family Appeal |
+|-------|-------|-------|-------|--------------|
+| McKenzie River | OR | 64.6 | Holiday Farm Fire recovery + Chinook spawning + cold-water springs | Clear water, swimming holes, old growth |
+| Metolius River | OR | 41.0 | Spring-fed cold-water refuge + bull trout + pristine ecosystem | Camp Sherman, headwaters walk |
+| Deschutes River | OR | 111.6 | Canyon ecology + steelhead + thermal gradients + smallmouth bass | Bend access, family float trips |
+| Upper Klamath | OR | 102.7 (Williamson) | Dam removal + sucker recovery + tribal stewardship + lake ecology | Crater Lake proximity |
+| John Day River | OR | TBD | Wild & Scenic + rangeland ecology + fossil beds | Remote adventure, dark skies |
+| Skagit River | WA | TBD | Salmon stronghold + bald eagles + Cascade foothills | National Wild & Scenic, winter eagle viewing |
+| Green River | UT | TBD | Flaming Gorge + desert canyon ecology + trout fishery | Red canyon scenery, rafting |
 
 ## Data Platform Coverage (Already Built)
 
 The RiverSignal data platform provides **100% of the core data needs** for RiverPath's ecological intelligence:
 
-- **2.2M records** from 15 public data sources
+- **2.3M+ records** from 30+ public data sources across 3 states
 - **18,544 species** with CC-licensed photo URLs
 - **20,248 species-by-river-mile** records for reach-level queries
 - **15,080 stream segments** with river mile references
 - **1,391 restoration interventions** with outcomes
 - **459 fire recovery trajectories** including Holiday Farm Fire
 - **120 thermal station classifications** (cold-water refuge mapping)
-- **21 materialized views** in the gold layer serving all product features
+- **37+ materialized views** in the silver/gold layer serving all product features
+- **5 predictive models** (hatch emergence, catch probability, health anomaly, species shifts, restoration impact)
 
 ## Gaps to Close for RiverPath MVP
 
@@ -113,7 +120,7 @@ The RiverSignal data platform provides **100% of the core data needs** for River
 | River access points / boat ramps | P1 | USFS RIDB API + Oregon State Parks ArcGIS FeatureServer | **Specified** — FEAT-015 (recreation ingestion) |
 | Swimming/wading safety index | P1 | Derive from water temp + flow + depth data already in DB | **Implemented** — gold.swim_safety view |
 | Stewardship events calendar | P1 | Manual curation initially; scraping deferred to post-MVP | **Specified** — FEAT-012 FR-40 |
-| John Day River data | P1 | Add watershed config + run existing 18 pipelines | Open |
+| John Day River data | P1 | Add watershed config + run existing 18 pipelines | **Implemented** — watershed loaded |
 | Saved/favorites | P1 | localStorage + React context; no backend auth needed | **Specified** — FEAT-016 |
 | Trail data along rivers | P2 | OpenStreetMap or USFS trail data | Parking lot |
 | Dog-friendly route info | P2 | RIDB amenity flags + manual curation seed table | **Specified** — FEAT-015 FR-10 |

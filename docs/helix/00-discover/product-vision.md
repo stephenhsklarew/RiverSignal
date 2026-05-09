@@ -29,6 +29,12 @@ Ecological decisions are no longer bottlenecked by the scarcity of expert interp
 
 **North Star**: Every Pacific Northwest watershed restoration project has access to AI-powered ecological reasoning that turns monitoring data into provable outcomes within one field season.
 
+**Geographic scope**: Pacific Northwest + Utah — 7 watersheds across 3 states (Deschutes, McKenzie, Metolius, Klamath, John Day in Oregon; Skagit in Washington; Green River in Utah). Multi-state data adapter architecture supports state-specific agency APIs (ODFW, WDFW, UDWR).
+
+**Predictive intelligence**: The platform generates forward-looking predictions — hatch emergence forecasts (degree-day models), catch probability scoring, river health anomaly detection, species distribution shift tracking, and restoration impact prediction — turning retrospective monitoring into proactive management.
+
+**Production infrastructure**: GCP deployment (Cloud Run, Cloud SQL, Cloud Storage, Cloud Scheduler) with Terraform IaC, GitHub Actions CI/CD, and automated daily/weekly/monthly pipeline refresh.
+
 ## User Experience
 
 A watershed program manager in Klamath Falls opens RiverSignal on Monday morning. The map shows her three managed sub-watersheds along the Williamson and Sprague rivers. An amber alert flags a new reed canarygrass cluster detected from weekend iNaturalist observations near a riparian restoration site. She taps the alert; the system explains that the invasive is expanding along a disturbed corridor 200m upstream of a native planting zone, recommends a sweep within the next 10 days based on seasonal growth rates, and estimates recolonization risk if untreated. She assigns the task to a field crew. On the same dashboard, a green indicator shows that native bird species richness at Agency Lake marsh increased 18% since last spring -- consistent with the system's restoration forecast from six months ago. She clicks "Generate Q1 Report" and receives a funder-ready summary with before/after species counts, intervention timeline, and outcome confidence scores. The entire session took twelve minutes.
@@ -37,7 +43,7 @@ A watershed program manager in Klamath Falls opens RiverSignal on Monday morning
 
 | Attribute | Description |
 |-----------|-------------|
-| Who | **Primary**: Watershed program managers and restoration ecologists at Oregon state agencies, watershed councils, land trusts, and tribal natural resource teams managing 1-10 active restoration sites with 2-8 person field teams. **Secondary**: Fly fishing guides and serious anglers operating on Oregon's Deschutes, McKenzie, Metolius, and Klamath rivers (150+ trips/year) |
+| Who | **Primary**: Watershed program managers and restoration ecologists at Pacific Northwest and Utah state agencies, watershed councils, land trusts, and tribal natural resource teams managing 1-10 active restoration sites with 2-8 person field teams. **Secondary**: Fly fishing guides and serious anglers operating on rivers across 7 watersheds in Oregon, Washington, and Utah (150+ trips/year) |
 | Pain | **Restoration**: Spend 15-25 hours/week synthesizing field observations, sensor data, GIS layers, and compliance records into management decisions and funder reports; junior staff lack the pattern-recognition to interpret monitoring data without senior review. **Fishing**: Check 5+ websites daily for conditions, stocking, flows; no single source combines water data + species distribution + harvest trends for a specific reach |
 | Current Solution | **Restoration**: Manual expert review of iNaturalist exports, spreadsheet-based indicator tracking, GIS analyst producing static maps on request, and hand-written quarterly reports for grant funders. **Fishing**: ODFW website for stocking, USGS for flows, myodfw.com for recreation reports, word-of-mouth for fishing intel |
 | Why They Switch | Federal and state restoration budgets (OWEB, NOAA, BPA) increasingly require quantified outcome evidence; senior ecologists are retiring faster than they are replaced; data volume from citizen science and sensors is growing 20-30% annually while interpretation capacity is flat. Fishing guides adopt because it replaces a fragmented daily research workflow with a single morning briefing |
@@ -60,6 +66,7 @@ A watershed program manager in Klamath Falls opens RiverSignal on Monday morning
 | Monitoring interpretation time | 40% reduction within first field season | Time-tracking comparison: pre/post adoption weekly hours logged by watershed staff on interpretation tasks |
 | Funder report generation time | From 2-3 days to under 1 hour per quarterly report | Tracked per-report generation time in RiverSignal vs. baseline interviews |
 | Restoration forecast accuracy | 70%+ of seasonal species-return predictions confirmed by next monitoring cycle | Prediction vs. observation match rate across managed sites |
+| Prediction model accuracy | Hatch emergence forecasts achieve 65%+ confirmation rate; catch probability scores correlate with reported catch at r > 0.5 | Model output vs. observation comparison |
 | Pilot customer retention | 3 of 3 lighthouse customers renew after first year | Contract renewal tracking |
 | Active managed watersheds | 10 watersheds across PNW within 24 months of launch | Customer count in billing system |
 

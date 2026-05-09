@@ -26,7 +26,7 @@ RiverPath is the consumer-facing (B2C) mobile-first product for families, angler
 ### Functional Requirements
 
 #### Home Experience (Story-Driven)
-1. Landing page presents 5 Oregon watersheds as visual story blocks with hero photos, health scores, species counts, and narrative taglines
+1. Landing page presents 7 watersheds (5 Oregon, 1 Washington, 1 Utah) as visual story blocks with hero photos, health scores, species counts, and narrative taglines, ordered alphabetically
 2. Each watershed block includes an inline question input with consumer-oriented placeholder (e.g., "Is today a good day to fly fish the McKenzie?") that submits the question inline within RiverPath — chat response renders as markdown below the watershed block without leaving the /path context
 3. Scroll-reveal animations create a narrative flow: each watershed "unfolds" as the user scrolls
 4. Species discovery section shows random photo cards from the 18,500+ species with CC-licensed photos
@@ -106,6 +106,12 @@ RiverPath is the consumer-facing (B2C) mobile-first product for families, angler
 
 #### Explore Map (Built 2026-04-13)
 52. Full-screen MapLibre recreation map at `/path/explore-map/:watershed` with type filter chips (All, Camping, Trails, Boats, Fishing, Day Use). Color-coded pins by type. Click pin shows popup with name, type, amenity badges. "← Explore List" back button.
+
+#### Predictive Intelligence + UX Enhancements (Built 2026-05-08)
+53. Info tooltips on all prediction sections (hatch forecast, catch probability, health anomaly) explaining the model, confidence level, and data sources in layman's terms. Visible (i) icon expands to plain-language tooltip.
+54. Sticky headers on all RiverPath screens (River Now, Explore, Hatch, Steward, Saved) for consistent navigation context while scrolling.
+55. Alphabetical watershed ordering on the homepage and in watershed picker modals.
+56. Green River (Utah) and Skagit (Washington) watersheds added to the watershed list alongside the 5 Oregon watersheds, expanding coverage to 7 watersheds across 3 states.
 
 ### Non-Functional Requirements
 

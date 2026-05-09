@@ -25,6 +25,24 @@ DeepTrail is the consumer-facing (B2C) mobile-first product for families, rockho
 
 ### Functional Requirements
 
+#### 5-Tab Bottom Navigation Architecture (Built 2026-05-08)
+26. DeepTrail uses a 5-tab bottom navigation bar: **Story** (deep time narratives, timeline, era comparison), **Explore** (fossils and minerals with maps and filters), **Collect** (legal collecting status, rockhounding sites, mineral shops), **Learn** (quizzes, educational content), **Saved** (bookmarked fossils, minerals, sites). Routes: `/trail/story/:loc`, `/trail/explore/:loc`, `/trail/collect/:loc`, `/trail/learn/:loc`, `/trail/saved`.
+27. `DeepTrailBottomNav.tsx` component mirrors the RiverPath bottom nav pattern with 5 tabs and active state indicator.
+28. `DeepTrailHeader` component with watershed/location switching modal. Users can switch between configured locations without returning to the pick screen. Header displays current location name and a dropdown trigger.
+29. `DeepTrailContext` provides shared state across all 5 tabs: location, fossils, minerals, story, quiz state, rarity scores, card settings.
+
+#### Save Buttons on Fossils and Minerals
+30. Save (heart/bookmark) buttons on fossil cards and mineral site cards in the Explore tab
+31. Saved fossils and minerals appear in the Saved tab (TrailSavedPage) with persistent localStorage state via FEAT-016 SavedContext
+
+#### Audio Stories (OpenAI TTS)
+32. "Listen to Story" button on TrailStoryPage plays the deep time narrative aloud using OpenAI `gpt-4o-audio-preview` model
+33. Audio playback controls: play/pause, progress indicator. Audio stops when switching locations.
+34. Audio stories also available on RiverPath river story pages
+
+#### Card Settings (Customizable Card Visibility)
+35. `CardSettings.tsx` component on TrailStoryPage and TrailExplorePage allows users to toggle visibility of specific card sections (geology, fossils, minerals, legal status)
+
 #### Deep Time Storytelling
 1. For any lat/lon, generate an AI narrative describing the ancient ecosystem: climate, vegetation, key animal species (with common-name equivalents), geologic setting, and what physical evidence remains today
 2. Three reading levels: expert (scientific terminology, full citations), general adult (DeepTrail default), and kid-friendly (5th-grade reading level, "imagine you're standing in..." framing)
@@ -122,7 +140,7 @@ DeepTrail is the consumer-facing (B2C) mobile-first product for families, rockho
 
 - Native iOS/Android apps (PWA first)
 - AI-generated paleo-art or 3D reconstructions (text narratives only for MVP)
-- Audio narration / podcast-style tours
+- ~~Audio narration / podcast-style tours~~ — **IMPLEMENTED** (2026-05-08): OpenAI gpt-4o-audio-preview TTS integration with "Listen to Story" button
 - VR/AR overlays of ancient landscapes
 - Fossil identification from photos (image recognition)
 - Real-time fossil marketplace or trading

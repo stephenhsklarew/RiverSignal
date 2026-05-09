@@ -4,12 +4,16 @@ Deferred items that are explicitly out of scope for the current MVP but tracked 
 
 ## Resolved (moved out of parking lot)
 
-| Item | Resolution |
-|------|-----------|
-| Macroinvertebrate index scoring | RESOLVED: BioData pipeline loaded 292K professional survey records including macroinvertebrate data |
-| eBird integration | DROPPED: eBird license is non-commercial only; bird data available through iNaturalist (19K+ bird observations loaded) |
-| Climate-downscaled forecasting | PARTIALLY RESOLVED: PRISM 800m gridded climate data pipeline operational; full downscaling still deferred |
-| Cross-watershed comparative analytics | RESOLVED: 4 watersheds loaded with comparison queries operational |
+| Item | Resolution | Date |
+|------|-----------|------|
+| Macroinvertebrate index scoring | RESOLVED: BioData pipeline loaded 292K professional survey records including macroinvertebrate data | 2026-04 |
+| eBird integration | DROPPED: eBird license is non-commercial only; bird data available through iNaturalist (19K+ bird observations loaded) | 2026-04 |
+| Climate-downscaled forecasting | PARTIALLY RESOLVED: PRISM 800m gridded climate data pipeline operational; full downscaling still deferred | 2026-04 |
+| Cross-watershed comparative analytics | RESOLVED: 7 watersheds loaded across 3 states with comparison queries operational | 2026-05 |
+| Trip journal with photos and notes | PARTIALLY RESOLVED: Photo observations implemented (FEAT-020) with camera FAB, EXIF extraction, species typeahead, GCS storage. Full trip journal (timeline, notes, multi-photo) still deferred. | 2026-05 |
+| Oregon State Parks recreation adapter | STILL DEFERRED: Remains Phase 2 candidate — USFS + OSMB cover MVP watersheds | 2026-05 |
+| Audio narration for DeepTrail | RESOLVED: OpenAI gpt-4o-audio-preview TTS implemented with "Listen to Story" button. Was listed as out of scope in FEAT-010/013. | 2026-05 |
+| Multi-state regulatory compliance | PARTIALLY RESOLVED: Multi-state data adapters built (WA: 6 sources, UT: 5 sources). Funder report templates remain Oregon-only (OWEB). | 2026-05 |
 
 ## Phase 2 Candidates
 
@@ -29,11 +33,16 @@ Deferred items that are explicitly out of scope for the current MVP but tracked 
 | Creel survey data | Research finding | ODFW does not publish publicly; available only by direct request |
 | Landsat/Sentinel NDVI vegetation trends | Design plan | Requires Google Earth Engine or large raster infrastructure |
 | USGS BioData portal direct access | Research finding | BioData web portal retired; data partially available through WQP biological profile |
-| Hourly hatch forecasts (now / +4h / tomorrow) | Wireframe Screen 3 descope | Gold layer has monthly observation counts, not hourly phenology models; would require building a phenology model keyed to water temp + time of day. MVP uses "this month / next month" seasonal intelligence |
+| Hourly hatch forecasts (now / +4h / tomorrow) | Wireframe Screen 3 descope | Degree-day hatch emergence model (FEAT-017) predicts emergence timing but not intraday windows. Would require building a phenology model keyed to water temp + time of day + light conditions. MVP uses "this month / next month" with emergence predictions. |
 | Holding water cards (pool/riffle/run) | Wireframe Screen 4 descope | No pool/riffle/run habitat classification data in any ingested source; would require NHDPlus reach characterization or ODFW habitat survey ingestion |
 | Before/after restoration photo slider | Wireframe Screen 5 descope | gold.restoration_outcomes has numeric before/after species counts but no curated imagery; photo slider needs content sourcing effort (watershed council archives, OWRI project photos) |
-| Trip journal with photos and notes | Wireframe Screen 6 descope | Wireframe implied user-generated content (hatch photos, field notes, trip timeline) — this is a UGC platform feature requiring backend user model, media storage, and moderation. MVP Saved = bookmarks via localStorage |
-| Oregon State Parks recreation adapter | FEAT-015 Phase 2 | RIDB covers federal lands first (USFS, BLM) where the 5 MVP watersheds sit; Oregon State Parks ArcGIS FeatureServer adds state-managed access points as incremental coverage |
+| Trip journal with photos and notes (full version) | Wireframe Screen 6 descope | Photo observations (FEAT-020) handle single-photo submissions with species ID. Full trip journal (multi-photo timeline, field notes, trip sharing) requires additional UGC features and moderation workflow |
+| Oregon State Parks recreation adapter | FEAT-015 Phase 2 | USFS + OSMB cover the 7 MVP watersheds; Oregon State Parks ArcGIS FeatureServer adds 422 state-managed park parcels as incremental coverage |
+| PostHog analytics implementation | plan-2026-05-05-posthog-analytics.md | Detailed plan with 33 events exists; zero implementation. Required for PRD success metrics (MAU, DAU, NPS). |
+| FEAT-012 FR-12 reading mode toggle UI | FEAT-012 | Backend `reading_level` parameter exists; DeepTrail has a working toggle. RiverPath frontend toggle not built. |
+| FEAT-012 FR-26 cold-water refuge MapLibre overlay | FEAT-012 | FishRefugePage uses thermal station grid, not MapLibre map overlay as specced. Functional but doesn't match spec. |
+| Observation moderation workflow | FEAT-020 | User photo submissions currently auto-accepted; no review queue or spam detection |
+| WA/UT-specific funder report templates | PRD expansion | Multi-state data exists but report generation targets Oregon OWEB format only |
 
 ## Phase 3 Candidates
 
@@ -43,5 +52,5 @@ Deferred items that are explicitly out of scope for the current MVP but tracked 
 | TNFD biodiversity disclosure reporting | Seed strategy | Regulatory-driven; market still maturing |
 | Carbon + biodiversity co-optimization | Seed strategy | High value but requires additional data sources and modeling |
 | Private land portfolio scoring | Seed strategy | PE/agriculture expansion market |
-| Multi-state regulatory compliance | PRD Non-Goal | Per-state template expansion |
+| Multi-state regulatory compliance (full) | PRD Non-Goal | WA/UT data adapters built; per-state funder report templates remain expansion scope |
 | Guided trip booking / marketplace | FEAT-007 Out of Scope | Fishing community feature if angler adoption is strong |

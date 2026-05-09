@@ -45,13 +45,44 @@ Potential public data sources not yet implemented, organized by effort and impac
 
 ## Top 3 Recommendations for Immediate Impact
 
-1. **NWS Weather Forecast** — one API call, no key, answers the #1 question families and anglers have: "What's the weather this weekend?" Displays on the River Now hero card.
+1. ~~**NWS Weather Forecast**~~ — **IMPLEMENTED**: Live API source #27. 7-day forecast displayed on River Now hero card.
 
-2. **USGS Real-Time Gauges** — already ingest USGS daily values. Switching to the instantaneous values endpoint (`https://waterservices.usgs.gov/nwis/iv/`) gives *right now* flow and temperature instead of monthly averages. Makes River Now feel live.
+2. ~~**USGS Real-Time Gauges**~~ — **IMPLEMENTED**: Live API source #28. Instantaneous values with 15-min cache, "LIVE" badge on hero card.
 
-3. **Fix OSMB Boating Access URL** — have 23 boat ramps from USFS but Oregon's marine board has 1,815. Finding the correct ArcGIS endpoint would 80x the boat ramp coverage in Explore.
+3. ~~**Fix OSMB Boating Access URL**~~ — **IMPLEMENTED**: 160 Oregon boat ramp/launch sites loaded from OSMB (source #25).
 
-## Currently Implemented Data Sources (26)
+### Updated Recommendations (2026-05-08)
+
+1. **Oregon State Parks recreation adapter** — ArcGIS FeatureServer with 422 park parcels; would add state-managed access points alongside existing USFS coverage.
+2. **eBird Hotspots API** — No-key REST API for birding locations with recent sightings; would enrich the Explore tab for birding families.
+3. **Fishing regulation structured data** — eRegulations.com has consistent HTML but no API; would enable regulatory context in fishing intelligence.
+
+## Washington State Adapters (Implemented 2026-05-08)
+
+Source: `pipeline/ingest/washington.py` (492 lines), 6 data sources for the Skagit River watershed.
+
+| # | Source | Data | Status |
+|---|--------|------|--------|
+| 1 | **WDFW SalmonScape** | Salmon distribution, habitat, barriers | Implemented |
+| 2 | **WDFW Fish Stocking** | WA state fish stocking records | Implemented |
+| 3 | **WA DNR Surface Geology** | Washington geologic units | Implemented |
+| 4 | **SRFB Salmon Recovery** | Salmon Recovery Funding Board restoration projects | Implemented |
+| 5 | **WA State Parks** | Park locations, access points, amenities | Implemented |
+| 6 | **WDFW Water Access** | Boat ramps, fishing access sites | Implemented |
+
+## Utah State Adapters (Implemented 2026-05-08)
+
+Source: `pipeline/ingest/utah.py` (408 lines), 5 data sources for the Green River watershed.
+
+| # | Source | Data | Status |
+|---|--------|------|--------|
+| 1 | **AGRC Boat Ramps** | Utah boat ramp locations | Implemented |
+| 2 | **DWQ Assessment Units** | Utah water quality assessment units | Implemented |
+| 3 | **AGRC Trailheads** | Utah trailhead locations | Implemented |
+| 4 | **BOR Flaming Gorge HydroData** | Bureau of Reclamation hydrological data | Implemented |
+| 5 | **UDWR Fish Stocking** | Utah fish stocking records | Implemented |
+
+## Currently Implemented Data Sources (30+ across 3 states)
 
 ### Ingested into Database (Bronze)
 
@@ -91,9 +122,14 @@ Potential public data sources not yet implemented, organized by effort and impac
 | 27 | NWS Weather API | 7-day forecast by watershed | 30 min |
 | 28 | USGS Instantaneous Values | Real-time flow + water temp | 15 min |
 
-### Totals
-- **Observations**: 550,014
-- **Time Series**: 1,734,579
+### Totals (updated 2026-05-08)
+- **Observations**: 550,014+
+- **Time Series**: 1,734,579+
 - **Silver Views**: 7
-- **Gold Views**: 34
-- **Total Records**: ~2.3M
+- **Gold Views**: 30+
+- **Total Materialized Views**: 37+
+- **Total Records**: ~2.3M+
+- **Watersheds**: 7 (5 OR, 1 WA, 1 UT)
+- **States**: 3 (Oregon, Washington, Utah)
+- **Ingested Sources**: 30+ (26 core + 6 WA + 5 UT, some shared)
+- **Live API Sources**: 2 (NWS Weather, USGS Instantaneous Values)

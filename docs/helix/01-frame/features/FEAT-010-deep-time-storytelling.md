@@ -66,5 +66,5 @@ Deep time storytelling generates AI-powered narratives that describe what ancien
 ## Out of Scope
 
 - AI-generated paleo-art or 3D reconstructions (text narratives only for MVP)
-- Audio narration / podcast-style tours (text only)
+- ~~Audio narration / podcast-style tours (text only)~~ — **IMPLEMENTED** (2026-05-08): OpenAI gpt-4o-audio-preview TTS with "Listen to Story" button on DeepTrail and RiverPath story pages
 - VR/AR overlays
