@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useSaved, type SavedItem } from '../components/SavedContext'
+import rpLogo from '../assets/riverpath-logo.svg'
 import './SavedPage.css'
 
 const TYPE_ICONS: Record<SavedItem['type'], string> = {
@@ -31,7 +32,10 @@ export default function SavedPage() {
 
   return (
     <div className="saved-page">
-      <h1 className="saved-title">Saved</h1>
+      <div className="saved-header">
+        <img src={rpLogo} alt="RiverPath" className="saved-header-logo" />
+        <span className="saved-header-title">Saved</span>
+      </div>
 
       {all.length === 0 ? (
         <p className="saved-empty">

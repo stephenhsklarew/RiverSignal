@@ -1,5 +1,11 @@
-.saved-page { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
-.saved-title { font-family: 'Fraunces', serif; font-size: 22px; margin: 0 0 16px; }
+.saved-page { padding: 0 16px 72px; max-width: 600px; margin: 0 auto; }
+.saved-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 0; position: sticky; top: 0; z-index: 10;
+  background: var(--bg, #fff);
+}
+.saved-header-logo { height: 24px; width: auto; }
+.saved-header-title { font-size: 15px; font-weight: 500; }
 .saved-empty { color: var(--text-muted); font-size: 14px; margin-top: 32px; }
 
 .saved-group { margin-bottom: 24px; }

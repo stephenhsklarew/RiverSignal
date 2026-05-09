@@ -123,8 +123,7 @@ function InsectCardWithFlies({ insect, ws, matchingFlies }: { insect: any; ws: s
             <span className="insect-stage" title={`Likely ${stage}`}>{STAGE_ICONS[stage]} {stage}</span>
             {insect.activity && <span className="insect-activity">{insect.activity}</span>}
             {insect.observations != null && <span className="insect-obs">{insect.observations} obs</span>}
-            {insect.source === 'curated' && <span className="insect-source">verified</span>}
-          </div>
+                      </div>
         </div>
         <span className="insect-expand">{expanded ? '▾' : '▸'}</span>
       </div>
