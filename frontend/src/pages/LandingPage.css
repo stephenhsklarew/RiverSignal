@@ -28,9 +28,9 @@
   font-size: 1.4rem;
   color: #fff;
   font-weight: 400;
-  max-width: 480px;
   margin: 0 auto;
   line-height: 1.5;
+  white-space: nowrap;
 }
 
 .landing-powers-label {

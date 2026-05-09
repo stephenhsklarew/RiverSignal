@@ -18,7 +18,13 @@
   --blue-light: #1a2540;
 }
 
-.status-header { margin-bottom: 24px; text-align: center; }
+.status-header {
+  position: sticky; top: 0; z-index: 10;
+  margin-bottom: 24px; text-align: center;
+  background: #040403;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #2a2a2a;
+}
 .status-home-link { display: inline-block; }
 .status-logo { display: block; max-width: 160px; width: 100%; height: auto; margin: 0 auto 12px; }
 .status-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; margin: 0 0 6px; }
@@ -27,6 +33,17 @@
   color: #fff; text-decoration: none; opacity: 0.8;
 }
 .status-back-link:hover { opacity: 1; text-decoration: underline; }
+
+.status-toc {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px;
+  margin: 0 auto 20px; max-width: 880px;
+}
+.status-toc a {
+  font-size: 13px; color: #d8d8d8; text-decoration: none;
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
+  white-space: nowrap;
+}
+.status-toc a:hover { border-color: var(--accent); color: var(--accent); }
 .status-summary { font-size: 14px; color: var(--text-secondary); margin: 0 0 16px; }
 .status-stats, .status-legend { justify-content: center; }
 
@@ -46,7 +63,7 @@
 
 .status-loading { text-align: center; color: var(--text-muted); padding: 40px; font-style: italic; }
 
-.status-section { margin-bottom: 32px; }
+.status-section { margin-bottom: 32px; scroll-margin-top: calc(var(--status-header-h, 360px) + 16px); }
 .status-section h2 { font-size: 16px; font-weight: 600; margin: 0 0 12px; color: var(--text-secondary); }
 
 .status-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }

@@ -143,6 +143,25 @@ export default function StatusPage() {
     return () => { document.title = 'River Signal' }
   }, [])
 
+  // Keep --status-header-h in sync with the sticky header's actual height
+  // so scroll-margin-top matches whatever it renders to (legend wrap, etc.).
+  useEffect(() => {
+    const root = document.documentElement
+    const measure = () => {
+      const header = document.querySelector('.status-header') as HTMLElement | null
+      if (header) root.style.setProperty('--status-header-h', `${header.offsetHeight}px`)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    const observer = new ResizeObserver(measure)
+    const header = document.querySelector('.status-header')
+    if (header) observer.observe(header)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer.disconnect()
+    }
+  }, [loading])
+
   useEffect(() => {
     fetch(`${API}/data-status`)
       .then(r => r.json())
@@ -197,6 +216,15 @@ export default function StatusPage() {
         </Link>
         <h1 className="status-title">Data Platform Status</h1>
         <Link to="/" className="status-back-link">← Back to home</Link>
+        <nav className="status-toc" aria-label="Jump to section">
+          <a href="#ingested">Ingested Sources</a>
+          <a href="#enrichment">Enrichment Pipelines</a>
+          <a href="#live">Live API Sources</a>
+          <a href="#bronze">Bronze Layer</a>
+          <a href="#silver">Silver Layer</a>
+          <a href="#gold">Gold Layer</a>
+          <a href="#curated">Curated Data</a>
+        </nav>
         <div className="status-stats">
           <div className="status-stat">
             <span className="status-stat-value">{sourceCount}</span>
@@ -228,7 +256,7 @@ export default function StatusPage() {
       ) : (
         <>
           {/* ── Ingested Data Sources ── */}
-          <section className="status-section">
+          <section id="ingested" className="status-section">
             <h2>Ingested Data Sources ({sources.length})</h2>
             <div className="status-table-wrap">
               <table className="status-table">
@@ -267,7 +295,7 @@ export default function StatusPage() {
           </section>
 
           {/* ── Enrichment Pipelines ── */}
-          <section className="status-section">
+          <section id="enrichment" className="status-section">
             <h2>Enrichment Pipelines ({enrichmentCount})</h2>
             <p className="status-layer-desc">Post-ingestion pipelines that resolve images, 3D models, and media from museum collections.</p>
             <div className="status-table-wrap">
@@ -291,7 +319,7 @@ export default function StatusPage() {
           </section>
 
           {/* ── Live API Sources ── */}
-          <section className="status-section">
+          <section id="live" className="status-section">
             <h2>Live API Sources ({LIVE_SOURCES.length})</h2>
             <div className="status-table-wrap">
               <table className="status-table">
@@ -314,7 +342,7 @@ export default function StatusPage() {
           </section>
 
           {/* ── Bronze Tables ── */}
-          <section className="status-section">
+          <section id="bronze" className="status-section">
             <h2>Bronze Layer — Raw Ingested Tables ({Object.keys(bronzeTables).length})</h2>
             <p className="status-layer-desc">Raw data as received from upstream sources. Indexed by site, timestamp, and data source.</p>
             <div className="status-table-wrap">
@@ -342,7 +370,7 @@ export default function StatusPage() {
           </section>
 
           {/* ── Silver Views ── */}
-          <section className="status-section">
+          <section id="silver" className="status-section">
             <h2>Silver Layer — Cleaned & Standardized Views ({Object.keys(silverTables).length})</h2>
             <p className="status-layer-desc">Unified, deduplicated, and normalized data across all sources.</p>
             <div className="status-table-wrap">
@@ -364,7 +392,7 @@ export default function StatusPage() {
           </section>
 
           {/* ── Gold Views ── */}
-          <section className="status-section">
+          <section id="gold" className="status-section">
             <h2>Gold Layer — Business Aggregates ({Object.keys(goldTables).length})</h2>
             <p className="status-layer-desc">Feature-ready aggregations powering the RiverPath, DeepTrail, and RiverSignal apps.</p>
             <div className="status-table-wrap">
@@ -387,7 +415,7 @@ export default function StatusPage() {
 
           {/* ── Manually Curated Data ── */}
           {curated.length > 0 && (
-            <section className="status-section">
+            <section id="curated" className="status-section">
               <h2>Manually Curated Data ({curated.length})</h2>
               <p className="status-layer-desc">Hand-built datasets created from expert knowledge, fly fishing literature, and local business directories.</p>
               <div className="status-table-wrap">

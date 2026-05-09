@@ -50,7 +50,7 @@ export default function LandingPage() {
         </p>
       </header>
 
-      <p className="landing-powers-label">Liquid Marble powers:</p>
+      <p className="landing-powers-label">Apps built on Liquid Marble:</p>
       <div className="landing-grid">
         {products.map(p => (
           <Link to={p.path} key={p.name} className="product-card" style={{ '--accent': p.color } as React.CSSProperties}>
@@ -71,7 +71,7 @@ export default function LandingPage() {
       </div>
 
       <footer className="landing-footer">
-        <Link to="/status" className="landing-status-link">View data status →</Link>
+        <Link to="/status" className="landing-status-link">View Data Status →</Link>
         <p className="landing-note">
           Powered by dozens of curated public data sources and thoughtful use of artificial intelligence.
         </p>
