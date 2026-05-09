@@ -89,6 +89,8 @@ class ObservationCreate(BaseModel):
     category: str | None = None
     notes: str | None = None
     watershed: str | None = None
+    visibility: str = "public"
+    scientific_name: str | None = None
 
     @field_validator('source_app')
     @classmethod
@@ -103,6 +105,13 @@ class ObservationCreate(BaseModel):
         if v and v.lower() not in ALLOWED_CATEGORIES:
             raise ValueError(f'category must be one of {ALLOWED_CATEGORIES}')
         return v.lower() if v else v
+
+    @field_validator('visibility')
+    @classmethod
+    def validate_visibility(cls, v: str) -> str:
+        if v not in ("public", "private"):
+            raise ValueError('visibility must be "public" or "private"')
+        return v
 
     @field_validator('latitude')
     @classmethod
@@ -136,6 +145,7 @@ def create_user_observation(body: ObservationCreate, request: Request):
     # Sanitize text inputs
     body.species_name = _sanitize_text(body.species_name)
     body.common_name = _sanitize_text(body.common_name)
+    body.scientific_name = _sanitize_text(body.scientific_name)
     body.notes = _sanitize_text(body.notes, 1000)
     body.watershed = _sanitize_text(body.watershed, 50)
 
@@ -214,12 +224,14 @@ def create_user_observation(body: ObservationCreate, request: Request):
         conn.execute(text("""
             INSERT INTO user_observations
                 (id, source_app, photo_path, photo_thumbnail, latitude, longitude, location,
-                 observed_at, species_name, common_name, category, notes, watershed)
+                 observed_at, species_name, common_name, category, notes, watershed,
+                 visibility, scientific_name)
             VALUES
                 (:id, :app, :photo, :thumb, :lat, :lon,
                  CASE WHEN :lat IS NOT NULL AND :lon IS NOT NULL
                       THEN ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) ELSE NULL END,
-                 :obs_at, :species, :common, :cat, :notes, :ws)
+                 :obs_at, :species, :common, :cat, :notes, :ws,
+                 :visibility, :sci_name)
         """), {
             "id": obs_id, "app": body.source_app,
             "photo": photo_path, "thumb": thumb_path,
@@ -228,6 +240,8 @@ def create_user_observation(body: ObservationCreate, request: Request):
             "species": body.species_name, "common": body.common_name,
             "cat": body.category, "notes": body.notes,
             "ws": body.watershed,
+            "visibility": body.visibility,
+            "sci_name": body.scientific_name,
         })
 
         # 2. Also insert into bronze observations table
@@ -298,6 +312,7 @@ def create_user_observation(body: ObservationCreate, request: Request):
                         "source": source_type,
                         "notes": body.notes or "",
                         "app": body.source_app,
+                        "visibility": body.visibility,
                     }),
                 })
           except Exception as e:
@@ -318,8 +333,8 @@ def list_user_observations(
     watershed: str | None = Query(None),
     limit: int = Query(100, le=500),
 ):
-    """List user-submitted observations."""
-    conditions = ["source_app = :app"]
+    """List user-submitted observations (excludes private observations)."""
+    conditions = ["source_app = :app", "COALESCE(visibility, 'public') = 'public'"]
     params: dict = {"app": source_app, "limit": limit}
 
     if watershed:
@@ -358,7 +373,8 @@ def user_observations_geojson(
     limit: int = Query(500, le=5000),
 ):
     """Return all user-submitted observations as GeoJSON for map display."""
-    conditions = ["latitude IS NOT NULL AND longitude IS NOT NULL"]
+    conditions = ["latitude IS NOT NULL AND longitude IS NOT NULL",
+                   "COALESCE(visibility, 'public') = 'public'"]
     params: dict = {"limit": limit}
 
     if watershed:
@@ -456,11 +472,14 @@ def species_typeahead(
             rows = conn.execute(text("""
                 SELECT DISTINCT
                     COALESCE(common_name, taxon_name) as name,
+                    taxon_name as scientific_name,
                     COALESCE(taxonomic_group, 'Unknown') as type
                 FROM gold.species_gallery
                 WHERE (common_name ILIKE :q OR taxon_name ILIKE :q)
                 ORDER BY name
                 LIMIT :limit
             """), {"q": pattern, "limit": limit}).fetchall()
+
+            return [{"name": r[0], "scientific_name": r[1] or "", "type": r[2]} for r in rows if r[0]]
 
     return [{"name": r[0], "type": r[1]} for r in rows if r[0]]

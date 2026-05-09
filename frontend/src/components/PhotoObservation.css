@@ -147,6 +147,32 @@
   background: #d4a96a; color: #1a1612; border-color: #d4a96a;
 }
 
+/* Scientific name (read-only) */
+.photo-scientific-name {
+  font-size: 0.85rem; font-style: italic; color: #555;
+  padding: 6px 0;
+}
+.photo-overlay.dark .photo-scientific-name { color: #a89880; }
+
+/* Visibility toggle */
+.photo-visibility-toggle {
+  display: flex; gap: 0; border-radius: 8px; overflow: hidden;
+  border: 1px solid #e0ddd8;
+}
+.photo-overlay.dark .photo-visibility-toggle { border-color: #3d3328; }
+.photo-vis-btn {
+  flex: 1; padding: 8px 0; border: none; background: transparent;
+  font-family: inherit; font-size: 0.82rem; font-weight: 500;
+  cursor: pointer; color: #888; transition: all 0.15s;
+}
+.photo-vis-btn.active {
+  background: #1a6b4a; color: #fff;
+}
+.photo-overlay.dark .photo-vis-btn { color: #6b5f4f; }
+.photo-overlay.dark .photo-vis-btn.active {
+  background: #d4a96a; color: #1a1612;
+}
+
 /* Typeahead dropdown */
 .photo-typeahead {
   position: absolute;

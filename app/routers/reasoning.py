@@ -82,6 +82,7 @@ def generate_ecological_summary(watershed: str, request: SummaryRequest = None):
                    data_payload->>'common_name' as common_name
             FROM observations
             WHERE site_id = :sid
+              AND COALESCE(data_payload->>'visibility','public') != 'private'
             ORDER BY observed_at DESC LIMIT 10
         """), {"sid": site[0]}).fetchall()
 

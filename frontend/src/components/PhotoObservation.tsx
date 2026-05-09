@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useAuth } from './AuthContext'
+import { useSaved } from './SavedContext'
 import { LoginNudge } from './LoginModal'
 import { API_BASE } from '../config'
 import './PhotoObservation.css'
@@ -10,8 +11,19 @@ interface PhotoObservationProps {
   onSaved?: () => void
 }
 
-const RP_CATEGORIES = ['Fish', 'Bird', 'Insect', 'Plant', 'Mammal', 'Amphibian', 'Other']
 const DT_CATEGORIES = ['Fossil', 'Rock', 'Mineral', 'Crystal', 'Landscape', 'Other']
+
+/** Map typeahead taxonomic_group / type values to a category string. */
+const TYPE_TO_CATEGORY: Record<string, string> = {
+  fish: 'fish', actinopterygii: 'fish',
+  bird: 'bird', birds: 'bird', aves: 'bird',
+  insect: 'insect', insects: 'insect', insecta: 'insect',
+  plant: 'plant', plants: 'plant', plantae: 'plant',
+  mammal: 'mammal', mammals: 'mammal', mammalia: 'mammal',
+  amphibian: 'amphibian', amphibians: 'amphibian', amphibia: 'amphibian',
+  reptile: 'reptile', reptiles: 'reptile', reptilia: 'reptile',
+  fossil: 'fossil', rock: 'rock', mineral: 'mineral', crystal: 'crystal',
+}
 
 interface ExifData {
   lat: number | null
@@ -133,11 +145,13 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
   const [longitude, setLongitude] = useState<string>('')
   const [dateTime, setDateTime] = useState<string>('')
   const [speciesName, setSpeciesName] = useState('')
+  const [scientificName, setScientificName] = useState('')
   const [category, setCategory] = useState('')
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [typeaheadResults, setTypeaheadResults] = useState<{ name: string; type: string }[]>([])
+  const [typeaheadResults, setTypeaheadResults] = useState<{ name: string; type: string; scientific_name?: string }[]>([])
   const [showTypeahead, setShowTypeahead] = useState(false)
 
   const fileRef = useRef<HTMLInputElement>(null)
@@ -145,7 +159,7 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
   const [showSourcePicker, setShowSourcePicker] = useState(false)
   const typeaheadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const categories = app === 'deeptrail' ? DT_CATEGORIES : RP_CATEGORIES
+  const categories = app === 'deeptrail' ? DT_CATEGORIES : null
 
   const reset = useCallback(() => {
     setPhotoPreview(null)
@@ -154,7 +168,9 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
     setLongitude('')
     setDateTime('')
     setSpeciesName('')
+    setScientificName('')
     setCategory('')
+    setVisibility('public')
     setNotes('')
     setSuccess(false)
     setTypeaheadResults([])
@@ -207,6 +223,9 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
   // Typeahead search
   const handleSpeciesInput = useCallback((val: string) => {
     setSpeciesName(val)
+    // Clear auto-set values when user edits the species field
+    setScientificName('')
+    if (app !== 'deeptrail') setCategory('')
     if (typeaheadTimeout.current) clearTimeout(typeaheadTimeout.current)
     if (val.length < 2) { setTypeaheadResults([]); setShowTypeahead(false); return }
 
@@ -217,6 +236,8 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
         .catch(() => {})
     }, 300)
   }, [app])
+
+  const { save: saveToSaved } = useSaved()
 
   const handleSubmit = useCallback(async () => {
     if (!speciesName && !category) return
@@ -233,15 +254,27 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
           latitude: latitude ? parseFloat(latitude) : null,
           longitude: longitude ? parseFloat(longitude) : null,
           observed_at: dateTime ? new Date(dateTime).toISOString() : null,
-          species_name: speciesName || null,
+          species_name: scientificName || speciesName || null,
           common_name: speciesName || null,
-          category: category.toLowerCase() || null,
+          category: category || null,
           notes: notes || null,
           watershed: watershed || null,
+          visibility,
+          scientific_name: scientificName || null,
         }),
       })
 
       if (resp.ok) {
+        const data = await resp.json()
+        // Save to local Saved list
+        saveToSaved({
+          type: 'observation',
+          id: data.id,
+          watershed: watershed || 'other',
+          label: speciesName || category || 'Observation',
+          sublabel: scientificName || undefined,
+          thumbnail: data.photo_url || undefined,
+        })
         setSuccess(true)
         onSaved?.()
         setTimeout(() => { setIsOpen(false); reset() }, 1500)
@@ -251,7 +284,7 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
     } finally {
       setSubmitting(false)
     }
-  }, [app, photoBase64, latitude, longitude, dateTime, speciesName, category, notes, watershed, onSaved, reset])
+  }, [app, photoBase64, latitude, longitude, dateTime, speciesName, scientificName, category, visibility, notes, watershed, onSaved, reset, saveToSaved])
 
   const isDark = app === 'deeptrail'
   const { isLoggedIn } = useAuth()
@@ -374,7 +407,15 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
                     <div className="photo-typeahead">
                       {typeaheadResults.map((r, i) => (
                         <button key={i} className="photo-typeahead-item"
-                          onMouseDown={() => { setSpeciesName(r.name); setShowTypeahead(false) }}>
+                          onMouseDown={() => {
+                            setSpeciesName(r.name)
+                            setShowTypeahead(false)
+                            // Auto-set category from taxonomic group
+                            const mapped = TYPE_TO_CATEGORY[r.type.toLowerCase()]
+                            if (mapped) setCategory(mapped)
+                            // Auto-tag scientific name
+                            if (r.scientific_name) setScientificName(r.scientific_name)
+                          }}>
                           <span className="photo-ta-name">{r.name}</span>
                           <span className="photo-ta-type">{r.type}</span>
                         </button>
@@ -383,17 +424,42 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
                   )}
                 </div>
 
-                {/* Category chips */}
+                {/* Category chips — only for DeepTrail (RiverPath auto-selects from typeahead) */}
+                {categories && (
+                  <div className="photo-field">
+                    <label>Category</label>
+                    <div className="photo-chips">
+                      {categories.map(c => (
+                        <button key={c}
+                          className={`photo-chip ${category === c.toLowerCase() ? 'active' : ''}`}
+                          onClick={() => setCategory(category === c.toLowerCase() ? '' : c.toLowerCase())}>
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Auto-detected scientific name (read-only display) */}
+                {scientificName && (
+                  <div className="photo-field">
+                    <label>Scientific name</label>
+                    <div className="photo-scientific-name">{scientificName}</div>
+                  </div>
+                )}
+
+                {/* Visibility toggle */}
                 <div className="photo-field">
-                  <label>Category</label>
-                  <div className="photo-chips">
-                    {categories.map(c => (
-                      <button key={c}
-                        className={`photo-chip ${category === c ? 'active' : ''}`}
-                        onClick={() => setCategory(category === c ? '' : c)}>
-                        {c}
-                      </button>
-                    ))}
+                  <label>Visibility</label>
+                  <div className="photo-visibility-toggle">
+                    <button
+                      className={`photo-vis-btn ${visibility === 'public' ? 'active' : ''}`}
+                      onClick={() => setVisibility('public')}
+                    >Public</button>
+                    <button
+                      className={`photo-vis-btn ${visibility === 'private' ? 'active' : ''}`}
+                      onClick={() => setVisibility('private')}
+                    >Private</button>
                   </div>
                 </div>
 

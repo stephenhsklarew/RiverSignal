@@ -123,6 +123,7 @@ def river_replay(watershed: str, days_ago: int = Query(30, ge=7, le=365)):
             SELECT count(*) FROM observations o
             JOIN sites s ON o.site_id = s.id
             WHERE s.watershed = :ws AND o.observed_at > now() - make_interval(days => :days)
+              AND COALESCE(o.data_payload->>'visibility','public') != 'private'
         """), {"ws": watershed, "days": days_ago}).scalar() or 0
 
         # Invasive changes
@@ -677,6 +678,7 @@ def time_machine(watershed: str):
             FROM observations o
             JOIN sites s ON o.site_id = s.id
             WHERE s.watershed = :ws AND o.observed_at IS NOT NULL
+              AND COALESCE(o.data_payload->>'visibility','public') != 'private'
             GROUP BY obs_year
             ORDER BY obs_year
         """), {"ws": watershed}).fetchall()
@@ -691,6 +693,7 @@ def time_machine(watershed: str):
                 FROM observations o JOIN sites s ON o.site_id = s.id
                 WHERE s.watershed = :ws AND EXTRACT(YEAR FROM o.observed_at) = :yr
                   AND o.taxon_name IS NOT NULL
+                  AND COALESCE(o.data_payload->>'visibility','public') != 'private'
                 GROUP BY o.taxon_name, o.data_payload->>'common_name', o.data_payload->>'photo_url'
                 ORDER BY cnt DESC LIMIT 5
             """), {"ws": watershed, "yr": yr}).fetchall()

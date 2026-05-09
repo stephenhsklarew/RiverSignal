@@ -108,7 +108,7 @@ def list_sites():
     with engine.connect() as conn:
         rows = conn.execute(text("""
             SELECT s.id, s.name, s.watershed, s.bbox,
-                   (SELECT count(*) FROM observations o WHERE o.site_id = s.id) as observations,
+                   (SELECT count(*) FROM observations o WHERE o.site_id = s.id AND COALESCE(o.data_payload->>'visibility','public') != 'private') as observations,
                    (SELECT count(*) FROM time_series t WHERE t.site_id = s.id) as time_series,
                    (SELECT count(*) FROM interventions i WHERE i.site_id = s.id) as interventions
             FROM sites s ORDER BY s.name
@@ -243,6 +243,7 @@ def search_observations(
                   AND (o.taxon_name ILIKE :q
                        OR o.data_payload->>'common_name' ILIKE :q
                        OR o.iconic_taxon ILIKE :q)
+                  AND COALESCE(o.data_payload->>'visibility','public') != 'private'
                 ORDER BY ST_Distance(
                     o.location::geography,
                     ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography)
@@ -270,6 +271,7 @@ def search_observations(
                   AND (o.taxon_name ILIKE :q
                        OR o.data_payload->>'common_name' ILIKE :q
                        OR o.iconic_taxon ILIKE :q)
+                  AND COALESCE(o.data_payload->>'visibility','public') != 'private'
                 ORDER BY o.observed_at DESC
                 LIMIT :limit
             """), {"site_id": site[0], "q": pattern, "limit": limit}).fetchall()
