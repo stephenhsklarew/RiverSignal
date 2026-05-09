@@ -1,12 +1,11 @@
 .saved-page { padding: 0 16px 72px; max-width: 600px; margin: 0 auto; }
-.saved-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px 0; position: sticky; top: 0; z-index: 10;
-  background: var(--bg, #fff);
+.saved-page > section:first-of-type,
+.saved-page > .saved-empty-state { margin-top: 16px; }
+.saved-empty-state {
+  padding: 60px 20px; text-align: center;
 }
-.saved-header-logo { height: 24px; width: auto; }
-.saved-header-title { font-size: 15px; font-weight: 500; }
-.saved-empty { color: var(--text-muted); font-size: 14px; margin-top: 32px; }
+.saved-empty-icon { font-size: 2.5rem; color: var(--text-muted); margin-bottom: 12px; }
+.saved-empty-text { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 
 .saved-group { margin-bottom: 24px; }
 .saved-group-title {

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
 import { API_BASE } from '../config'
@@ -44,19 +43,10 @@ export default function StewardPage() {
   const timeline = story?.timeline || []
   const council = COUNCIL_LINKS[ws]
 
-  const handleShare = (name: string, before: number, after: number) => {
-    const text = `${name}: ${before} species before → ${after} species after restoration. See the impact at RiverPath.`
-    if (navigator.share) {
-      navigator.share({ title: name, text }).catch(() => {})
-    } else {
-      navigator.clipboard.writeText(text)
-    }
-  }
 
   return (
     <div className="steward-page">
       <WatershedHeader watershed={ws} basePath="/path/steward" />
-      <h1 className="steward-title">Stewardship</h1>
 
       {/* ── Restoration Impact Hero ── */}
       {impact && (
@@ -121,46 +111,6 @@ export default function StewardPage() {
               </div>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* ── Restoration Outcomes ── */}
-      {data?.outcomes?.length > 0 && (
-        <section className="steward-section">
-          <h2 className="steward-section-title">Restoration Outcomes</h2>
-          {data.outcomes.map((o: any, i: number) => (
-            <div key={i} className="outcome-card">
-              <div className="outcome-header">
-                <div className="outcome-title-row">
-                  <span className="outcome-icon">{CATEGORY_ICONS[o.category?.toLowerCase()] || '♻'}</span>
-                  <div>
-                    <div className="outcome-name">{o.name}</div>
-                    <div className="outcome-meta">{o.category} · {o.year}</div>
-                  </div>
-                </div>
-                <div className="outcome-actions">
-                  <SaveButton item={{ type: 'restoration', id: `${ws}-${o.name}-${o.year}`, watershed: ws, label: o.name, sublabel: `${o.category} · ${o.year}` }} />
-                  <button className="outcome-cta" onClick={() => handleShare(o.name, o.species_before, o.species_after)} title="Share">↗ Share</button>
-                </div>
-              </div>
-              <div className="outcome-comparison">
-                <div className="outcome-before">
-                  <span className="outcome-count">{o.species_before}</span>
-                  <span className="outcome-label">species before</span>
-                </div>
-                <div className="outcome-arrow">→</div>
-                <div className="outcome-after">
-                  <span className="outcome-count">{o.species_after}</span>
-                  <span className="outcome-label">species after</span>
-                </div>
-                {o.species_before > 0 && o.species_after > o.species_before && (
-                  <div className="outcome-delta">
-                    +{Math.round(((o.species_after - o.species_before) / o.species_before) * 100)}%
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
         </section>
       )}
 

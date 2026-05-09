@@ -60,6 +60,7 @@
   top: 58px;
   z-index: 89;
   white-space: nowrap;
+  border-bottom: 1px solid var(--border);
 }
 
 .home-nav-link {

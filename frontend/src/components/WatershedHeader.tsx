@@ -31,9 +31,11 @@ interface WatershedHeaderProps {
   basePath: string
   /** Hide the embedded UserMenu — caller will render its own. */
   hideUserMenu?: boolean
+  /** Optional handler for the settings (⚙) button. If omitted, the button is hidden. */
+  onSettingsClick?: () => void
 }
 
-export default function WatershedHeader({ watershed, basePath, hideUserMenu }: WatershedHeaderProps) {
+export default function WatershedHeader({ watershed, basePath, hideUserMenu, onSettingsClick }: WatershedHeaderProps) {
   const navigate = useNavigate()
   const [showPicker, setShowPicker] = useState(false)
 
@@ -51,6 +53,9 @@ export default function WatershedHeader({ watershed, basePath, hideUserMenu }: W
           {WATERSHED_LABELS[watershed] || watershed} <span className="ws-header-caret">▾</span>
         </button>
         {!hideUserMenu && <UserMenu />}
+        {onSettingsClick && (
+          <button className="ws-header-settings" onClick={onSettingsClick} title="Customize cards">⚙</button>
+        )}
       </div>
 
       {showPicker && (

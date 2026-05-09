@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
-import { tempF } from '../utils/temp'
 import { API_BASE } from '../config'
 import './HatchPage.css'
 
@@ -42,10 +41,6 @@ export default function HatchPage() {
   return (
     <div className="hatch-page">
       <WatershedHeader watershed={ws} basePath="/path/hatch" />
-      <h1 className="hatch-title">Hatch Intelligence</h1>
-      {hatch?.water_temp_c != null && (
-        <div className="hatch-temp">Current water: {tempF(hatch.water_temp_c)}</div>
-      )}
 
       {/* This Month */}
       <section className="hatch-section">

@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
-import UserMenu from '../components/UserMenu'
 import { CardSettingsPanel, loadCardSettings, type CardConfig } from '../components/CardSettings'
 import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
@@ -389,11 +388,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   return (
     <div className="rnow">
       <style dangerouslySetInnerHTML={{ __html: cardStyle }} />
-      <div className="rnow-header-row">
-        <WatershedHeader watershed={watershed} basePath="/path/now" hideUserMenu />
-        <UserMenu />
-        <button className="rnow-customize-btn" onClick={() => setShowSettings(true)} title="Customize cards">⚙</button>
-      </div>
+      <WatershedHeader watershed={watershed} basePath="/path/now" onSettingsClick={() => setShowSettings(true)} />
       {showSettings && (
         <CardSettingsPanel cards={cardConfig} onChange={setCardConfig} onClose={() => setShowSettings(false)} />
       )}

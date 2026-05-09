@@ -122,7 +122,6 @@ export default function ExplorePage() {
   return (
     <div className="explore-page">
       <WatershedHeader watershed={ws} basePath="/path/explore" />
-      <h1 className="explore-title">Explore</h1>
 
       {/* Search */}
       <div className="explore-search">
@@ -203,7 +202,7 @@ function AdventureCard({ site, ws }: { site: RecSite; ws: string }) {
           {amenities.season_start && amenities.season_end && (
             <span className="amenity-badge">📅 {amenities.season_start}–{amenities.season_end}</span>
           )}
-          {amenities.status && amenities.status !== 'OPEN' && (
+          {amenities.status && amenities.status.toUpperCase() !== 'OPEN' && (
             <span className="amenity-badge closed">⚠ {amenities.status}</span>
           )}
         </div>

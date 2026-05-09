@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useSaved, type SavedItem } from '../components/SavedContext'
-import rpLogo from '../assets/riverpath-logo.svg'
+import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import './SavedPage.css'
 
 const TYPE_ICONS: Record<SavedItem['type'], string> = {
@@ -30,17 +30,20 @@ export default function SavedPage() {
   }
   const watershedKeys = Object.keys(byWatershed).sort()
 
+  const headerWs = getSelectedWatershed() || 'mckenzie'
+
   return (
     <div className="saved-page">
-      <div className="saved-header">
-        <img src={rpLogo} alt="RiverPath" className="saved-header-logo" />
-        <span className="saved-header-title">Saved</span>
-      </div>
+      <WatershedHeader watershed={headerWs} basePath="/path/now" />
 
       {all.length === 0 ? (
-        <p className="saved-empty">
-          Nothing saved yet — tap the heart icon on any card to save it here.
-        </p>
+        <div className="saved-empty-state">
+          <div className="saved-empty-icon">♥</div>
+          <div className="saved-empty-text">
+            No saved items yet.<br />
+            Tap the heart icon on any reach, species, fly, or recreation site to save it here.
+          </div>
+        </div>
       ) : (
         watershedKeys.map(ws => (
           <section key={ws} className="saved-group">

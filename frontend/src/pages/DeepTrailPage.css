@@ -149,7 +149,7 @@
 .dt-ws-arrow { color: #6b5f4f; font-size: 1.2rem; flex-shrink: 0; }
 
 /* ── Screen 2: Location Detail ── */
-.dt-content { padding: 0 20px 40px; max-width: 720px; margin: 0 auto; }
+.dt-content { padding: 16px 20px 40px; max-width: 720px; margin: 0 auto; }
 .dt-loading { padding: 60px 20px; text-align: center; color: #8a7e6e; font-style: italic; }
 
 .dt-loc-hero { margin-bottom: 20px; }
@@ -635,6 +635,6 @@
 
 @media (min-width: 768px) {
   .dt-title { font-size: 2rem; }
-  .dt-content { padding: 0 40px 60px; }
+  .dt-content { padding: 16px 40px 60px; }
   .dt-pick-content { max-width: 520px; }
 }
