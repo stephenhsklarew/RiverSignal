@@ -206,10 +206,11 @@ export default function ExploreMapPage() {
 
   return (
     <div className="explore-map-page">
+      <WatershedHeader watershed={ws} basePath="/path/explore-map" />
+
       <div className="explore-map-top">
         <button className="explore-map-back" onClick={() => navigate(`/path/explore/${ws}`)}>← Explore List</button>
       </div>
-      <WatershedHeader watershed={ws} basePath="/path/explore-map" />
 
       {/* Type filter */}
       <div className="explore-map-filters">

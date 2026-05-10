@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import SaveButton from '../components/SaveButton'
@@ -178,7 +179,13 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [whatsAlive, setWhatsAlive] = useState<any[]>([])
   const [geology, setGeology] = useState<any[]>([])
   const [fossils, setFossils] = useState<any[]>([])
-  const [weather, setWeather] = useState<any>(null)
+  // SWR spike: weather is the first card on RiverNowPage to use stale-while-revalidate.
+  // Initial load is from cache (instant on tab return), and a background fetch updates it.
+  // dedupingInterval matches the upstream NWS update cadence (~hourly).
+  const { data: weather } = useSWR<any>(
+    `/sites/${watershed}/weather`,
+    { dedupingInterval: 30 * 60_000 } // 30 min — weather doesn't change minute-to-minute
+  )
   const [liveConditions, setLiveConditions] = useState<any>(null)
   const [stocking, setStocking] = useState<any[]>([])
   const [snowpack, setSnowpack] = useState<any>(null)
@@ -229,7 +236,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     fetch(`${API}/sites/${watershed}/recreation`).then(r => r.json()).then(d => setAccessPoints((d || []).slice(0, 8)))
     fetch(`${API}/sites/${watershed}/species?limit=6`).then(r => r.json()).then(setWhatsAlive)
     // Live conditions + weather + stocking
-    fetch(`${API}/sites/${watershed}/weather`).then(r => r.json()).then(setWeather).catch(() => {})
+    // weather: handled by useSWR above (cached, focus-revalidated)
     fetch(`${API}/sites/${watershed}/conditions/live`).then(r => r.json()).then(setLiveConditions).catch(() => {})
     fetch(`${API}/sites/${watershed}/fishing/stocking`).then(r => r.json()).then(setStocking).catch(() => {})
     fetch(`${API}/sites/${watershed}/snowpack`).then(r => r.json()).then(setSnowpack).catch(() => {})
@@ -443,7 +450,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   <span className={`rnow-metric-value confidence-${hatchConfidence}`}>
                     {hatchConfidence.charAt(0).toUpperCase() + hatchConfidence.slice(1)}
                   </span>
-                  <span className="rnow-metric-label">Hatch <InfoTooltip text="Hatch confidence tells you how likely insects are emerging right now. HIGH means we're in the peak emergence window based on water temperature accumulation this season. MEDIUM means insects are active but not at peak. This is calculated from degree-day models, not just the calendar." /></span>
+                  <span className="rnow-metric-label">Hatch <InfoTooltip text="How likely insects are emerging right now, based on accumulated water temperature this season (degree-day models). HIGH means peak emergence window. MEDIUM means insects are active but not at peak." /></span>
                 </div>
               )}
               {todayWeather && (
@@ -454,7 +461,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               )}
             </div>
             {health.score != null && (
-              <div className="rnow-hero-score">Health Score: <strong>{health.score}</strong>/100 <InfoTooltip text="This score is calculated by analyzing real-time water temperature and dissolved oxygen levels from USGS stream gauges, compared against historical averages for this time of year. Warmer water or lower oxygen levels bring the score down. We also factor in how many different species have been observed recently — more species generally means a healthier river." /></div>
+              <div className="rnow-hero-score">Health Score: <strong>{health.score}</strong>/100 <InfoTooltip text="Overall river health from 0 to 100, based on real-time water temperature and dissolved oxygen from USGS gauges compared to historical averages. Recent species diversity is also factored in — more species generally means a healthier river." /></div>
             )}
             {liveTemp && (
               <div className="rnow-hero-station">{liveTemp.station} · {new Date(liveTemp.timestamp).toLocaleTimeString()}</div>
@@ -506,7 +513,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {catchProb && (
             <div className="rnow-catch-prob">
               <div className="rnow-catch-header">
-                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="Each species gets a catch score based on current water temperature compared to its preferred range, seasonal patterns from fisheries data, how active the insect hatches are right now, whether fish were recently stocked, and whether cold-water refuges are nearby. Higher scores mean conditions are more favorable for that species today." /></span>
+                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How favorable conditions are for catching each species today. Scored using current water temperature vs. preferred range, seasonal fisheries patterns, active insect hatches, recent stocking, and cold-water refuge proximity." /></span>
                 <span className={`rnow-catch-score ${catchProb.overall_level}`}>{catchProb.overall_score}</span>
               </div>
               <div className="rnow-catch-species">
@@ -528,7 +535,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── What Fish Are Eating ── */}
           {spotter && spotter.species?.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="We predict which aquatic insects are likely hatching right now by tracking accumulated water temperature over the season (called 'degree days'). Each insect species emerges when the water has warmed enough — not by calendar date. We combine this with real observation data from citizen scientists and curated hatch charts from expert fly fishing guides." /></div>
+              <div className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="Predicted insect hatches based on accumulated water temperature this season (degree-day models). Each species emerges when the water has warmed enough, not by calendar date. Combined with citizen science observations and expert hatch charts." /></div>
               <div className="rnow-spotter-grid">
                 {spotter.species.slice(0, 6).map((s: any, i: number) => (
                   <div key={i} className="rnow-spotter-card">
@@ -980,7 +987,7 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
 
   return (
     <>
-      <div className="rnow-story-label">River Story <InfoTooltip text="This story is written by AI (Claude) using real data from this watershed — species counts, water quality readings, fire recovery trajectories, and restoration project outcomes. It's regenerated periodically as new data comes in. The audio narration is generated by OpenAI's voice model." /></div>
+      <div className="rnow-story-label">River Story <InfoTooltip text="AI-generated narrative using real watershed data — species counts, water quality, fire recovery, and restoration outcomes. Regenerated periodically as new data arrives. Audio narration by OpenAI voice." /></div>
       <section className="rnow-story-card">
         {/* Reading level toggle + audio */}
         <div className="rnow-story-controls">

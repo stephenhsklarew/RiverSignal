@@ -1,6 +1,8 @@
 import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { SWRConfig } from 'swr'
+import { swrDefault } from './lib/swr'
 import { SavedProvider } from './components/SavedContext'
 import { DeepTrailProvider } from './components/DeepTrailContext'
 import { AuthProvider, useAuth } from './components/AuthContext'
@@ -86,6 +88,7 @@ function ConditionalBottomNav() {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <SWRConfig value={swrDefault}>
       <AuthProvider>
       <SavedProvider>
         <DeepTrailProvider>
@@ -146,6 +149,7 @@ createRoot(document.getElementById('root')!).render(
         </DeepTrailProvider>
       </SavedProvider>
       </AuthProvider>
+      </SWRConfig>
     </BrowserRouter>
   </StrictMode>,
 )
