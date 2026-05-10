@@ -1,6 +1,7 @@
 """Data freshness endpoints: when pipelines last ran, layer status."""
 
 import json
+from datetime import datetime, timezone
 
 from fastapi import APIRouter
 from sqlalchemy import text
@@ -9,6 +10,67 @@ from sqlalchemy.engine import Connection
 from pipeline.db import engine
 
 router = APIRouter(tags=["data-status"])
+
+# Expected refresh cadence per source, in hours. Used to compute
+# fresh/stale/very-stale status indicators. Sources not listed here default
+# to 168h (weekly).
+SOURCE_REFRESH_HOURS: dict[str, float] = {
+    # Daily ingestion (cron at 02:00 PT)
+    "inaturalist": 24,
+    "usgs": 24,
+    "snotel": 24,
+    # Weekly ingestion (Mon 04:00 PT)
+    "fishing": 168,
+    "wqp": 168,
+    "washington": 168,
+    "utah": 168,
+    # Monthly ingestion (1st @ 05:00 PT)
+    "biodata": 720,
+    "wqp_bugs": 720,
+    "gbif": 720,
+    "recreation": 720,
+    "pbdb": 720,
+    "restoration": 720,
+    "prism": 720,
+    "streamnet": 720,
+    "idigbio": 720,
+    # Annually / rare
+    "macrostrat": 8760,
+    "blm_sma": 8760,
+    "dogami": 8760,
+    "mrds": 8760,
+    "mtbs": 4380,  # quarterly
+    "nhdplus": 8760,
+    "wbd": 8760,
+    "nwi": 8760,
+    "fish_barrier": 4380,
+    "deq_303d": 4380,
+}
+
+
+def _human_age(hours_ago: float) -> str:
+    if hours_ago < 1:
+        m = max(1, int(hours_ago * 60))
+        return f"{m} min ago"
+    if hours_ago < 24:
+        return f"{int(hours_ago)}h ago"
+    if hours_ago < 24 * 14:
+        return f"{int(hours_ago / 24)}d ago"
+    return f"{int(hours_ago / (24 * 7))}w ago"
+
+
+def _status_for(source: str, hours_ago: float | None) -> str:
+    """Return 'fresh' | 'stale' | 'very_stale' | 'unknown'."""
+    if hours_ago is None:
+        return "unknown"
+    cadence = SOURCE_REFRESH_HOURS.get(source, 168)
+    # Allow 1.5× the expected cadence before "stale", 3× before "very_stale".
+    # Daily-cadence sources thus stay green within 36h, daily 36-72h is yellow.
+    if hours_ago <= cadence * 1.5:
+        return "fresh"
+    if hours_ago <= cadence * 3:
+        return "stale"
+    return "very_stale"
 
 
 def compute_data_status(conn: Connection) -> dict:
@@ -273,3 +335,54 @@ def post_refresh_data_status():
     """Force-refresh the data-status cache."""
     payload = refresh_data_status_cache()
     return {"refreshed": True, "pipelines": len(payload.get("pipelines", []))}
+
+
+@router.get("/data-status/freshness")
+def get_freshness():
+    """Lightweight per-source freshness map for UI status indicators.
+
+    Returns one entry per ingested source with last_sync timestamp, age in
+    hours, a status bucket (fresh/stale/very_stale/unknown), and a human label.
+    Reads from the data_status_cache; falls back to live compute on cold start.
+    """
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT payload FROM data_status_cache WHERE id = 1")
+        ).fetchone()
+        if row is not None:
+            payload = row[0]
+        else:
+            payload = refresh_data_status_cache()
+
+    now = datetime.now(timezone.utc)
+    sources: dict[str, dict] = {}
+    for entry in payload.get("pipelines", []) or []:
+        src = entry.get("source")
+        last_sync_iso = entry.get("last_sync")
+        if not src:
+            continue
+        if last_sync_iso:
+            try:
+                ts = datetime.fromisoformat(last_sync_iso.replace("Z", "+00:00"))
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                hours_ago = (now - ts).total_seconds() / 3600.0
+                sources[src] = {
+                    "last_sync": last_sync_iso,
+                    "hours_ago": round(hours_ago, 1),
+                    "status": _status_for(src, hours_ago),
+                    "label": _human_age(hours_ago),
+                    "expected_cadence_hours": SOURCE_REFRESH_HOURS.get(src, 168),
+                }
+                continue
+            except Exception:
+                pass
+        sources[src] = {
+            "last_sync": None,
+            "hours_ago": None,
+            "status": "unknown",
+            "label": "—",
+            "expected_cadence_hours": SOURCE_REFRESH_HOURS.get(src, 168),
+        }
+
+    return {"sources": sources, "as_of": now.isoformat()}

@@ -19,6 +19,12 @@
   max-width: 360px; width: 100%;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   animation: info-fade-in 0.15s ease-out;
+  /* Don't inherit caller's text styling (e.g., uppercase metric labels). */
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 14px;
+  font-weight: 400;
+  color: #333;
 }
 .info-tooltip-card.dark { background: #2a2318; color: #e8e0d4; }
 @keyframes info-fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -38,3 +44,42 @@
   margin: 0;
 }
 .info-tooltip-card.dark .info-tooltip-text { color: #c4b8a8; }
+
+/* Inline freshness dot next to the ⓘ button */
+.info-tooltip-wrap { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+.info-tooltip-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #b8b3aa;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.info-tooltip-dot.fresh      { background: #1a8a4a; }
+.info-tooltip-dot.stale      { background: #d4a235; }
+.info-tooltip-dot.very_stale { background: #c4432b; }
+.info-tooltip-dot.unknown    { background: #b8b3aa; }
+
+/* Source list inside the popup */
+.info-tooltip-sources {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.info-tooltip-card.dark .info-tooltip-sources { border-top-color: #3d3328; }
+
+.info-tooltip-source-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-secondary, #555);
+}
+.info-tooltip-card.dark .info-tooltip-source-row { color: #c4b8a8; }
+
+.info-tooltip-source-name { flex: 1; }
+.info-tooltip-source-age {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11px;
+  color: var(--text-muted, #9e9b96);
+}

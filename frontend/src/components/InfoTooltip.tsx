@@ -1,28 +1,59 @@
 import { useState } from 'react'
+import { useFreshness, sourceLabel, rollupStatus, type FreshnessStatus } from '../hooks/useFreshness'
 import './InfoTooltip.css'
 
 interface InfoTooltipProps {
   text: string
   dark?: boolean
+  /** Source identifiers (e.g., 'usgs', 'snotel') for freshness dot + popup footer. */
+  sources?: string | string[]
 }
 
-export default function InfoTooltip({ text, dark }: InfoTooltipProps) {
+const STATUS_CLASS: Record<FreshnessStatus, string> = {
+  fresh: 'fresh',
+  stale: 'stale',
+  very_stale: 'very_stale',
+  unknown: 'unknown',
+}
+
+const STATUS_TITLE: Record<FreshnessStatus, string> = {
+  fresh: 'Data is fresh',
+  stale: 'Data is older than expected',
+  very_stale: 'Data is very stale',
+  unknown: 'Freshness unknown',
+}
+
+export default function InfoTooltip({ text, dark, sources }: InfoTooltipProps) {
   const [open, setOpen] = useState(false)
+  const freshness = useFreshness()
+
+  const sourceList = sources ? (Array.isArray(sources) ? sources : [sources]) : []
+  const status: FreshnessStatus =
+    sourceList.length > 0 ? rollupStatus(freshness, sourceList) : 'fresh'
 
   return (
     <>
-      <button
-        className={`info-tooltip-btn ${dark ? 'dark' : ''}`}
-        onClick={(e) => { e.stopPropagation(); setOpen(true) }}
-        title="How this works"
-        aria-label="How this works"
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
-          <circle cx="8" cy="4.6" r="0.95" fill="currentColor" />
-          <rect x="7.05" y="6.6" width="1.9" height="5.4" rx="0.6" fill="currentColor" />
-        </svg>
-      </button>
+      <span className="info-tooltip-wrap">
+        <button
+          className={`info-tooltip-btn ${dark ? 'dark' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setOpen(true) }}
+          title="How this works"
+          aria-label="How this works"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="8" cy="4.6" r="0.95" fill="currentColor" />
+            <rect x="7.05" y="6.6" width="1.9" height="5.4" rx="0.6" fill="currentColor" />
+          </svg>
+        </button>
+        {sourceList.length > 0 && (
+          <span
+            className={`info-tooltip-dot ${STATUS_CLASS[status]}`}
+            title={STATUS_TITLE[status]}
+            aria-label={STATUS_TITLE[status]}
+          />
+        )}
+      </span>
 
       {open && (
         <div className="info-tooltip-overlay" onClick={() => setOpen(false)}>
@@ -32,6 +63,30 @@ export default function InfoTooltip({ text, dark }: InfoTooltipProps) {
               <button className="info-tooltip-close" onClick={() => setOpen(false)}>✕</button>
             </div>
             <p className="info-tooltip-text">{text}</p>
+            {sourceList.length > 0 && freshness && (
+              <div className="info-tooltip-sources">
+                {sourceList.map(src => {
+                  const entry = freshness.sources[src]
+                  const label = sourceLabel(src)
+                  if (!entry) {
+                    return (
+                      <div key={src} className="info-tooltip-source-row">
+                        <span className={`info-tooltip-dot ${STATUS_CLASS.unknown}`} />
+                        <span className="info-tooltip-source-name">{label}</span>
+                        <span className="info-tooltip-source-age">—</span>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div key={src} className="info-tooltip-source-row">
+                      <span className={`info-tooltip-dot ${STATUS_CLASS[entry.status]}`} />
+                      <span className="info-tooltip-source-name">{label}</span>
+                      <span className="info-tooltip-source-age">{entry.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

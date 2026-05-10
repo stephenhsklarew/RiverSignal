@@ -439,7 +439,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   <span className={`rnow-metric-value confidence-${hatchConfidence}`}>
                     {hatchConfidence.charAt(0).toUpperCase() + hatchConfidence.slice(1)}
                   </span>
-                  <span className="rnow-metric-label">Hatch <InfoTooltip text="How likely insects are emerging right now, based on accumulated water temperature this season (degree-day models). HIGH means peak emergence window. MEDIUM means insects are active but not at peak." /></span>
+                  <span className="rnow-metric-label">Hatch <InfoTooltip text="How likely insects are emerging right now, based on accumulated water temperature this season (degree-day models). HIGH means peak emergence window. MEDIUM means insects are active but not at peak." sources={['snotel', 'usgs']} /></span>
                 </div>
               )}
               {todayWeather && (
@@ -450,7 +450,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               )}
             </div>
             {health.score != null && (
-              <div className="rnow-hero-score">Health Score: <strong>{health.score}</strong>/100 <InfoTooltip text="Overall river health from 0 to 100, based on real-time water temperature and dissolved oxygen from USGS gauges compared to historical averages. Recent species diversity is also factored in — more species generally means a healthier river." /></div>
+              <div className="rnow-hero-score">Health Score: <strong>{health.score}</strong>/100 <InfoTooltip text="Overall river health from 0 to 100, based on real-time water temperature and dissolved oxygen from USGS gauges compared to historical averages. Recent species diversity is also factored in — more species generally means a healthier river." sources={['usgs', 'inaturalist']} /></div>
             )}
             {liveTemp && (
               <div className="rnow-hero-station">{liveTemp.station} · {new Date(liveTemp.timestamp).toLocaleTimeString()}</div>
@@ -502,7 +502,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {catchProb && (
             <div className="rnow-catch-prob">
               <div className="rnow-catch-header">
-                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How favorable conditions are for catching each species today. Scored using current water temperature vs. preferred range, seasonal fisheries patterns, active insect hatches, recent stocking, and cold-water refuge proximity." /></span>
+                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How favorable conditions are for catching each species today. Scored using current water temperature vs. preferred range, seasonal fisheries patterns, active insect hatches, recent stocking, and cold-water refuge proximity." sources={['usgs', 'fishing', 'inaturalist']} /></span>
                 <span className={`rnow-catch-score ${catchProb.overall_level}`}>{catchProb.overall_score}</span>
               </div>
               <div className="rnow-catch-species">
@@ -524,7 +524,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── What Fish Are Eating ── */}
           {spotter && spotter.species?.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="Predicted insect hatches based on accumulated water temperature this season (degree-day models). Each species emerges when the water has warmed enough, not by calendar date. Combined with citizen science observations and expert hatch charts." /></div>
+              <div className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="Predicted insect hatches based on accumulated water temperature this season (degree-day models). Each species emerges when the water has warmed enough, not by calendar date. Combined with citizen science observations and expert hatch charts." sources={['usgs', 'wqp_bugs', 'inaturalist']} /></div>
               <div className="rnow-spotter-grid">
                 {spotter.species.slice(0, 6).map((s: any, i: number) => (
                   <div key={i} className="rnow-spotter-card">
@@ -976,7 +976,7 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
 
   return (
     <>
-      <div className="rnow-story-label">River Story <InfoTooltip text="AI-generated narrative using real watershed data — species counts, water quality, fire recovery, and restoration outcomes. Regenerated periodically as new data arrives. Audio narration by OpenAI voice." /></div>
+      <div className="rnow-story-label">River Story <InfoTooltip text="AI-generated narrative using real watershed data — species counts, water quality, fire recovery, and restoration outcomes. Regenerated periodically as new data arrives. Audio narration by OpenAI voice." sources={['inaturalist', 'usgs', 'restoration', 'mtbs']} /></div>
       <section className="rnow-story-card">
         {/* Reading level toggle + audio */}
         <div className="rnow-story-controls">
