@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useFreshness, sourceLabel, rollupStatus, type FreshnessStatus } from '../hooks/useFreshness'
 import './InfoTooltip.css'
 
@@ -55,7 +56,7 @@ export default function InfoTooltip({ text, dark, sources }: InfoTooltipProps) {
         )}
       </span>
 
-      {open && (
+      {open && createPortal(
         <div className="info-tooltip-overlay" onClick={() => setOpen(false)}>
           <div className={`info-tooltip-card ${dark ? 'dark' : ''}`} onClick={e => e.stopPropagation()}>
             <div className="info-tooltip-header">
@@ -88,7 +89,8 @@ export default function InfoTooltip({ text, dark, sources }: InfoTooltipProps) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
