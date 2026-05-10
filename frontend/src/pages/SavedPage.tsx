@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSaved, type SavedItem } from '../components/SavedContext'
 import { useAuth } from '../components/AuthContext'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
+import { setUserObsCount } from '../components/useUserObsCount'
 import { API_BASE } from '../config'
 import './SavedPage.css'
 
@@ -63,10 +64,15 @@ export default function SavedPage() {
   // Fetch user's observations from the API (synced across devices)
   const [apiObs, setApiObs] = useState<UserObservation[]>([])
   useEffect(() => {
-    if (!isLoggedIn) { setApiObs([]); return }
+    if (!isLoggedIn) { setApiObs([]); setUserObsCount(headerWs, 0); return }
     fetch(`${API_BASE}/observations/user?mine=true&watershed=${headerWs}`, { credentials: 'include' })
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setApiObs(data) })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setApiObs(data)
+          setUserObsCount(headerWs, data.length)
+        }
+      })
       .catch(() => {})
   }, [isLoggedIn, headerWs])
 

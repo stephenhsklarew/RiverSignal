@@ -135,10 +135,11 @@ export default function MyObsMapPage() {
 
   return (
     <div className="myobs-map-page">
+      <WatershedHeader watershed={ws} basePath="/path/saved/map" />
+
       <div className="myobs-map-top">
         <button className="myobs-map-back" onClick={() => navigate('/path/saved')}>← Saved</button>
       </div>
-      <WatershedHeader watershed={ws} basePath="/path/saved/map" />
 
       <div className="myobs-map-meta">
         <span className="myobs-map-count">

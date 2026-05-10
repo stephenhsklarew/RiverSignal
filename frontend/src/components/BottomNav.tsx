@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useSaved } from './SavedContext'
 import { getSelectedWatershed } from './WatershedHeader'
+import { useUserObsCount } from './useUserObsCount'
 import './BottomNav.css'
 
 const TABS = [
@@ -14,7 +15,8 @@ const TABS = [
 export default function BottomNav() {
   const { countSaved } = useSaved()
   const ws = getSelectedWatershed() || 'mckenzie'
-  const savedCount = countSaved(ws)
+  const obsCount = useUserObsCount(ws)
+  const savedCount = countSaved(ws) + obsCount
 
   return (
     <nav className="bottom-nav" role="tablist">
