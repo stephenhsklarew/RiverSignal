@@ -169,43 +169,69 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const pendingQuestion = searchParams.get('q')
 
-  const [site, setSite] = useState<any>(null)
-  const [siteLoading, setSiteLoading] = useState(true)
-  const [conditions, setConditions] = useState<any[]>([])
-  const [hatch, setHatch] = useState<any>(null)
-  const [refuges, setRefuges] = useState<any[]>([])
-  const [fishSpecies, setFishSpecies] = useState<any[]>([])
-  const [accessPoints, setAccessPoints] = useState<any[]>([])
-  const [whatsAlive, setWhatsAlive] = useState<any[]>([])
-  const [geology, setGeology] = useState<any[]>([])
-  const [fossils, setFossils] = useState<any[]>([])
-  // SWR spike: weather is the first card on RiverNowPage to use stale-while-revalidate.
-  // Initial load is from cache (instant on tab return), and a background fetch updates it.
-  // dedupingInterval matches the upstream NWS update cadence (~hourly).
-  const { data: weather } = useSWR<any>(
-    `/sites/${watershed}/weather`,
-    { dedupingInterval: 30 * 60_000 } // 30 min — weather doesn't change minute-to-minute
+  // ─── SWR-backed page data (stale-while-revalidate, cache survives navigation) ───
+  // TTL bands:
+  //   ~ 60 s   : "near-live" — live USGS gauges
+  //   ~ 30 min : weather, fishing conditions, catch probability
+  //   ~ 1 h    : hatch, snowpack, stocking, spotter, site basics
+  //   ~ 6 h    : cold-water refuges, recreation access, what's alive
+  //   ~ 24 h   : species lists, harvest, barriers, fly shops, time-machine, replay,
+  //              river story, geology, fossils
+  const MIN = 60_000
+  const HOUR = 60 * MIN
+  const DAY = 24 * HOUR
+
+  const { data: site, isLoading: siteLoading } = useSWR<any>(`/sites/${watershed}`, { dedupingInterval: HOUR })
+  const { data: conditions = [] } = useSWR<any[]>(`/sites/${watershed}/fishing/conditions`, { dedupingInterval: 30 * MIN })
+  const { data: hatch } = useSWR<any>(`/sites/${watershed}/fishing/hatch-confidence`, { dedupingInterval: HOUR })
+  const { data: refuges = [] } = useSWR<any[]>(`/sites/${watershed}/cold-water-refuges`, { dedupingInterval: 6 * HOUR })
+  const { data: fishSpecies = [] } = useSWR<any[]>(`/sites/${watershed}/species?taxonomic_group=Actinopterygii&limit=5`, { dedupingInterval: DAY })
+  const { data: recreationData } = useSWR<any[]>(`/sites/${watershed}/recreation`, { dedupingInterval: 6 * HOUR })
+  const accessPoints = (recreationData || []).slice(0, 8)
+  const { data: whatsAlive = [] } = useSWR<any[]>(`/sites/${watershed}/species?limit=6`, { dedupingInterval: 6 * HOUR })
+  const { data: weather } = useSWR<any>(`/sites/${watershed}/weather`, { dedupingInterval: 30 * MIN })
+  const { data: liveConditions } = useSWR<any>(`/sites/${watershed}/conditions/live`, { dedupingInterval: MIN })
+  const { data: stocking = [] } = useSWR<any[]>(`/sites/${watershed}/fishing/stocking`, { dedupingInterval: HOUR })
+  const { data: snowpack } = useSWR<any>(`/sites/${watershed}/snowpack`, { dedupingInterval: HOUR })
+  const { data: harvest = [] } = useSWR<any[]>(`/sites/${watershed}/fishing/harvest`, { dedupingInterval: DAY })
+  const { data: speciesByReach = [] } = useSWR<any[]>(`/sites/${watershed}/fishing/species`, { dedupingInterval: DAY })
+  const { data: barriers = [] } = useSWR<any[]>(`/sites/${watershed}/fishing/barriers`, { dedupingInterval: DAY })
+  const { data: flyShops = [] } = useSWR<any[]>(`/sites/${watershed}/fly-shops`, { dedupingInterval: DAY })
+  const { data: catchProb } = useSWR<any>(`/sites/${watershed}/catch-probability`, { dedupingInterval: 30 * MIN })
+  const { data: spotter } = useSWR<any>(`/sites/${watershed}/species-spotter`, { dedupingInterval: HOUR })
+  const { data: replay } = useSWR<any>(`/sites/${watershed}/replay?days_ago=30`, { dedupingInterval: DAY })
+  const { data: timeMachine } = useSWR<any>(`/sites/${watershed}/time-machine`, { dedupingInterval: DAY })
+
+  // Conditional keys (skip the fetch when there's no watershed center).
+  const center = WS_CENTERS[watershed]
+  const { data: geologyData } = useSWR<any>(center ? `/geology/at/${center[1]}/${center[0]}` : null, { dedupingInterval: DAY })
+  const { data: fossilsData } = useSWR<any>(center ? `/fossils/near/${center[1]}/${center[0]}` : null, { dedupingInterval: DAY })
+  const geology = geologyData?.units || []
+  const fossils = fossilsData?.fossils || []
+
+  const [riverStoryLevel, setRiverStoryLevel] = useState<string>('adult')
+  const { data: riverStoryData, isLoading: riverStoryLoading } = useSWR<any>(
+    `/sites/${watershed}/river-story?reading_level=${riverStoryLevel}`,
+    { dedupingInterval: DAY }
   )
-  const [liveConditions, setLiveConditions] = useState<any>(null)
-  const [stocking, setStocking] = useState<any[]>([])
-  const [snowpack, setSnowpack] = useState<any>(null)
-  const [harvest, setHarvest] = useState<any[]>([])
-  const [speciesByReach, setSpeciesByReach] = useState<any[]>([])
-  const [barriers, setBarriers] = useState<any[]>([])
-  const [flyShops, setFlyShops] = useState<any[]>([])
-  const [catchProb, setCatchProb] = useState<any>(null)
-  const [spotter, setSpotter] = useState<any>(null)
-  const [replay, setReplay] = useState<any>(null)
-  const [timeMachine, setTimeMachine] = useState<any>(null)
+  const riverStory: string = riverStoryData?.narrative || ''
+  const riverStoryAudioUrl: string | null = riverStoryData?.audio_url || null
+
+  // Side effect: derive selected year from time-machine response.
   const [tmYear, setTmYear] = useState<number | null>(null)
+  useEffect(() => {
+    if (timeMachine?.years?.length) {
+      setTmYear(timeMachine.years[timeMachine.years.length - 1].year)
+    }
+  }, [timeMachine])
+
+  // User-triggered: comparison fetch fires on demand (not on mount), so plain fetch is fine.
   const [compareWs, setCompareWs] = useState<string | null>(null)
   const [compareData, setCompareData] = useState<any>(null)
-  const [riverStory, setRiverStory] = useState<string>('')
-  const [riverStoryLoading, setRiverStoryLoading] = useState(true)
-  const [riverStoryLevel, setRiverStoryLevel] = useState<string>('adult')
+
+  // Audio playback state for the river-story TTS.
   const [riverStorySpeaking, setRiverStorySpeaking] = useState(false)
   const [riverStoryAudioLoading, setRiverStoryAudioLoading] = useState(false)
-  const [riverStoryAudioUrl, setRiverStoryAudioUrl] = useState<string | null>(null)
   const [riverStoryAudioEl, setRiverStoryAudioEl] = useState<HTMLAudioElement | null>(null)
 
   // Card customization
@@ -225,41 +251,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [chatAnswer, setChatAnswer] = useState<string | null>(null)
   const [chatLoading, setChatLoading] = useState(false)
 
-  // Load data
-  useEffect(() => {
-    setSiteLoading(true)
-    fetch(`${API}/sites/${watershed}`).then(r => r.json()).then(d => { setSite(d); setSiteLoading(false) }).catch(() => setSiteLoading(false))
-    fetch(`${API}/sites/${watershed}/fishing/conditions`).then(r => r.json()).then(setConditions)
-    fetch(`${API}/sites/${watershed}/fishing/hatch-confidence`).then(r => r.json()).then(setHatch)
-    fetch(`${API}/sites/${watershed}/cold-water-refuges`).then(r => r.json()).then(setRefuges)
-    fetch(`${API}/sites/${watershed}/species?taxonomic_group=Actinopterygii&limit=5`).then(r => r.json()).then(setFishSpecies)
-    fetch(`${API}/sites/${watershed}/recreation`).then(r => r.json()).then(d => setAccessPoints((d || []).slice(0, 8)))
-    fetch(`${API}/sites/${watershed}/species?limit=6`).then(r => r.json()).then(setWhatsAlive)
-    // Live conditions + weather + stocking
-    // weather: handled by useSWR above (cached, focus-revalidated)
-    fetch(`${API}/sites/${watershed}/conditions/live`).then(r => r.json()).then(setLiveConditions).catch(() => {})
-    fetch(`${API}/sites/${watershed}/fishing/stocking`).then(r => r.json()).then(setStocking).catch(() => {})
-    fetch(`${API}/sites/${watershed}/snowpack`).then(r => r.json()).then(setSnowpack).catch(() => {})
-    fetch(`${API}/sites/${watershed}/fishing/harvest`).then(r => r.json()).then(setHarvest).catch(() => {})
-    fetch(`${API}/sites/${watershed}/fishing/species`).then(r => r.json()).then(setSpeciesByReach).catch(() => {})
-    fetch(`${API}/sites/${watershed}/fishing/barriers`).then(r => r.json()).then(setBarriers).catch(() => {})
-    fetch(`${API}/sites/${watershed}/fly-shops`).then(r => r.json()).then(setFlyShops).catch(() => {})
-    fetch(`${API}/sites/${watershed}/catch-probability`).then(r => r.json()).then(setCatchProb).catch(() => {})
-    fetch(`${API}/sites/${watershed}/species-spotter`).then(r => r.json()).then(setSpotter).catch(() => {})
-    fetch(`${API}/sites/${watershed}/replay?days_ago=30`).then(r => r.json()).then(setReplay).catch(() => {})
-    fetch(`${API}/sites/${watershed}/time-machine`).then(r => r.json()).then(d => { setTimeMachine(d); if (d.years?.length) setTmYear(d.years[d.years.length - 1].year) }).catch(() => {})
-    // River story (pre-cached)
-    setRiverStoryLoading(true)
-    fetch(`${API}/sites/${watershed}/river-story?reading_level=${riverStoryLevel}`)
-      .then(r => r.json()).then(d => { setRiverStory(d.narrative || ''); setRiverStoryAudioUrl(d.audio_url || null); setRiverStoryLoading(false) })
-      .catch(() => setRiverStoryLoading(false))
-    // Geology + fossils for Deep Time card
-    const center = WS_CENTERS[watershed]
-    if (center) {
-      fetch(`${API}/geology/at/${center[1]}/${center[0]}`).then(r => r.json()).then(d => setGeology(d.units || [])).catch(() => {})
-      fetch(`${API}/fossils/near/${center[1]}/${center[0]}`).then(r => r.json()).then(d => setFossils(d.fossils || [])).catch(() => {})
-    }
-  }, [watershed])
+  // All page data is loaded declaratively via useSWR above — no imperative fetch effect.
 
   // Handle pending question from URL
   useEffect(() => {
@@ -319,12 +311,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const isLive = !!(liveTemp || liveFlow)
 
   const handleRiverStoryLevelChange = (level: string) => {
+    // Changing the level changes the SWR key, which triggers a refetch automatically.
     setRiverStoryLevel(level)
-    setRiverStoryLoading(true)
     if (riverStoryAudioEl) { riverStoryAudioEl.pause(); setRiverStorySpeaking(false) }
-    fetch(`${API}/sites/${watershed}/river-story?reading_level=${level}`)
-      .then(r => r.json()).then(d => { setRiverStory(d.narrative || ''); setRiverStoryAudioUrl(d.audio_url || null); setRiverStoryLoading(false) })
-      .catch(() => setRiverStoryLoading(false))
   }
 
   const speakRiverStory = () => {

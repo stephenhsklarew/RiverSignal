@@ -1,8 +1,8 @@
 // Service Worker for RiverPath (B2C) and DeepTrail (B2C) offline support
 // Stale-while-revalidate for API data, cache-first for static assets
 
-const CACHE_NAME = 'riversignal-v1'
-const API_CACHE = 'riversignal-api-v1'
+const CACHE_NAME = 'riversignal-v2'
+const API_CACHE = 'riversignal-api-v2'
 const API_BASE = '/api/v1/'
 const MAX_API_CACHE_AGE = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -36,6 +36,10 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return
+
+  // Cache.put() rejects non-GET requests — let POST/PUT/DELETE fall through to the
+  // network without interception. (Was throwing on /river-oracle, /chat, /observations.)
+  if (request.method !== 'GET') return
 
   // API requests: stale-while-revalidate
   if (url.pathname.startsWith(API_BASE)) {
