@@ -1,0 +1,41 @@
+.myobs-map-page {
+  display: flex; flex-direction: column; height: 100vh;
+  padding-bottom: 56px; /* bottom nav */
+}
+
+.myobs-map-top { padding: 12px 16px 0; }
+.myobs-map-back {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font-family: inherit; font-size: 13px; padding: 4px 0; font-weight: 500;
+}
+.myobs-map-back:hover { text-decoration: underline; }
+
+.myobs-map-page .ws-header { padding: 8px 16px 8px; }
+
+.myobs-map-meta {
+  display: flex; align-items: center; padding: 8px 16px 10px;
+}
+.myobs-map-count { font-size: 12px; color: var(--text-muted); }
+
+.myobs-map-container { flex: 1; min-height: 0; }
+
+.myobs-map-pin {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent, #1a6b4a);
+  border: 2px solid white; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.myobs-popup { font-family: 'Outfit', sans-serif; }
+.myobs-popup-img {
+  width: 100%; height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;
+}
+.myobs-popup-no-img {
+  width: 100%; height: 60px; background: #f5f5f0; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; color: #999;
+  font-size: 12px; margin-bottom: 6px;
+}
+.myobs-popup-name { font-size: 14px; font-weight: 600; }
+.myobs-popup-sci { font-size: 11px; color: #888; font-style: italic; }
+.myobs-popup-date { font-size: 11px; color: #888; margin-top: 4px; }
+.myobs-popup-notes { font-size: 12px; color: #444; margin-top: 6px; }
