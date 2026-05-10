@@ -4,6 +4,7 @@
   padding: 0 4px; line-height: 1; opacity: 0.6;
   transition: opacity 0.15s;
   display: inline-flex; align-items: center; vertical-align: middle;
+  font-size: 14px; /* fixed — prevent parent inheritance */
 }
 .info-tooltip-btn:hover { opacity: 1; }
 .info-tooltip-btn.dark { color: #8a7e6e; }
