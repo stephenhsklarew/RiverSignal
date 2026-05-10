@@ -162,7 +162,7 @@ RiverPath is the consumer-facing (B2C) mobile-first product for families, angler
 
 ## Dependencies
 
-- **Other features**: FEAT-001 (ecological summaries), FEAT-005 (data ingestion), FEAT-006 (map workspace), FEAT-007 (fishing intelligence), FEAT-011 (four-product UI architecture), FEAT-014 (mobile navigation — bottom nav shell), FEAT-015 (explore — recreation data for access point cards), FEAT-016 (saved — persistence for save CTAs and fly pattern bookmarks)
+- **Other features**: FEAT-001 (ecological summaries), FEAT-005 (data ingestion), FEAT-006 (map workspace), FEAT-007 (fishing intelligence), FEAT-011 (three-product UI architecture), FEAT-014 (mobile navigation — bottom nav shell), FEAT-015 (explore — recreation data for access point cards), FEAT-016 (saved — persistence for save CTAs and fly pattern bookmarks)
 - **Data**: 534K+ geolocated observations, 18,500+ species with photos, 31+ gold views (including hatch_chart, cold_water_refuges, restoration_outcomes, whats_alive_now, hatch_confidence), 5 watersheds
 - **New gold view**: `gold.hatch_confidence` — combines hatch_chart + water_quality_monthly + seasonal_observation_patterns to produce confidence tier per insect per month
 - **External services**: MapLibre basemap tiles, Claude API for chat, Browser Geolocation API

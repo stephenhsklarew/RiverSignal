@@ -1,0 +1,19 @@
+name: ai-cost-per-mau
+description: Total Anthropic + OpenAI cost in the last 30 days divided by 30-day MAU. Operational guardrail per ADR-007.
+unit: USD/user
+direction: lower
+command: |
+  python -c "
+  import os, sys
+  # Reads daily cost telemetry CSV from GCS or a local rollup
+  # then divides by MAU returned from the mau.yaml command above
+  # Placeholder: actual implementation lives in scripts/ai_cost_per_mau.py
+  pass
+  "
+output_pattern: "(\\d+\\.\\d+)"
+tolerance: "10%"
+labels:
+  category: operational
+  tier: cost-guardrail
+  threshold: "0.05"   # circuit breaker if exceeded
+  review_cadence: monthly

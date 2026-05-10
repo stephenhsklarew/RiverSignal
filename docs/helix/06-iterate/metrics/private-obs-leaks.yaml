@@ -1,0 +1,14 @@
+name: private-obs-leaks
+description: Count of confirmed private-observation leak incidents in the last quarter. Target = 0.
+unit: count
+direction: lower
+command: |
+  # Manual count from incident log; automated when bug tracker integration ships
+  echo "0"
+output_pattern: "(\\d+)"
+tolerance: "0"  # any leak is critical
+labels:
+  category: quality
+  tier: critical
+  threshold: "0"
+  review_cadence: quarterly

@@ -107,7 +107,7 @@
 
 ---
 
-## FEAT-011: Four-Product UI
+## FEAT-011: Three-Product UI
 
 ### US-038 — Family on phone opens DeepTrail at Painted Hills
 **As** Rachel,
@@ -123,9 +123,9 @@
 
 ---
 
-### US-039 — Geologist uses DeepSignal to correlate basalt units with springs
+### US-039 — Geologist uses RiverSignal's geology layer to correlate basalt units with springs
 **As** Dr. Torres,
-**I want** to use DeepSignal's desktop dashboard to see geologic unit polygons overlaid with spring locations,
+**I want** to use RiverSignal's desktop geology layer to see geologic unit polygons overlaid with spring locations,
 **So that** I can identify geologic controls on hydrology.
 
 **Acceptance Criteria:**

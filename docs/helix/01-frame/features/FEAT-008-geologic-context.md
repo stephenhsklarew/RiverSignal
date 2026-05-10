@@ -13,7 +13,7 @@ dun:
 
 ## Overview
 
-The geologic context layer provides, for any location, the underlying geologic unit, rock type, formation age, lithology, and a narrative explanation of how geology drives the local ecology and hydrology. This feature implements PRD P1-6 and bridges the watershed ecology domain (RiverSignal/RiverPath) with the deep-time domain (DeepSignal/DeepTrail). It is the foundational data layer that all geology features build upon.
+The geologic context layer provides, for any location, the underlying geologic unit, rock type, formation age, lithology, and a narrative explanation of how geology drives the local ecology and hydrology. This feature implements PRD P1-6 and bridges the watershed ecology domain (RiverSignal/RiverPath) with the deep-time domain (RiverSignal geology layer / DeepTrail). It is the foundational data layer that all geology features build upon.
 
 ## Problem Statement
 
@@ -56,7 +56,7 @@ The geologic context layer provides, for any location, the underlying geologic u
 
 - 100% of watershed sites have geologic context in their gold views
 - LLM can answer "Why is the water cold/warm/impaired here?" using geologic reasoning
-- DeepSignal users report geologic context improves their ecological analysis
+- RiverSignal geology-layer users report geologic context improves their ecological analysis
 
 ## Dependencies
 

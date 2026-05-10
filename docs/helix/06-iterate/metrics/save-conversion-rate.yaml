@@ -1,0 +1,25 @@
+name: save-conversion-rate
+description: Fraction of sessions where the user saved at least one finding (observation, fly, fossil, recreation site, etc.). North-star metric for cross-app value capture.
+unit: percent
+direction: higher
+command: |
+  psql "$DATABASE_URL" -tAc "
+    WITH sessions AS (
+      SELECT DISTINCT user_id, date_trunc('day', created_at) AS session_day
+      FROM saved_items
+      WHERE created_at >= NOW() - INTERVAL '30 days'
+    ),
+    all_sessions AS (
+      SELECT DISTINCT user_id, date_trunc('day', created_at) AS session_day
+      FROM auth_events
+      WHERE created_at >= NOW() - INTERVAL '30 days'
+    )
+    SELECT ROUND(100.0 * (SELECT COUNT(*) FROM sessions) /
+                 NULLIF((SELECT COUNT(*) FROM all_sessions), 0), 2);
+  "
+output_pattern: "(\\d+\\.\\d+)"
+tolerance: "2%"
+labels:
+  category: product
+  tier: north-star
+  review_cadence: weekly

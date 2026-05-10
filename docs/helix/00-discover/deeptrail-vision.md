@@ -6,24 +6,25 @@
 
 DeepTrail is the AI-native field companion for geology, fossils, and deep-time discovery that helps families, travelers, and educators find legal public places to explore, understand what ancient world they are standing in, and turn geology into immersive adventure experiences.
 
-## Four-Product Platform Strategy
+## Three-Product Platform Strategy
 
-The data platform now serves four products across two dimensions:
+The data platform serves three products across two dimensions:
 
-|  | **B2B (Professional)** | **B2C (Consumer)** |
+|  | **B2B (Professional, desktop-first)** | **B2C (Consumer, mobile-first)** |
 |---|---|---|
 | **Watershed Ecology** | **RiverSignal** — watershed intelligence copilot for restoration professionals, ecologists, and agencies | **RiverPath** — AI field companion for families, anglers, educators exploring living rivers |
-| **Deep Time Geology** | **DeepSignal** — geologic and paleontological intelligence platform for researchers, land managers, and museums | **DeepTrail** — AI field companion for families, rockhounds, educators exploring ancient worlds |
+| **Deep Time Geology** | (consolidated into RiverSignal as a layer) | **DeepTrail** — AI field companion for families, rockhounds, educators exploring ancient worlds |
 
-All four products share:
-- The same PostgreSQL + PostGIS data lake
+> **History**: An earlier version of this strategy described a fourth surface ("DeepSignal" — a B2B desktop geology product). DeepSignal was removed from the landing page on 2026-05-08 and its B2B geology functionality consolidated into RiverSignal as an additional layer. The current shipping platform is three products.
+
+All three products share:
+- The same PostgreSQL data warehouse (medallion bronze/silver/gold)
 - The same ingestion pipeline architecture
-- The same silver/gold medallion layer
 - The same LLM reasoning engine with tool functions
-- The same API server (FastAPI)
+- The same API server (FastAPI on Cloud Run)
 
 They differ in:
-- UI/UX (RiverSignal/DeepSignal: professional data-dense desktop-first; RiverPath/DeepTrail: story-driven mobile-first responsive)
+- UI/UX (RiverSignal: professional data-dense desktop-first with optional geology layer; RiverPath/DeepTrail: story-driven mobile-first responsive)
 - Tone (B2B: decision-support, reports, KPIs; B2C: storytelling, adventure, family-friendly)
 - Revenue (B2B: per-seat SaaS, agency licenses; B2C: freemium subscriptions, seasonal passes)
 
@@ -42,7 +43,7 @@ The most powerful insight: **geology IS the foundation of watershed ecology**. E
 | **Post-fire erosion geology**    | Holiday Farm Fire recovery depends on soil type and slope geology                 |
 | **Fish passage barriers**        | Many barriers are natural geologic features (falls, cascades) not just culverts   |
 
-**DeepSignal** (B2B) can enhance watershed intelligence by answering:
+**RiverSignal's geology layer** (B2B) can enhance watershed intelligence by answering:
 - "Why is the Metolius so cold?" → geologic answer: Cascade volcanic aquifer
 - "Why is Klamath Lake impaired?" → geologic answer: phosphorus-rich volcanic sediments
 - "Where are cold-water refuges?" → geologic answer: basalt fracture springs
@@ -115,15 +116,15 @@ museums_and_sites       — visitor centers, museums, interpretive sites
 | View | Purpose | Serves |
 |---|---|---|
 | `gold.geologic_age_at_location` | For any lat/lon, what geologic unit, age, and rock type is present | All 4 products |
-| `gold.fossils_nearby` | Fossil occurrences within radius of a point, with museum/collection info | DeepTrail, DeepSignal |
+| `gold.fossils_nearby` | Fossil occurrences within radius of a point, with museum/collection info | DeepTrail, RiverSignal (geology layer) |
 | `gold.legal_collecting_sites` | Public lands where fossil/mineral collecting is permitted, with access info | DeepTrail |
-| `gold.deep_time_story` | Narrative-ready timeline of geologic events at a location (volcanic eruptions, sea levels, fossil assemblages) | DeepTrail, DeepSignal |
-| `gold.geology_watershed_link` | Joins geologic units to watershed ecology (why water chemistry is what it is, why springs emerge where they do) | RiverSignal, DeepSignal |
+| `gold.deep_time_story` | Narrative-ready timeline of geologic events at a location (volcanic eruptions, sea levels, fossil assemblages) | DeepTrail, RiverSignal (geology layer) |
+| `gold.geology_watershed_link` | Joins geologic units to watershed ecology (why water chemistry is what it is, why springs emerge where they do) | RiverSignal |
 | `gold.volcanic_features_nearby` | Volcanic vents, flows, calderas near a location | DeepTrail |
 | `gold.museum_and_site_guide` | Nearby museums, fossil beds, geologic interpretive sites | DeepTrail |
-| `gold.geologic_hazards_at_location` | Landslide risk, fault proximity, seismic context | DeepSignal |
+| `gold.geologic_hazards_at_location` | Landslide risk, fault proximity, seismic context | RiverSignal (geology layer) |
 | `gold.mineral_sites_nearby` | Legal rockhounding locations with mineral types | DeepTrail |
-| `gold.formation_species_history` | What species lived here in each geologic period (deep time biodiversity) | DeepTrail, DeepSignal |
+| `gold.formation_species_history` | What species lived here in each geologic period (deep time biodiversity) | DeepTrail, RiverSignal (geology layer) |
 
 ## LLM Tool Functions (New)
 
@@ -137,9 +138,9 @@ museums_and_sites       — visitor centers, museums, interpretive sites
 
 ## UI Architecture
 
-### Desktop (RiverSignal + DeepSignal)
+### Desktop (RiverSignal)
 - Professional data-dense split-pane layout (existing design)
-- DeepSignal adds: geologic map layer toggle, stratigraphic column panel, fossil occurrence table
+- Geology layer (consolidated from former DeepSignal): geologic map layer toggle, stratigraphic column panel, fossil occurrence table
 - Cross-linked: clicking a geologic unit shows its ecological implications
 
 ### Mobile-First Responsive (RiverPath + DeepTrail)
@@ -178,13 +179,13 @@ The platform now covers 7 watersheds across 3 states (5 Oregon, 1 Washington, 1 
 A successful DeepTrail user says:
 > "We turned a normal Oregon road trip into an unforgettable prehistoric adventure."
 
-A successful DeepSignal user says:
+A successful RiverSignal user (using the geology layer) says:
 > "Now I understand why the water chemistry and species distribution look the way they do — it's the geology."
 
 | Metric | Target |
 |--------|--------|
 | DeepTrail monthly active families (May-Oct) | 5,000 within 18 months |
-| DeepSignal researcher/museum users | 200 within 12 months |
+| RiverSignal accounts engaging the geology layer | 50% of active accounts within 12 months |
 | Cross-product users (River + Deep) | 30% of active users engage both |
 | Legal collecting confidence score | 90% of users report feeling confident about collecting rules |
 | NPS | > 55 among active families |

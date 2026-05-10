@@ -1,0 +1,17 @@
+name: api-p99-latency
+description: 99th-percentile latency for Cloud Run service riversignal-api over the last 24h.
+unit: milliseconds
+direction: lower
+command: |
+  gcloud monitoring metrics-scopes \
+    --project=riversignal-prod \
+    --filter='resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_latencies"' \
+    --aggregation='alignmentPeriod=86400s,perSeriesAligner=ALIGN_PERCENTILE_99' \
+    --format='value(value)' | head -1
+output_pattern: "(\\d+)"
+tolerance: "100ms"
+labels:
+  category: operational
+  tier: slo
+  threshold: "800"   # SLO budget per 02-design/architecture.md
+  review_cadence: weekly

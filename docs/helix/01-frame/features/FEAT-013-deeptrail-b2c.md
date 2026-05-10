@@ -132,7 +132,7 @@ DeepTrail is the consumer-facing (B2C) mobile-first product for families, rockho
 
 ## Dependencies
 
-- **Other features**: FEAT-008 (geologic context layer), FEAT-009 (fossil discovery layer), FEAT-010 (deep time storytelling), FEAT-011 (four-product UI architecture)
+- **Other features**: FEAT-008 (geologic context layer), FEAT-009 (fossil discovery layer), FEAT-010 (deep time storytelling), FEAT-011 (three-product UI architecture)
 - **Data**: 17,288 geologic units (DOGAMI + Macrostrat), 1,959 fossil occurrences (PBDB + iDigBio), 1,980 mineral deposits (MRDS), 40 land ownership records (BLM SMA), 38 materialized views
 - **External services**: MapLibre basemap tiles, Claude API for narrative generation, BLM SMA real-time point query for legal status
 

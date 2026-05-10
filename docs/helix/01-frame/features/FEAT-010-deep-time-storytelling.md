@@ -13,7 +13,7 @@ dun:
 
 ## Overview
 
-Deep time storytelling generates AI-powered narratives that describe what ancient ecosystem existed at any location during each geologic period, grounded in fossil evidence and geologic data. This is the signature experience of DeepTrail — transforming abstract geologic data into vivid, family-friendly stories. It also serves DeepSignal by providing scientifically grounded paleoenvironmental reconstructions. Implements PRD P1-9.
+Deep time storytelling generates AI-powered narratives that describe what ancient ecosystem existed at any location during each geologic period, grounded in fossil evidence and geologic data. This is the signature experience of DeepTrail — transforming abstract geologic data into vivid, family-friendly stories. It also serves RiverSignal's geology layer by providing scientifically grounded paleoenvironmental reconstructions. Implements PRD P1-9.
 
 ## Problem Statement
 
@@ -32,7 +32,7 @@ Deep time storytelling generates AI-powered narratives that describe what ancien
 5. Gold view `gold.deep_time_story` provides a chronological timeline of geologic events and paleoenvironments per location
 6. Gold view `gold.formation_species_history` links geologic formations to fossil taxa found within them
 7. LLM tool function `get_deep_time_story(lat, lon)` returns the full narrative with cited evidence
-8. Narratives are generated at three reading levels: expert (DeepSignal), general adult (DeepTrail default), and kid-friendly (DeepTrail family mode)
+8. Narratives are generated at three reading levels: expert (RiverSignal geology layer), general adult (DeepTrail default), and kid-friendly (DeepTrail family mode)
 
 ### Non-Functional Requirements
 

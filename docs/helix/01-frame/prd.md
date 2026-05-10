@@ -6,12 +6,11 @@ dun:
 
 ## Summary
 
-This project builds a shared data platform serving four products across two domains (watershed ecology and deep-time geology) and two markets (B2B professional and B2C consumer):
+This project builds a shared data platform ("Liquid Marble") serving three products across two domains (watershed ecology and deep-time geology) and two markets (B2B professional and B2C consumer):
 
-- **RiverSignal** (B2B) — watershed intelligence copilot for restoration professionals
-- **RiverPath** (B2C) — AI river field companion for families, anglers, educators
-- **DeepSignal** (B2B) — geologic and paleontological intelligence for researchers, land managers
-- **DeepTrail** (B2C) — AI geology field companion for families, rockhounds, educators
+- **RiverSignal** (B2B desktop) — watershed intelligence copilot for restoration professionals, with an integrated geology layer (consolidated from the former DeepSignal product on 2026-05-08) for researchers and land managers
+- **RiverPath** (B2C mobile) — AI river field companion for families, anglers, educators
+- **DeepTrail** (B2C mobile) — AI geology field companion for families, rockhounds, educators
 
 The data platform is operational with 22+ ingestion pipelines feeding 2.3M+ records across **7 watersheds in 3 states** (5 Oregon, 1 Washington, 1 Utah) from **30+ public data sources**, a 37-view medallion architecture, and a FastAPI + React application with LLM reasoning and 5 predictive intelligence models. The geology/paleontology expansion adds 7+ new data sources (USGS NGMDB, Paleobiology Database, Macrostrat, BLM lands, DOGAMI, mineral deposits, volcanic features), 8 new bronze tables, 3 silver views, and 10 gold views. The key integration insight: geology IS the foundation of watershed ecology — every river, species habitat, and water quality reading is shaped by the rocks beneath.
 
@@ -52,7 +51,7 @@ The data platform is operational with 22+ ingestion pipelines feeding 2.3M+ reco
 
 **Core experience**: A family at the Painted Hills asks "What was this place like 33 million years ago?" and gets: "You're standing in a subtropical forest with towering redwoods and palms. Rhinoceros-like brontotheres browsed nearby, and early horses the size of dogs ran through the underbrush. The colorful clay layers formed from volcanic ash that blanketed the forest floor." They check collecting legality (NPS — prohibited here), find a nearby BLM site where collecting is legal, and discover what minerals and fossils others have found.
 
-**Key differentiators from DeepSignal**:
+**Key differentiators from RiverSignal's geology layer**:
 - Mobile-first dark-themed adventure UI (not desktop data tables)
 - Deep time narrative stories (not raw geologic unit data)
 - Legal collecting status with green/yellow/red badges
@@ -155,7 +154,7 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 **Pain Points**: Legal status of collecting sites is confusing (BLM vs USFS vs NPS vs state rules differ); uses paper BLM maps and word-of-mouth from rockhound clubs; USGS mineral data exists but is designed for economic geologists, not hobbyists; no mobile app combines land ownership + mineral data + directions
 **Why he switches**: DeepTrail shows legal collecting sites with green/yellow/red badges, tells him what others have found at each site, and gives him access info — replaces paper maps and club forums
 
-### Octonary Persona: Dr. Torres -- Geologic Researcher (DeepSignal)
+### Octonary Persona: Dr. Torres -- Geologic Researcher (RiverSignal geology layer)
 
 **Role**: University geologist studying volcanic influences on watershed hydrology in the Oregon Cascades
 **Goals**: Correlate geologic unit maps with water chemistry data, understand how basalt aquifers create spring-fed systems, identify geologic controls on fish habitat distribution
@@ -205,7 +204,7 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 3. **Multi-site comparison dashboard**: Compare ecological indicators across managed sites to identify which restoration approaches are most effective
 4. **Acoustic biodiversity integration**: Ingest bird/frog audio classification results (from BirdNET or similar) as additional observation inputs
 5. **Fishing intelligence layer**: Species-by-reach distribution, sport catch harvest trends, stocking schedule alerts, and water condition correlation for angler decision support
-6. **Geologic context layer**: For any location, provide the geologic unit, rock type, age, formation name, and narrative explanation of how geology drives local ecology (DeepSignal/DeepTrail)
+6. **Geologic context layer**: For any location, provide the geologic unit, rock type, age, formation name, and narrative explanation of how geology drives local ecology (RiverSignal geology layer / DeepTrail)
 7. **Fossil discovery layer**: Fossil occurrences from Paleobiology Database with taxa, ages, and museum links; legal collecting status based on land ownership (DeepTrail)
 8. **Land access and legality**: Public land boundaries (BLM, USFS, NPS, state) with collecting rules clearly displayed per parcel (DeepTrail)
 9. **Deep time storytelling**: For any location, generate an AI narrative of what ancient ecosystem existed there in each geologic period, with fossil evidence (DeepTrail)
@@ -225,9 +224,9 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 1. **Collaborative annotation**: Allow senior ecologists to annotate, correct, or override system interpretations, feeding back into reasoning quality
 2. **Custom report templates**: Support additional report formats beyond OWEB (NOAA, BPA, tribal reporting frameworks)
 3. **Historical trend visualization**: Show multi-year ecological trajectory graphs per site with intervention markers
-4. **Geology-ecology correlation engine**: Automated analysis linking geologic unit properties (lithology, permeability, mineral content) to downstream water chemistry, species distribution, and restoration outcomes (DeepSignal)
+4. **Geology-ecology correlation engine**: Automated analysis linking geologic unit properties (lithology, permeability, mineral content) to downstream water chemistry, species distribution, and restoration outcomes (RiverSignal geology layer)
 5. **Museum and site guide**: Nearby fossil museums, geologic interpretive sites, and visitor centers with hours, exhibits, and kid-friendliness ratings (DeepTrail)
-6. **Volcanic feature mapping**: Vents, flows, calderas, lava tubes, and hot springs with geologic history and hazard context (DeepTrail/DeepSignal)
+6. **Volcanic feature mapping**: Vents, flows, calderas, lava tubes, and hot springs with geologic history and hazard context (DeepTrail / RiverSignal geology layer)
 7. **eBird integration**: Supplement iNaturalist bird observations with eBird data for richer avian indicators
 
 ## Functional Requirements
@@ -311,7 +310,7 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 - **Database Tables (15)**: observations (550K), time_series (1.7M), interventions (2.6K), fire_perimeters (277), stream_flowlines (142K), impaired_waters (778), wetlands (13K), watershed_boundaries (975), geologic_units (17.3K), fossil_occurrences (3.7K), mineral_deposits (2K), land_ownership (40), deep_time_stories (7), recreation_sites (566), curated_hatch_chart (50)
 - **Data Volume**: 2.3M+ records loaded across 7 watersheds in 3 states (Klamath, McKenzie, Deschutes, Metolius, John Day in OR; Skagit in WA; Green River in UT)
 - **Medallion Architecture**: 7 silver views + 34 gold views = 41 materialized views
-- **Platform Targets**: Web application; Chrome, Firefox, Safari latest; RiverPath and DeepTrail are mobile-first responsive PWAs; RiverSignal and DeepSignal are desktop-primary
+- **Platform Targets**: Web application; Chrome, Firefox, Safari latest; RiverPath and DeepTrail are mobile-first responsive PWAs; RiverSignal is desktop-primary (with the geology layer accessible through the same surface)
 - **Geology Data Sources (6)**: Macrostrat, USGS NGMDB via DOGAMI OGDC v6, Paleobiology Database (PBDB), iDigBio museum specimens, USGS MRDS mineral deposits, BLM Surface Management Agency
 - **GIS**: HUC12 watershed boundaries from USGS WBD, wetland layers from NWI, burn severity from MTBS, stream flowlines from NHDPlus HR
 - **Platform Targets**: Web application; Chrome, Firefox, Safari latest; responsive but desktop-primary (field tablet secondary)

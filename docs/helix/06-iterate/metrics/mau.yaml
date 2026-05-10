@@ -1,0 +1,16 @@
+name: mau
+description: Monthly Active Users — unique users (authed or anonymous_id) seen in the last 30 days.
+unit: count
+direction: higher
+command: |
+  psql "$DATABASE_URL" -tAc "
+    SELECT COUNT(DISTINCT COALESCE(user_id::text, anonymous_id))
+    FROM auth_events
+    WHERE created_at >= NOW() - INTERVAL '30 days';
+  "
+output_pattern: "(\\d+)"
+tolerance: "5%"
+labels:
+  category: product
+  tier: top-level
+  review_cadence: weekly

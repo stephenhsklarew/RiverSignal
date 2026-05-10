@@ -2,14 +2,16 @@
 
 ## Platform Strategy
 
-This project builds a **shared data platform** serving four products across two domains:
+This project builds a **shared data platform** ("Liquid Marble") serving three products across two domains and two market tiers:
 
-|  | **B2B (Professional)** | **B2C (Consumer Mobile-First)** |
+|  | **B2B (Professional, desktop-first)** | **B2C (Consumer, mobile-first)** |
 |---|---|---|
 | **Watershed Ecology** | **RiverSignal** — watershed intelligence copilot | **[RiverPath](riverpath-vision.md)** — river field companion |
-| **Deep Time Geology** | **DeepSignal** — geologic intelligence platform | **[DeepTrail](deeptrail-vision.md)** — ancient world explorer |
+| **Deep Time Geology** | (consolidated into RiverSignal as a layer) | **[DeepTrail](deeptrail-vision.md)** — ancient world explorer |
 
-All four products share the same PostgreSQL + PostGIS data lake, ingestion pipeline architecture, silver/gold medallion layer, LLM reasoning engine, and FastAPI backend. The data platform is the strategic asset; the products are presentation layers with different UX, tone, and business models.
+All three products share the same PostgreSQL data warehouse (medallion bronze/silver/gold), ingestion pipeline architecture, LLM reasoning engine, FastAPI backend, and Cloud Run deployment. The data platform is the strategic asset; the products are presentation layers with different UX, tone, and business models.
+
+> **History**: An earlier version of this strategy described a fourth surface ("DeepSignal" — B2B desktop geology). DeepSignal was removed from the landing page on 2026-05-08 and its B2B geology functionality consolidated into RiverSignal as an additional layer. The current shipping platform is three products. See `02-design/adr/ADR-009-deepsignal-consolidation.md` (TODO if not yet captured).
 
 **The key insight**: geology IS the foundation of watershed ecology. Every river, every species habitat, every water quality reading is shaped by the rocks beneath. Deep time context makes ecological intelligence more powerful, and ecological context makes geology more relevant.
 

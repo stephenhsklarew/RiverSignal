@@ -14,7 +14,7 @@ dun:
 
 ## Overview
 
-RiverPath requires a purpose-built mobile navigation model to support the wireframe's 5-tab bottom navigation (River Now / Explore / Hatch / Steward / Saved), GPS-first reach lookup, and one-handed scrolling UX. The current product-level picker (RiverSignal / RiverPath / DeepSignal / DeepTrail) does not provide in-product navigation for RiverPath's screen architecture. This feature establishes the navigation shell, route structure, shared UI patterns, and responsive layout that all other RiverPath screens depend on.
+RiverPath requires a purpose-built mobile navigation model to support the wireframe's 5-tab bottom navigation (River Now / Explore / Hatch / Steward / Saved), GPS-first reach lookup, and one-handed scrolling UX. The current product-level picker (RiverSignal / RiverPath / RiverSignal geology layer / DeepTrail) does not provide in-product navigation for RiverPath's screen architecture. This feature establishes the navigation shell, route structure, shared UI patterns, and responsive layout that all other RiverPath screens depend on.
 
 ## Problem Statement
 
@@ -28,7 +28,7 @@ RiverPath requires a purpose-built mobile navigation model to support the wirefr
 
 1. Fixed bottom tab bar with 5 tabs (River Now, Explore, Hatch, Steward, Saved) renders on all `/path/*` routes
 2. Active tab is visually highlighted; inactive tabs show icon + label
-3. Bottom nav is hidden on non-`/path` routes (RiverSignal, DeepSignal, DeepTrail retain existing navigation)
+3. Bottom nav is hidden on non-`/path` routes (RiverSignal, RiverSignal geology layer, DeepTrail retain existing navigation)
 4. Each tab maps to a dedicated route: `/path/now`, `/path/explore`, `/path/hatch`, `/path/steward`, `/path/saved`
 5. `/path` redirects to `/path/now` (default tab)
 6. Fish + Refuge is a drilldown at `/path/fish/:watershed`, not a bottom tab (no tab highlight)
@@ -78,6 +78,6 @@ RiverPath requires a purpose-built mobile navigation model to support the wirefr
 
 ## Out of Scope
 
-- Redesigning navigation for RiverSignal, DeepSignal, or DeepTrail
+- Redesigning navigation for RiverSignal, or DeepTrail
 - Animated tab transitions or gesture-based tab switching
 - Desktop sidebar navigation layout (desktop responsive handled separately)

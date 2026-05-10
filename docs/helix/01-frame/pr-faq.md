@@ -1,0 +1,71 @@
+# PR/FAQ — Liquid Marble
+
+> Amazon-style press-release-as-spec. Imagine this is the launch announcement.
+
+## Press Release
+
+### Liquid Marble launches a unified data platform that turns 30+ public scientific datasets into stories, predictions, and decisions about the rivers and rocks of the Pacific Northwest
+
+**Portland, Oregon** — Liquid Marble today announced the public availability of three connected apps powered by a single watershed-and-geology data platform: **RiverSignal** for watershed managers, **RiverPath** for anglers and families, and **DeepTrail** for rockhounds and adventurers.
+
+For decades, the data needed to understand a river — flow rates, fish presence, fly-hatching timing, water quality, restoration project outcomes, the geologic story of the land itself — has been locked in dozens of agency portals, academic databases, and PDF reports. Anyone wanting to make sense of a place had to do hours of research, with no guarantee the parts even fit together.
+
+Liquid Marble unifies USGS stream gauges, NRCS snowpack stations, iNaturalist citizen-science observations, EPA water quality records, BLM land ownership maps, the Paleobiology Database, Macrostrat geologic units, restoration project records from OWRI/NOAA/PCSRF, and 20+ other sources into a single curated medallion warehouse. On top of it, three apps deliver the same data shaped to three audiences:
+
+- **RiverSignal** (riversignal-api-x6ka75yaxa-uw.a.run.app/riversignal): a desktop analytics workspace for restoration ecologists and watershed council staff. Mapping, anomaly detection, restoration outcomes, predictive models, and funder reports.
+- **RiverPath** (`/path`): a mobile field companion for anglers and families. Real-time flows, hatch charts, catch probability, AI-narrated river stories, and photo observations to share.
+- **DeepTrail** (`/trail`): a mobile adventure guide for rockhounds. Fossil specimens with images, geologic timelines at adult/kid/expert reading levels, mineral shop locations, and audio stories of how the land formed.
+
+"Public scientific data should reach the people whose lives are shaped by it," said Stephen Sklarew, founder. "Anglers shouldn't need a hydrology degree to know whether a river will fish well this weekend. Restoration managers shouldn't need a GIS team to track fifteen years of project outcomes. Eight-year-olds shouldn't need to read journal papers to be amazed that the rock under their feet is older than dinosaurs. We built one platform that lets all three happen."
+
+The platform is live today across seven Pacific Northwest watersheds: Deschutes, McKenzie, Metolius, John Day, Klamath, Skagit, and Green River, with continued expansion across Washington and Utah throughout 2026.
+
+Liquid Marble is anonymous-first — every feature works without sign-in. Optional accounts via Google or Apple ID add cross-device sync, photo observation persistence, and personalized predictions.
+
+---
+
+## Frequently Asked Questions
+
+### What is Liquid Marble?
+A single data platform powering three connected apps about Pacific Northwest watersheds and the deep-time geology beneath them. RiverSignal (B2B desktop), RiverPath (B2C mobile, fishing/recreation), DeepTrail (B2C mobile, geology/fossils).
+
+### Who is Liquid Marble for?
+Three audiences, in priority order:
+1. **Anglers and naturalists** who fish, paddle, and hike in PNW rivers and want better information than agency PDFs.
+2. **Restoration managers and watershed councils** who need integrated analytics across species, water, and project outcomes for decisions and funder reports.
+3. **Rockhounds and curious families** who want to understand the rocks and fossils they encounter — and where to look for more.
+
+### What data does it use?
+Currently 30+ public sources. Federal: USGS (water flow, geology), NRCS (SNOTEL snowpack), NOAA (weather, restoration), EPA (303(d) impaired waters, Water Quality Portal), BLM (land ownership), USFS (recreation sites). State: ODFW (fishing, stocking), WDFW (SalmonScape, hatcheries), DOGAMI (Oregon geology), WA DNR (Washington geology), WA SRFB (restoration). Citizen science / academic: iNaturalist (species), GBIF (museum specimens), PBDB (fossils), iDigBio (paleobiology), Macrostrat (geologic units), MRDS (mineral deposits). Plus curated tables (fly-pattern hatch matching, rockhounding sites, river stories).
+
+### Is it free?
+Yes. The mobile apps (RiverPath, DeepTrail) are free to use anonymously. Optional sign-in adds cross-device sync. RiverSignal B2B subscriptions for watershed councils and agencies are paid; pricing on request.
+
+### How is the data kept current?
+Three Cloud Run jobs on cron schedules: daily (iNaturalist, SNOTEL, USGS), weekly (fishing, water-quality, Washington), monthly (biodata, fossils, restoration, geology). Materialized gold views refresh daily; heavy aggregations weekly. Live status visible at `/status`.
+
+### How does the AI narrative work?
+The "Deep Time Story" cards are generated by a retrieval-augmented LLM pipeline (Anthropic Claude). Each narrative is grounded in our medallion warehouse — geologic units, fossil occurrences, ecological context for that exact lat/lon. Three reading levels are pre-cached so the experience is instant. Audio is generated by OpenAI TTS and cached in Google Cloud Storage.
+
+### What about my privacy?
+- The site works fully without sign-in. No tracking pixels.
+- Photo observations default to public but you can mark them private — private observations are filtered out of all public surfaces (search, map, lists).
+- Sign-in uses Google or Apple OAuth. We store email, display name, and (for Apple) a stable user identifier. We never read your contacts, photos library, or other apps' data.
+- We do not sell user data. Period.
+
+### Why did you build it?
+Because watershed data shouldn't require a research librarian to use, and because the rivers and rocks of the Pacific Northwest deserve a story-mode interface that meets people where they are.
+
+### Where is it available?
+Pacific Northwest first: Oregon, Washington, and parts of Utah. Coverage expands by watershed; check `/status` for the live list.
+
+### Who built it?
+Founded by Stephen Sklarew (Synaptiq). Engineering, design, and data work are done in-house. The platform is open about its sources — every record traces back to its license and origin.
+
+### What's the technical architecture?
+FastAPI backend on Google Cloud Run, Cloud SQL Postgres with a medallion warehouse (bronze/silver/gold), React + Vite frontend served from the same Cloud Run service, Terraform-managed infrastructure, GitHub Actions CI. AI by Anthropic Claude (narrative + Q&A) and OpenAI (TTS). See `/status` for live counts and `docs/helix/02-design/architecture.md` for design.
+
+### How can I get involved?
+- Use the apps and submit feedback through the contact link.
+- For B2B partnerships (watershed councils, agencies), email stephen.sklarew@synaptiq.ai.
+- Open-source contributions: see the GitHub repo's `CONTRIBUTING.md` (forthcoming).
