@@ -17,7 +17,7 @@ interface SavedContextValue {
   unsave: (type: SavedItem['type'], id: string) => void
   isSaved: (type: SavedItem['type'], id: string) => boolean
   listSaved: (type?: SavedItem['type']) => SavedItem[]
-  countSaved: () => number
+  countSaved: (watershed?: string) => number
 }
 
 const STORAGE_KEY = 'riverpath-saved'
@@ -77,7 +77,10 @@ export function SavedProvider({ children }: { children: ReactNode }) {
     return type ? items.filter(i => i.type === type) : items
   }, [items])
 
-  const countSaved = useCallback(() => items.length, [items])
+  const countSaved = useCallback((watershed?: string) => {
+    if (!watershed) return items.length
+    return items.filter(i => (i.watershed || 'other') === watershed).length
+  }, [items])
 
   return (
     <SavedCtx.Provider value={{ save, unsave, isSaved, listSaved, countSaved }}>

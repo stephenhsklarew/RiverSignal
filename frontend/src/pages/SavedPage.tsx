@@ -11,6 +11,24 @@ const TYPE_ICONS: Record<SavedItem['type'], string> = {
   fossil: '🦴', mineral: '💎', rocksite: '🪨', observation: '📷',
 }
 
+/** Human-friendly section headers per saved-item type */
+const TYPE_LABELS: Record<SavedItem['type'], string> = {
+  reach: 'Reaches',
+  species: 'Species',
+  fly: 'Recommended Flies',
+  recreation: 'Recreation Sites',
+  restoration: 'Restoration Projects',
+  fossil: 'Fossils',
+  mineral: 'Minerals',
+  rocksite: 'Rock Sites',
+  observation: 'Observations',
+}
+
+/** Render order for sections */
+const TYPE_ORDER: SavedItem['type'][] = [
+  'observation', 'species', 'fly', 'reach', 'recreation', 'restoration', 'fossil', 'mineral', 'rocksite',
+]
+
 const WATERSHED_LABELS: Record<string, string> = {
   mckenzie: 'McKenzie River', deschutes: 'Deschutes River', green_river: 'Green River',
   metolius: 'Metolius River', klamath: 'Upper Klamath Basin', johnday: 'John Day River',
@@ -57,6 +75,13 @@ export default function SavedPage() {
     item => item.type !== 'observation' && (item.watershed || 'other') === headerWs
   )
 
+  // Group saved items by type
+  const byType: Partial<Record<SavedItem['type'], SavedItem[]>> = {}
+  for (const item of savedItems) {
+    if (!byType[item.type]) byType[item.type] = []
+    byType[item.type]!.push(item)
+  }
+
   const hasObs = apiObs.length > 0
   const hasSaved = savedItems.length > 0
   const isEmpty = !hasObs && !hasSaved
@@ -81,7 +106,7 @@ export default function SavedPage() {
               <h2 className="saved-group-title">
                 📷 Observations
                 <span className="saved-group-count">{apiObs.length}</span>
-                <Link to={`/riversignal/${headerWs}?myobs=true`} className="saved-map-all">
+                <Link to={`/path/saved/map/${headerWs}`} className="saved-map-all">
                   View all on map
                 </Link>
               </h2>
@@ -106,7 +131,7 @@ export default function SavedPage() {
                   </div>
                   {obs.latitude && obs.longitude && (
                     <Link
-                      to={`/riversignal/${headerWs}?myobs=true`}
+                      to={`/path/saved/map/${headerWs}`}
                       className="saved-item-map-link"
                       aria-label={`View ${obs.common_name || 'observation'} on map`}
                     >
@@ -118,14 +143,14 @@ export default function SavedPage() {
             </section>
           )}
 
-          {/* Other saved items from localStorage */}
-          {hasSaved && (
-            <section className="saved-group">
+          {/* Saved items grouped by type */}
+          {TYPE_ORDER.filter(t => t !== 'observation' && byType[t]).map(type => (
+            <section key={type} className="saved-group">
               <h2 className="saved-group-title">
-                📍 {WATERSHED_LABELS[headerWs] || headerWs}
-                <span className="saved-group-count">{savedItems.length}</span>
+                {TYPE_ICONS[type]} {TYPE_LABELS[type]}
+                <span className="saved-group-count">{byType[type]!.length}</span>
               </h2>
-              {savedItems.map(item => (
+              {byType[type]!.map(item => (
                 <div key={`${item.type}-${item.id}`} className="saved-item">
                   {item.thumbnail ? (
                     <img src={item.thumbnail} alt="" className="saved-item-thumb" />
@@ -136,7 +161,7 @@ export default function SavedPage() {
                     <div className="saved-item-label">{item.label}</div>
                     {item.sublabel && <div className="saved-item-sub">{item.sublabel}</div>}
                     <div className="saved-item-meta">
-                      {item.type} · saved {new Date(item.savedAt).toLocaleDateString()}
+                      saved {new Date(item.savedAt).toLocaleDateString()}
                     </div>
                   </div>
                   <button
@@ -149,7 +174,7 @@ export default function SavedPage() {
                 </div>
               ))}
             </section>
-          )}
+          ))}
         </>
       )}
     </div>
