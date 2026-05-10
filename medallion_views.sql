@@ -586,6 +586,7 @@ CREATE MATERIALIZED VIEW gold.site_ecological_summary AS
 -- gold.species_by_reach
 DROP MATERIALIZED VIEW IF EXISTS gold.species_by_reach CASCADE;
 CREATE MATERIALIZED VIEW gold.species_by_reach AS
+-- ODFW StreamNet (Pacific Northwest)
  SELECT o.site_id,
     s.watershed,
     o.data_payload ->> 'stream'::text AS stream_name,
@@ -606,6 +607,7 @@ CREATE MATERIALIZED VIEW gold.species_by_reach AS
      JOIN sites s ON s.id = o.site_id
   WHERE o.source_type::text = 'fish_habitat'::text
 UNION ALL
+-- WDFW SalmonScape (Washington)
  SELECT w.site_id,
     s.watershed,
     w.stream_name,
@@ -619,7 +621,63 @@ UNION ALL
     0 AS inat_observation_count,
     NULL::date AS last_inat_observation
    FROM wa_salmonscape w
-     JOIN sites s ON s.id = w.site_id;;
+     JOIN sites s ON s.id = w.site_id
+UNION ALL
+-- UDWR Fish Stocking (Utah / Green River basin via pipeline.ingest.utah)
+ SELECT DISTINCT
+    i.site_id,
+    s.watershed,
+    i.data_payload ->> 'waterbody'::text AS stream_name,
+    NULL::text AS scientific_name,
+    i.data_payload ->> 'species'::text AS common_name,
+    NULL::text AS run_type,
+    'rearing'::text AS use_type,
+    'stocked'::text AS origin,
+    NULL::text AS life_history,
+    'udwr_stocking'::text AS data_basis,
+    0 AS inat_observation_count,
+    NULL::date AS last_inat_observation
+   FROM interventions i
+     JOIN sites s ON s.id = i.site_id
+  WHERE i.type::text = 'fish_stocking'::text
+    AND (i.data_payload ->> 'source'::text) = 'udwr'::text
+    AND (i.data_payload ->> 'species'::text) IS NOT NULL
+UNION ALL
+-- iNaturalist Actinopterygii fallback — only for watersheds without any
+-- structured fish data (StreamNet / SalmonScape / fish_stocking). Avoids
+-- duplicate species between sources.
+ SELECT DISTINCT
+    o.site_id,
+    s.watershed,
+    NULL::text AS stream_name,
+    o.taxon_name AS scientific_name,
+    COALESCE(o.data_payload ->> 'common_name'::text, o.taxon_name) AS common_name,
+    NULL::text AS run_type,
+    NULL::text AS use_type,
+    'wild'::text AS origin,
+    NULL::text AS life_history,
+    'inaturalist'::text AS data_basis,
+    ( SELECT count(*) FROM observations obs2
+       WHERE obs2.site_id = o.site_id AND obs2.source_type::text = 'inaturalist'::text AND obs2.taxon_name::text = o.taxon_name::text) AS inat_observation_count,
+    ( SELECT max(obs2.observed_at)::date FROM observations obs2
+       WHERE obs2.site_id = o.site_id AND obs2.source_type::text = 'inaturalist'::text AND obs2.taxon_name::text = o.taxon_name::text) AS last_inat_observation
+   FROM observations o
+     JOIN sites s ON s.id = o.site_id
+  WHERE o.source_type::text = 'inaturalist'::text
+    AND o.iconic_taxon::text = 'Actinopterygii'::text
+    AND o.quality_grade::text = 'research'::text
+    AND s.watershed NOT IN (
+        SELECT DISTINCT s2.watershed
+          FROM observations o2 JOIN sites s2 ON s2.id = o2.site_id
+         WHERE o2.source_type::text = 'fish_habitat'::text
+        UNION
+        SELECT DISTINCT s2.watershed
+          FROM wa_salmonscape w2 JOIN sites s2 ON s2.id = w2.site_id
+        UNION
+        SELECT DISTINCT s2.watershed
+          FROM interventions i2 JOIN sites s2 ON s2.id = i2.site_id
+         WHERE i2.type::text = 'fish_stocking'::text
+    );;
 
 -- gold.species_trends
 DROP MATERIALIZED VIEW IF EXISTS gold.species_trends CASCADE;
