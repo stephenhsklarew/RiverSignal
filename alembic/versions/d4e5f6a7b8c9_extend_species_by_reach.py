@@ -65,13 +65,15 @@ UNION ALL
    FROM wa_salmonscape w
      JOIN sites s ON s.id = w.site_id
 UNION ALL
--- UDWR Fish Stocking (Utah / Green River basin)
+-- UDWR Fish Stocking (Utah / Green River basin).
+-- pipeline.ingest.utah stores the JSON payload as text in interventions.description,
+-- so we cast through jsonb. Filter defensively to JSON-shaped descriptions.
  SELECT DISTINCT
     i.site_id,
     s.watershed,
-    i.data_payload ->> 'waterbody'::text AS stream_name,
+    (i.description::jsonb) ->> 'waterbody'::text AS stream_name,
     NULL::text AS scientific_name,
-    i.data_payload ->> 'species'::text AS common_name,
+    (i.description::jsonb) ->> 'species'::text AS common_name,
     NULL::text AS run_type,
     'rearing'::text AS use_type,
     'stocked'::text AS origin,
@@ -82,8 +84,10 @@ UNION ALL
    FROM interventions i
      JOIN sites s ON s.id = i.site_id
   WHERE i.type::text = 'fish_stocking'::text
-    AND (i.data_payload ->> 'source'::text) = 'udwr'::text
-    AND (i.data_payload ->> 'species'::text) IS NOT NULL
+    AND i.description IS NOT NULL
+    AND i.description LIKE '{%'
+    AND ((i.description::jsonb) ->> 'source'::text) = 'udwr'::text
+    AND ((i.description::jsonb) ->> 'species'::text) IS NOT NULL
 UNION ALL
 -- iNaturalist Actinopterygii fallback for watersheds with no structured fish data
  SELECT DISTINCT
