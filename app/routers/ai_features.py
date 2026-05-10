@@ -185,10 +185,16 @@ def catch_probability(watershed: str):
     month = datetime.now().month
 
     with engine.connect() as conn:
-        # Current conditions
+        # Current conditions — pick the most recent month that actually has
+        # non-null water temp / flow values. The matview includes a row per
+        # (watershed, year, month) even when sparsely populated, so taking
+        # LIMIT 1 alone can return a row with NULL aggregates if the latest
+        # month hasn't been ingested for that watershed yet.
         cond = conn.execute(text("""
             SELECT avg_water_temp_c, avg_discharge_cfs FROM gold.fishing_conditions
-            WHERE watershed = :ws ORDER BY obs_year DESC, obs_month DESC LIMIT 1
+            WHERE watershed = :ws
+              AND (avg_water_temp_c IS NOT NULL OR avg_discharge_cfs IS NOT NULL)
+            ORDER BY obs_year DESC, obs_month DESC LIMIT 1
         """), {"ws": watershed}).fetchone()
 
         # Species by reach

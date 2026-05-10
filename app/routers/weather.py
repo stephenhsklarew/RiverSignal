@@ -15,6 +15,8 @@ WS_COORDS = {
     "metolius": (44.50, -121.57),
     "klamath": (42.65, -121.55),
     "johnday": (44.60, -119.15),
+    "skagit": (48.45, -121.50),
+    "green_river": (40.50, -109.50),  # Dinosaur National Monument area
 }
 
 # USGS gauge station IDs per watershed (primary stations)
@@ -24,6 +26,8 @@ WS_GAUGES = {
     "metolius": ["14091500"],                  # Metolius River near Grandview
     "klamath": ["11502500", "11493500"],       # Williamson River, Sprague River
     "johnday": ["14048000", "14046000"],       # John Day at Service Creek, at Dayville
+    "skagit": ["12189500", "12200500"],        # Skagit nr Concrete, nr Mount Vernon
+    "green_river": ["09234500", "09315000"],   # Green River nr Greendale UT (Flaming Gorge tailwater), at Green River UT (Desolation/Gray)
 }
 
 # Simple in-memory cache: {key: (timestamp, data)}
