@@ -164,10 +164,20 @@ function RiverCard({ site, photo, tagline, onNavigate, onAsk }: {
 // DETAIL: Full River Now for a specific watershed
 // ════════════════════════════════════════════
 
+// Watershed → state-specific source identifiers for tooltips.
+// 'fishing' is the ODFW (Oregon) adapter; 'washington' and 'utah' are the
+// state-bundle adapters that include stocking + parks + access points.
+const WS_STATE_SOURCES: Record<string, { stocking: string[]; access: string[] }> = {
+  skagit:      { stocking: ['washington'],         access: ['recreation', 'washington'] },
+  green_river: { stocking: ['utah'],               access: ['recreation', 'utah'] },
+}
+const DEFAULT_STATE_SOURCES = { stocking: ['fishing'], access: ['recreation'] }
+
 function RiverNowDetail({ watershed }: { watershed: string }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const pendingQuestion = searchParams.get('q')
+  const stateSources = WS_STATE_SOURCES[watershed] || DEFAULT_STATE_SOURCES
 
   // ─── SWR-backed page data (stale-while-revalidate, cache survives navigation) ───
   // TTL bands:
@@ -431,7 +441,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                       </span>
                     )}
                   </span>
-                  <span className="rnow-metric-label">{latestHarvest.species} '{String(latestHarvest.year).slice(2)} <InfoTooltip text="How many of this species were caught and kept by anglers in the most recent year ODFW has published. The arrow shows whether the count went up or down from the year before." sources={['fishing']} /></span>
+                  <span className="rnow-metric-label">{latestHarvest.species} '{String(latestHarvest.year).slice(2)} <InfoTooltip text="How many of this species were caught and kept by anglers in the most recent year the state wildlife agency has published. The arrow shows whether the count went up or down from the year before." sources={stateSources.stocking} /></span>
                 </div>
               )}
               {hatchConfidence && (
@@ -638,7 +648,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Fish Near You (Species by Reach) ── */}
           {uniqueFishByReach.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🐟 Fish Present <InfoTooltip text="Fish species documented in this watershed. Pulled from verified citizen-science sightings, professional fish surveys, museum records, and (in Washington) the state's salmon-distribution database. Duplicates are removed and species are grouped by river stretch." sources={['inaturalist', 'biodata', 'gbif']} /></div>
+              <div className="rnow-section-title">🐟 Fish Present <InfoTooltip text="Fish species documented in this watershed. Pulled from verified citizen-science sightings, professional fish surveys, museum specimen records, and (where the state publishes it) the salmon-distribution database. Duplicates are removed and species are grouped by river stretch." sources={['inaturalist', 'biodata', 'gbif']} /></div>
               <div className="rnow-fish-carousel">
                 {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
                   <div key={i} className="rnow-fish-card">
@@ -858,7 +868,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Stocking Alerts ── */}
           {(upcomingStocking.length > 0 || recentStocking.length > 0) && (
             <section className="rnow-section">
-              <div className="rnow-section-title">Fish Stocking <InfoTooltip text="Upcoming and recent fish releases by the state wildlife agency (ODFW in Oregon, WDFW in Washington) for waters in this drainage. Pulled from the agencies' public stocking schedules and refreshed weekly." sources={['fishing', 'washington']} /></div>
+              <div className="rnow-section-title">Fish Stocking <InfoTooltip text="Upcoming and recent fish releases by the state wildlife agency for waters in this drainage. Pulled from the agency's public stocking schedule and refreshed weekly." sources={stateSources.stocking} /></div>
               {upcomingStocking.length > 0 && (
                 <div className="rnow-stocking-upcoming">
                   {upcomingStocking.map((s: any, i: number) => (
@@ -915,7 +925,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Nearby Access Points ── */}
           {accessPoints.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">Nearby Access <InfoTooltip text="Public places to get to the river near here — campgrounds, trailheads, day-use sites, boat ramps, fishing access points. Drawn from the Forest Service recreation database, state marine-board boat-ramp inventories, and state-park listings." sources={['recreation', 'washington', 'utah']} /></div>
+              <div className="rnow-section-title">Nearby Access <InfoTooltip text="Public places to get to the river near here — campgrounds, trailheads, day-use sites, boat ramps, fishing access points. Drawn from the Forest Service recreation database and the state's park / boat-ramp / fishing-access listings." sources={stateSources.access} /></div>
               <div className="rnow-access-list">
                 {accessPoints.map((ap: any, i: number) => (
                   <div key={i} className="rnow-access-card">

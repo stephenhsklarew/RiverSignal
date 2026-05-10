@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useFreshness, sourceLabel, rollupStatus, type FreshnessStatus } from '../hooks/useFreshness'
+import { useFreshness, sourceLabel, type FreshnessStatus } from '../hooks/useFreshness'
 import './InfoTooltip.css'
 
 interface InfoTooltipProps {
   text: string
   dark?: boolean
-  /** Source identifiers (e.g., 'usgs', 'snotel') for freshness dot + popup footer. */
+  /** Source identifiers (e.g., 'usgs', 'snotel') for the per-source freshness list in the popup. */
   sources?: string | string[]
 }
 
@@ -17,20 +17,11 @@ const STATUS_CLASS: Record<FreshnessStatus, string> = {
   unknown: 'unknown',
 }
 
-const STATUS_TITLE: Record<FreshnessStatus, string> = {
-  fresh: 'Data is fresh',
-  stale: 'Data is older than expected',
-  very_stale: 'Data is very stale',
-  unknown: 'Freshness unknown',
-}
-
 export default function InfoTooltip({ text, dark, sources }: InfoTooltipProps) {
   const [open, setOpen] = useState(false)
   const freshness = useFreshness()
 
   const sourceList = sources ? (Array.isArray(sources) ? sources : [sources]) : []
-  const status: FreshnessStatus =
-    sourceList.length > 0 ? rollupStatus(freshness, sourceList) : 'fresh'
 
   return (
     <>
@@ -47,13 +38,6 @@ export default function InfoTooltip({ text, dark, sources }: InfoTooltipProps) {
             <rect x="7.05" y="6.6" width="1.9" height="5.4" rx="0.6" fill="currentColor" />
           </svg>
         </button>
-        {sourceList.length > 0 && (
-          <span
-            className={`info-tooltip-dot ${STATUS_CLASS[status]}`}
-            title={STATUS_TITLE[status]}
-            aria-label={STATUS_TITLE[status]}
-          />
-        )}
       </span>
 
       {open && createPortal(
