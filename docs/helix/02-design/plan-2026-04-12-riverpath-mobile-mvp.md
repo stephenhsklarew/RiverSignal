@@ -135,6 +135,8 @@ recreation_sites (
 | `silver.recreation_access` | Silver | Explore | Standardized recreation sites across RIDB + State Parks, with normalized amenities |
 | `gold.adventures_nearby` | Gold | Explore | Recreation sites enriched with current water conditions + species counts + safety ratings from existing gold views |
 | `gold.hatch_confidence` | Gold | Hatch | Combines `hatch_chart` observation counts + `water_quality_monthly` current temp + `seasonal_observation_patterns` to produce a confidence tier (high/medium/low) per insect species per month |
+| `gold.snowpack_current` | Gold | River Now | SNOTEL snow-water equivalent aggregated per watershed: avg SWE, % of normal, station count, 7-day trend |
+| `gold.aquatic_hatch_chart` | Gold | Hatch | WQP macroinvertebrate observations enriched with degree-day emergence windows for insect hatch predictions |
 
 ### New API Endpoints
 
@@ -143,15 +145,29 @@ recreation_sites (
 | `/api/v1/sites/nearest` | GET | GPS → nearest watershed + reach | `gold.river_miles` via PostGIS |
 | `/api/v1/sites/{ws}/recreation` | GET | Recreation sites for Explore | `gold.adventures_nearby` |
 | `/api/v1/sites/{ws}/fishing/hatch-confidence` | GET | Hatch confidence scores | `gold.hatch_confidence` |
+| `/api/v1/weather/{ws}` | GET | NWS 7-day forecast by watershed centroid | NWS API (live, 30-min cache) |
+| `/api/v1/snowpack/{ws}` | GET | Current snowpack conditions | `gold.snowpack_current` |
+| `/api/v1/conditions/live/{ws}` | GET | USGS real-time gauge readings (temp, flow) | USGS Instantaneous Values API (live, 15-min cache) |
+| `/api/v1/observations/user` | GET/POST | User-submitted observations (CRUD) | `user_observations` table |
+| `/api/v1/observations/user/geojson` | GET | User observations as GeoJSON for map | `user_observations` table |
+| `/api/v1/observations/typeahead` | GET | Species name typeahead search | `gold.species_gallery` |
 
 ### Existing Endpoints Reused (No Changes)
 
 | Screen | Endpoints |
 |--------|-----------|
-| River Now | `/sites/{ws}`, `/sites/{ws}/story`, `/sites/{ws}/species`, `/sites/{ws}/fishing/conditions` |
-| Hatch | `/sites/{ws}/fishing/hatch`, `/sites/{ws}/fishing/fly-recommendations`, `/sites/{ws}/seasonal` |
+| River Now | `/sites/{ws}`, `/sites/{ws}/story`, `/sites/{ws}/species`, `/sites/{ws}/fishing/conditions`, `/weather/{ws}`, `/snowpack/{ws}`, `/conditions/live/{ws}` |
+| Hatch | `/sites/{ws}/fishing/hatch`, `/sites/{ws}/fishing/fly-recommendations`, `/sites/{ws}/seasonal`, `/sites/{ws}/hatch-predictions` |
 | Fish + Refuge | `/sites/{ws}/fishing/brief`, `/sites/{ws}/fishing/barriers`, `/sites/{ws}/species` |
 | Steward | `/sites/{ws}/story`, `/sites/{ws}/recommendations` |
+
+### Backend Routers
+
+| Router | File | Purpose |
+|--------|------|---------|
+| `weather.py` | `app/routers/weather.py` | NWS forecast, USGS live gauges, snowpack — live API proxies with in-memory cache |
+| `user_observations.py` | `app/routers/user_observations.py` | Photo observation CRUD, typeahead, visibility filtering, GeoJSON export |
+| `auth.py` | `app/routers/auth.py` | Google/Apple OAuth, JWT cookies, session management |
 
 ## 5. Frontend Component Architecture
 
@@ -174,6 +190,12 @@ recreation_sites (
 | `SavedPage.tsx` | Saved | Grouped list of bookmarked reaches, species, flies |
 | `SaveButton.tsx` | Shared | Heart/bookmark toggle icon, wired to SavedContext |
 | `SavedContext.tsx` | Shared | React context for localStorage-backed favorites |
+| `WatershedHeader.tsx` | Shared | Sticky header with river name picker, logo, settings, user menu. `getSelectedWatershed()` / `setSelectedWatershed()` for sessionStorage persistence. |
+| `useWatershed.ts` | Hook | Syncs URL `:watershed` param with sessionStorage; redirects to last-selected watershed if none in URL |
+| `SpeciesMapPage.tsx` | Species Map | Full-screen MapLibre map at `/path/map/:watershed` with Fish/Insect toggle, photo popups, fly match overlays |
+| `ExploreMapPage.tsx` | Explore Map | Full-screen MapLibre recreation map at `/path/explore-map/:watershed` with type filter chips |
+| `PhotoObservation.tsx` | Shared | Floating camera FAB → photo capture/upload → observation form with species typeahead, auto-category, scientific name, visibility toggle |
+| `InfoTooltip.tsx` | Shared | Reusable info tooltip with portal-rendered modal, data freshness dot, and source list |
 | `GPSLocator.tsx` | Shared | GPS locate FAB button, calls geolocation API → `/sites/nearest` |
 
 ### Modified Components
