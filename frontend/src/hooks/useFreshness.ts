@@ -107,3 +107,26 @@ export function rollupStatus(
   }
   return any ? worst : 'unknown'
 }
+
+/**
+ * Roll up a single representative age label across multiple sources — the
+ * oldest age wins (consistent with the worst-status rollup). Returns null
+ * when no source has data yet.
+ */
+export function rollupAgeLabel(
+  data: FreshnessResponse | null,
+  sources: string[],
+): string | null {
+  if (!data || sources.length === 0) return null
+  let worstHours = -1
+  let worstLabel: string | null = null
+  for (const s of sources) {
+    const entry = data.sources[s]
+    if (!entry || entry.hours_ago == null) continue
+    if (entry.hours_ago > worstHours) {
+      worstHours = entry.hours_ago
+      worstLabel = entry.label
+    }
+  }
+  return worstLabel
+}

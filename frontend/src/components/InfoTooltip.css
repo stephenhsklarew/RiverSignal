@@ -45,8 +45,25 @@
 }
 .info-tooltip-card.dark .info-tooltip-text { color: #c4b8a8; }
 
-/* Inline freshness dot next to the ⓘ button */
-.info-tooltip-wrap { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+/* Inline freshness next to the ⓘ button */
+.info-tooltip-wrap { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+
+/* Inline relative-time text (e.g., "8h ago"), colored by status */
+.info-tooltip-age {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--mono, ui-monospace, monospace);
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1;
+}
+.info-tooltip-age.fresh      { color: #1a8a4a; }
+.info-tooltip-age.stale      { color: #b07e15; }
+.info-tooltip-age.very_stale { color: #c4432b; }
+.info-tooltip-age.unknown    { color: var(--text-muted, #9e9b96); }
+
+/* Dot — still used inside the popup source list */
 .info-tooltip-dot {
   display: inline-block;
   width: 7px; height: 7px;

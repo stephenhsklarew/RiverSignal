@@ -406,19 +406,19 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               {displayTemp && (
                 <div className="rnow-metric">
                   <span className="rnow-metric-value">{displayTemp}</span>
-                  <span className="rnow-metric-label">Water Temp</span>
+                  <span className="rnow-metric-label">Water Temp <InfoTooltip text="Right-now water temperature from the closest USGS stream gauge to this river. The reading refreshes every 15 minutes." sources={['usgs']} /></span>
                 </div>
               )}
               {displayFlow && (
                 <div className="rnow-metric">
                   <span className="rnow-metric-value">{displayFlow}</span>
-                  <span className="rnow-metric-label">Flow (cfs)</span>
+                  <span className="rnow-metric-label">Flow (cfs) <InfoTooltip text="How much water the river is moving right now, in cubic feet per second, from the closest USGS gauge. Refreshes every 15 minutes. Higher flow means faster, deeper water." sources={['usgs']} /></span>
                 </div>
               )}
               {displayDO != null && (
                 <div className="rnow-metric">
                   <span className="rnow-metric-value">{displayDO}</span>
-                  <span className="rnow-metric-label">DO (mg/L)</span>
+                  <span className="rnow-metric-label">DO (mg/L) <InfoTooltip text="Dissolved oxygen — how much oxygen is in the water. Fish need it to breathe; trout do best above about 8 mg/L. Reading comes from the closest USGS gauge that measures oxygen (not every gauge does, so this may be a different station than the temperature reading)." sources={['usgs']} /></span>
                 </div>
               )}
               {latestHarvest && (
@@ -431,7 +431,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                       </span>
                     )}
                   </span>
-                  <span className="rnow-metric-label">{latestHarvest.species} '{String(latestHarvest.year).slice(2)}</span>
+                  <span className="rnow-metric-label">{latestHarvest.species} '{String(latestHarvest.year).slice(2)} <InfoTooltip text="How many of this species were caught and kept by anglers in the most recent year ODFW has published. The arrow shows whether the count went up or down from the year before." sources={['fishing']} /></span>
                 </div>
               )}
               {hatchConfidence && (
@@ -439,18 +439,18 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   <span className={`rnow-metric-value confidence-${hatchConfidence}`}>
                     {hatchConfidence.charAt(0).toUpperCase() + hatchConfidence.slice(1)}
                   </span>
-                  <span className="rnow-metric-label">Hatch <InfoTooltip text="How likely insects are emerging right now, based on accumulated water temperature this season (degree-day models). HIGH means peak emergence window. MEDIUM means insects are active but not at peak." sources={['snotel', 'usgs']} /></span>
+                  <span className="rnow-metric-label">Hatch <InfoTooltip text="How likely the insects fish eat are hatching right now. We add up how warm the water has been over the season (warm water triggers emergence) and compare to the timing each insect typically needs. HIGH means peak hatch. MEDIUM means insects are active but not yet at peak." sources={['snotel', 'usgs']} /></span>
                 </div>
               )}
               {todayWeather && (
                 <div className="rnow-metric">
                   <span className="rnow-metric-value">{todayWeather.temperature}°F</span>
-                  <span className="rnow-metric-label">{todayWeather.forecast}</span>
+                  <span className="rnow-metric-label">{todayWeather.forecast} <InfoTooltip text="Today's air temperature and conditions from the National Weather Service for the center of this watershed. The forecast is fetched fresh and held for 30 minutes between requests." /></span>
                 </div>
               )}
             </div>
             {health.score != null && (
-              <div className="rnow-hero-score">Health Score: <strong>{health.score}</strong>/100 <InfoTooltip text="Overall river health from 0 to 100, based on real-time water temperature and dissolved oxygen from USGS gauges compared to historical averages. Recent species diversity is also factored in — more species generally means a healthier river." sources={['usgs', 'inaturalist']} /></div>
+              <div className="rnow-hero-score">Health Score: <strong>{health.score}</strong>/100 <InfoTooltip text="A 0–100 snapshot of how this river is doing right now. We look at how the current water temperature and oxygen level compare to historical averages for this time of year, plus how many different species have been observed lately — more variety generally means a healthier river." sources={['usgs', 'inaturalist']} /></div>
             )}
             {liveTemp && (
               <div className="rnow-hero-station">{liveTemp.station} · {new Date(liveTemp.timestamp).toLocaleTimeString()}</div>
@@ -502,7 +502,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {catchProb && (
             <div className="rnow-catch-prob">
               <div className="rnow-catch-header">
-                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How favorable conditions are for catching each species today. Scored using current water temperature vs. preferred range, seasonal fisheries patterns, active insect hatches, recent stocking, and cold-water refuge proximity." sources={['usgs', 'fishing', 'inaturalist']} /></span>
+                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How likely you are to catch each species today. We combine current water temperature versus what each species prefers, the season, what bugs are hatching, recent stocking, and whether there are cold-water hiding spots nearby." sources={['usgs', 'fishing', 'inaturalist']} /></span>
                 <span className={`rnow-catch-score ${catchProb.overall_level}`}>{catchProb.overall_score}</span>
               </div>
               <div className="rnow-catch-species">
@@ -524,7 +524,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── What Fish Are Eating ── */}
           {spotter && spotter.species?.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="Predicted insect hatches based on accumulated water temperature this season (degree-day models). Each species emerges when the water has warmed enough, not by calendar date. Combined with citizen science observations and expert hatch charts." sources={['usgs', 'wqp_bugs', 'inaturalist']} /></div>
+              <div className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="Which bugs and insects fish are eating right now. Each insect species emerges when the water has warmed up enough, not on a specific date. We combine those temperature signals with recent sightings by citizen scientists and expert hatch charts to rank the most likely active insects." sources={['usgs', 'wqp_bugs', 'inaturalist']} /></div>
               <div className="rnow-spotter-grid">
                 {spotter.species.slice(0, 6).map((s: any, i: number) => (
                   <div key={i} className="rnow-spotter-card">
@@ -560,7 +560,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             <div className="rnow-card" onClick={() => navigate(`/path/fish/${watershed}`)}>
               <div className="rnow-card-header">
                 <span className="rnow-card-icon">🐟</span>
-                <span className="rnow-card-title">Fish Activity</span>
+                <span className="rnow-card-title">Fish Activity <InfoTooltip text="Fish species people and biologists have seen recently in this watershed. Combines verified iNaturalist sightings from citizen scientists with USGS-led professional fish surveys." sources={['inaturalist', 'biodata']} /></span>
               </div>
               <div className="rnow-card-body">
                 {fishActive.length > 0 ? (
@@ -582,7 +582,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             <div className="rnow-card" onClick={() => navigate('/path/hatch')}>
               <div className="rnow-card-header">
                 <span className="rnow-card-icon">🪰</span>
-                <span className="rnow-card-title">Insect Activity</span>
+                <span className="rnow-card-title">Insect Activity <InfoTooltip text="Stream insects that have been spotted recently in this watershed — mayflies, caddis, stoneflies, etc. Pulled from citizen-science sightings (iNaturalist) and aquatic-insect surveys done for water-quality monitoring." sources={['inaturalist', 'wqp_bugs']} /></span>
               </div>
               <div className="rnow-card-body">
                 {topInsects.length > 0 ? (
@@ -605,7 +605,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             <div className="rnow-card" onClick={() => navigate(`/path/fish/${watershed}?section=refuges`)}>
               <div className="rnow-card-header">
                 <span className="rnow-card-icon">❄</span>
-                <span className="rnow-card-title">Cold-Water Refuges</span>
+                <span className="rnow-card-title">Cold-Water Refuges <InfoTooltip text="Spots within this watershed where the water stays cooler than the main river — usually spring-fed pools or shaded side channels. Fish, especially trout, gather here during heat waves. Identified by comparing temperatures across USGS monitoring stations." sources={['usgs']} /></span>
               </div>
               <div className="rnow-card-body">
                 {coldRefuges.length > 0 ? (
@@ -638,7 +638,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Fish Near You (Species by Reach) ── */}
           {uniqueFishByReach.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🐟 Fish Present</div>
+              <div className="rnow-section-title">🐟 Fish Present <InfoTooltip text="Fish species documented in this watershed. Pulled from verified citizen-science sightings, professional fish surveys, museum records, and (in Washington) the state's salmon-distribution database. Duplicates are removed and species are grouped by river stretch." sources={['inaturalist', 'biodata', 'gbif']} /></div>
               <div className="rnow-fish-carousel">
                 {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
                   <div key={i} className="rnow-fish-card">
@@ -663,7 +663,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           <div data-card="barriers">
           {/* ── Fish Passage Barriers ── */}
             <section className="rnow-section">
-              <div className="rnow-section-title">⚠ Fish Passage Barriers{barriers.length > 0 ? ` (${barriers.length})` : ''}</div>
+              <div className="rnow-section-title">⚠ Fish Passage Barriers{barriers.length > 0 ? ` (${barriers.length})` : ''} <InfoTooltip text="Things in the river that fish can't easily swim past — dams, weirs, culverts, and waterfalls. Sourced from regional barrier inventories. Each barrier is marked as fully blocking, partially passable, or fully passable where that's been reported." sources={['fish_barrier']} /></div>
               {barriers.length > 0 ? (
               <div className="rnow-barriers">
                 {barriers.slice(0, 5).map((b: any, i: number) => (
@@ -684,7 +684,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Fly Shops & Guides ── */}
           {flyShops.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🏪 Fly Shops & Guides</div>
+              <div className="rnow-section-title">🏪 Fly Shops & Guides <InfoTooltip text="Local fly shops, outfitters, and guide services for this river. Hand-curated from in-person research and public business directories. If you know a shop that should be listed, reach out via the contact link." /></div>
               <div className="rnow-shops">
                 {flyShops.map((s: any, i: number) => (
                   <div key={i} className="rnow-shop-card">
@@ -711,7 +711,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
             const selected = years.find((y: any) => y.year === tmYear) || years[years.length - 1]
             return (
               <section className="rnow-section">
-                <div className="rnow-section-title">🕰️ Time Machine — Species Through the Years</div>
+                <div className="rnow-section-title">🕰️ Time Machine — Species Through the Years <InfoTooltip text="What people and biologists were finding in this watershed year by year. Drag the slider to see which species showed up in each year. Built from verified citizen-science sightings and agency surveys going back as far as the records exist." sources={['inaturalist', 'biodata']} /></div>
                 <div className="rnow-tm-slider-row">
                   <span className="rnow-tm-year-label">{years[0].year}</span>
                   <input type="range" className="rnow-tm-slider"
@@ -746,7 +746,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           <div data-card="compare_rivers">
           {/* ── Compare Rivers ── */}
           <section className="rnow-section">
-            <div className="rnow-section-title">⚖️ Compare Rivers</div>
+            <div className="rnow-section-title">⚖️ Compare Rivers <InfoTooltip text="See how this river stacks up against another one side by side — health score, current water temperature, total species, and restoration project count. Pick another river to compare." sources={['usgs', 'inaturalist']} /></div>
             <div className="rnow-compare-picker">
               <span className="rnow-compare-label">Compare {site.name} with:</span>
               <div className="rnow-compare-btns">
@@ -794,7 +794,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Weather Forecast ── */}
           {weather?.periods?.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">Weather Forecast</div>
+              <div className="rnow-section-title">Weather Forecast <InfoTooltip text="7-day forecast for the center of this watershed from the National Weather Service. Fetched fresh and held for 30 minutes between requests." /></div>
               <div className="rnow-weather-grid">
                 {weather.periods.slice(0, 6).map((p: any, i: number) => (
                   <div key={i} className={`rnow-weather-item${p.is_daytime ? '' : ' night'}`}>
@@ -813,7 +813,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Snowpack Card ── */}
           {snowpack && (snowpack.stations_with_snow > 0 || snowpack.station_count > 0) && (
             <section className="rnow-section">
-              <div className="rnow-section-title">Snowpack & Mountain Conditions</div>
+              <div className="rnow-section-title">Snowpack & Mountain Conditions <InfoTooltip text="How much snow is up in the mountains around this watershed. SWE means 'snow water equivalent' — how many inches of water the snowpack would melt into. Readings come from the automated SNOTEL stations the NRCS runs in the high country, updated daily." sources={['snotel']} /></div>
               <div className="rnow-snowpack-card">
                 <div className="rnow-snow-metrics">
                   {snowpack.avg_swe_in != null && (
@@ -858,7 +858,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Stocking Alerts ── */}
           {(upcomingStocking.length > 0 || recentStocking.length > 0) && (
             <section className="rnow-section">
-              <div className="rnow-section-title">Fish Stocking</div>
+              <div className="rnow-section-title">Fish Stocking <InfoTooltip text="Upcoming and recent fish releases by the state wildlife agency (ODFW in Oregon, WDFW in Washington) for waters in this drainage. Pulled from the agencies' public stocking schedules and refreshed weekly." sources={['fishing', 'washington']} /></div>
               {upcomingStocking.length > 0 && (
                 <div className="rnow-stocking-upcoming">
                   {upcomingStocking.map((s: any, i: number) => (
@@ -895,7 +895,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {whatsAlive.length > 0 && (
             <section className="rnow-section">
               <div className="rnow-section-title-row">
-                <span className="rnow-section-title">What's Here Now</span>
+                <span className="rnow-section-title">What's Here Now <InfoTooltip text="Wildlife and plants people have actually spotted in this watershed in the past few weeks — what you'd be most likely to encounter on a visit today. Drawn from verified citizen-science sightings on iNaturalist." sources={['inaturalist']} /></span>
                 <button className="rnow-view-map-btn" onClick={() => navigate(`/path/map/${watershed}`)}>View Map</button>
               </div>
               <div className="rnow-alive-grid">
@@ -915,7 +915,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Nearby Access Points ── */}
           {accessPoints.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">Nearby Access</div>
+              <div className="rnow-section-title">Nearby Access <InfoTooltip text="Public places to get to the river near here — campgrounds, trailheads, day-use sites, boat ramps, fishing access points. Drawn from the Forest Service recreation database, state marine-board boat-ramp inventories, and state-park listings." sources={['recreation', 'washington', 'utah']} /></div>
               <div className="rnow-access-list">
                 {accessPoints.map((ap: any, i: number) => (
                   <div key={i} className="rnow-access-card">
@@ -976,7 +976,7 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
 
   return (
     <>
-      <div className="rnow-story-label">River Story <InfoTooltip text="AI-generated narrative using real watershed data — species counts, water quality, fire recovery, and restoration outcomes. Regenerated periodically as new data arrives. Audio narration by OpenAI voice." sources={['inaturalist', 'usgs', 'restoration', 'mtbs']} /></div>
+      <div className="rnow-story-label">River Story <InfoTooltip text="A narrative about this river, written by AI but grounded in real data — species counts, water quality, recent wildfires, restoration projects. Rewritten periodically as new data arrives. The audio version is read by a synthetic voice." sources={['inaturalist', 'usgs', 'restoration', 'mtbs']} /></div>
       <section className="rnow-story-card">
         {/* Reading level toggle + audio */}
         <div className="rnow-story-controls">
