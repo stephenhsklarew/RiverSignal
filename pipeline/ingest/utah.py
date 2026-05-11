@@ -350,18 +350,31 @@ class UtahDataAdapter(IngestionAdapter):
                     html = resp.text
                     rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL)
 
+                    # UDWR table columns (verified 2026-05-11):
+                    #   0=Location Name, 1=County, 2=Fish Species,
+                    #   3=Number Stocked, 4=Size (inches), 5=Date
+                    # The ?sortspecific=GREEN+RIVER URL param is a sort key,
+                    # not a filter — the server returns every Utah stocking
+                    # record. We must post-filter rows to those whose location
+                    # name actually matches the watershed we're ingesting for.
+                    target_upper = water_name.upper()
                     for row in rows[1:]:  # skip header row
                         cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
                         cells = [re.sub(r'<[^>]+>', '', c).strip() for c in cells]
-                        if len(cells) < 5:
+                        if len(cells) < 6:
                             continue
 
-                        # Parse fields — typical columns: date, water, species, number, avg_length
-                        stock_date = cells[0].strip()
-                        waterbody = cells[1].strip() if len(cells) > 1 else water_name
-                        species = cells[2].strip() if len(cells) > 2 else ""
-                        quantity_str = cells[3].strip().replace(",", "") if len(cells) > 3 else "0"
-                        avg_length = cells[4].strip() if len(cells) > 4 else ""
+                        waterbody = cells[0]
+                        county = cells[1]
+                        species = cells[2]
+                        quantity_str = cells[3].replace(",", "")
+                        avg_length = cells[4]
+                        stock_date = cells[5]
+
+                        # Skip rows for waterbodies that aren't in our basin.
+                        # Match GREEN RIVER, FLAMING GORGE, and obvious tributaries.
+                        if target_upper not in waterbody.upper():
+                            continue
 
                         try:
                             quantity = int(quantity_str)
@@ -394,6 +407,7 @@ class UtahDataAdapter(IngestionAdapter):
                             "sid": site.id,
                             "desc": json.dumps({
                                 "waterbody": waterbody,
+                                "county": county,
                                 "species": species,
                                 "quantity": quantity,
                                 "avg_length": avg_length,
