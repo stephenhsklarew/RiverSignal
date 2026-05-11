@@ -240,7 +240,15 @@ class FishingDataAdapter(IngestionAdapter):
         return created
 
     def _ingest_stocking(self, site: Site) -> int:
-        """Scrape ODFW trout stocking schedule."""
+        """Scrape ODFW trout stocking schedule.
+
+        ODFW covers Oregon only. Skip watersheds outside Oregon — those have
+        their own state-specific stocking sources (wa_fish_stocking for WA,
+        UDWR interventions for the Green River basin in UT/WY).
+        """
+        if site.watershed in ("skagit", "green_river"):
+            return 0
+
         created = 0
 
         with httpx.Client(timeout=30, follow_redirects=True) as client:
@@ -256,12 +264,15 @@ class FishingDataAdapter(IngestionAdapter):
 
             rows = re.findall(r'<tr[^>]*>(.*?)</tr>', resp.text, re.DOTALL)
 
-            # Match waterbodies in our watershed area by zone
+            # Match waterbodies in our watershed area by ODFW zone.
+            # John Day waters live in the Northeast zone; previously missing,
+            # which caused unfiltered results to leak into the John Day surface.
             zone_map = {
                 "klamath": "Southeast",
                 "mckenzie": "Willamette",
                 "deschutes": "Central",
                 "metolius": "Central",
+                "johnday": "Northeast",
             }
             target_zone = zone_map.get(site.watershed, "")
 

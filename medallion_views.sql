@@ -705,19 +705,44 @@ CREATE MATERIALIZED VIEW gold.species_trends AS
     species_count - lag(species_count) OVER (PARTITION BY site_id ORDER BY obs_year) AS species_delta
    FROM yearly y;;
 
--- gold.stocking_schedule
+-- gold.stocking_schedule — UNION of ODFW (time_series), UDWR (interventions), WDFW (wa_fish_stocking)
 DROP MATERIALIZED VIEW IF EXISTS gold.stocking_schedule CASCADE;
 CREATE MATERIALIZED VIEW gold.stocking_schedule AS
+-- ODFW (Oregon, via time_series source_type='stocking')
  SELECT t.site_id,
     s.watershed,
     replace(replace(t.station_id::text, 'stocking_'::text, ''::text), '_'::text, ' '::text) AS waterbody,
     t."timestamp"::date AS stocking_date,
     t.value::integer AS total_fish,
-    t.source_type
+    'odfw_stocking'::text AS source_type
    FROM time_series t
      JOIN sites s ON s.id = t.site_id
   WHERE t.source_type::text = 'stocking'::text AND t.value > 0::double precision
-  ORDER BY t."timestamp" DESC;;
+UNION ALL
+-- UDWR (Utah / Green River basin, via interventions with type='fish_stocking')
+ SELECT i.site_id,
+    s.watershed,
+    (i.description::jsonb) ->> 'waterbody'::text AS waterbody,
+    i.started_at::date AS stocking_date,
+    NULLIF(regexp_replace(COALESCE((i.description::jsonb) ->> 'quantity'::text, ''), '[^0-9]', '', 'g'), '')::integer AS total_fish,
+    'udwr_stocking'::text AS source_type
+   FROM interventions i
+     JOIN sites s ON s.id = i.site_id
+  WHERE i.type::text = 'fish_stocking'::text
+    AND i.description IS NOT NULL
+    AND i.description LIKE '{%'
+    AND ((i.description::jsonb) ->> 'source'::text) = 'udwr'::text
+UNION ALL
+-- WDFW (Washington / Skagit, via wa_fish_stocking)
+ SELECT w.site_id,
+    s.watershed,
+    w.release_location AS waterbody,
+    w.release_date AS stocking_date,
+    w.number_released AS total_fish,
+    'wdfw_stocking'::text AS source_type
+   FROM wa_fish_stocking w
+     JOIN sites s ON s.id = w.site_id
+  WHERE w.number_released IS NOT NULL AND w.number_released > 0;;
 
 -- gold.stewardship_opportunities
 DROP MATERIALIZED VIEW IF EXISTS gold.stewardship_opportunities CASCADE;
