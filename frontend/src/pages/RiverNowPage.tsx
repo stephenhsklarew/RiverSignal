@@ -534,7 +534,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── What Fish Are Eating ── */}
           {spotter && spotter.species?.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="Which bugs and insects fish are eating right now. Each insect species emerges when the water has warmed up enough, not on a specific date. We combine those temperature signals with recent sightings by citizen scientists and expert hatch charts to rank the most likely active insects." sources={['usgs', 'wqp_bugs', 'inaturalist']} /></div>
+              <div className="rnow-section-title-row">
+                <span className="rnow-section-title">🪰 What Fish Are Eating Now <InfoTooltip text="Which bugs and insects fish are eating right now. Each insect species emerges when the water has warmed up enough, not on a specific date. We combine those temperature signals with recent sightings by citizen scientists and expert hatch charts to rank the most likely active insects." sources={['usgs', 'wqp_bugs', 'inaturalist']} /></span>
+                <button className="rnow-view-map-btn" onClick={() => navigate(`/path/map/${watershed}?filter=eating_now`)}>View Map</button>
+              </div>
               <div className="rnow-spotter-grid">
                 {spotter.species.slice(0, 6).map((s: any, i: number) => (
                   <div key={i} className="rnow-spotter-card">
@@ -648,7 +651,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Fish Near You (Species by Reach) ── */}
           {uniqueFishByReach.length > 0 && (
             <section className="rnow-section">
-              <div className="rnow-section-title">🐟 Fish Present <InfoTooltip text="Fish species documented in this watershed. Pulled from verified citizen-science sightings, professional fish surveys, museum specimen records, and (where the state publishes it) the salmon-distribution database. Duplicates are removed and species are grouped by river stretch." sources={['inaturalist', 'biodata', 'gbif']} /></div>
+              <div className="rnow-section-title-row">
+                <span className="rnow-section-title">🐟 Fish Present <InfoTooltip text="Fish species documented in this watershed. Pulled from verified citizen-science sightings, professional fish surveys, museum specimen records, and (where the state publishes it) the salmon-distribution database. Duplicates are removed and species are grouped by river stretch." sources={['inaturalist', 'biodata', 'gbif']} /></span>
+                <button className="rnow-view-map-btn" onClick={() => navigate(`/path/map/${watershed}?filter=fish_present`)}>View Map</button>
+              </div>
               <div className="rnow-fish-carousel">
                 {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
                   <div key={i} className="rnow-fish-card">

@@ -419,6 +419,9 @@
 }
 .rnow-story-text {
   font-size: 13px; color: #3d3527; line-height: 1.7;
+  max-height: 5lh;            /* clip to ~5 lines of body text */
+  overflow-y: auto;            /* scroll within the box for longer pages */
+  overscroll-behavior: contain;/* don't propagate scroll to the page */
 }
 .rnow-story-text p { margin: 0 0 10px; }
 .rnow-story-text p:last-child { margin-bottom: 0; }

@@ -23,8 +23,34 @@
 .species-map-cat.active { background: var(--accent); color: white; border-color: var(--accent); }
 .species-map-count { margin-left: auto; font-size: 12px; color: var(--text-muted); }
 
-.species-map-container {
-  flex: 1; min-height: 0;
+.species-map-stage { flex: 1; min-height: 0; position: relative; }
+.species-map-container { width: 100%; height: 100%; }
+
+/* Loading overlay shown while pins are loading (observations + curated list). */
+.species-map-loading-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px;
+  background: rgba(255, 253, 247, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 5;
+}
+.species-map-spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid rgba(0,0,0,0.12);
+  border-top-color: var(--accent, #1a6b4a);
+  animation: species-map-spin 0.9s linear infinite;
+}
+@keyframes species-map-spin {
+  to { transform: rotate(360deg); }
+}
+.species-map-loading-text {
+  font-size: 13px; font-weight: 500; color: var(--text-secondary, #444);
+}
+
+/* Locked toggle button (filter mode) */
+.species-map-cat.locked:not(.active) {
+  opacity: 0.4; cursor: not-allowed;
 }
 
 /* Map pins */
@@ -57,6 +83,16 @@
   margin-top: 8px; padding-top: 8px;
   border-top: 1px solid #e8e2d8;
 }
+/* Save-fly heart inside the popup (only appears when there's a fly match). */
+.species-popup-fly-save {
+  flex-shrink: 0;
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; line-height: 1;
+  padding: 6px; min-width: 36px; min-height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s, color 0.15s;
+}
+.species-popup-fly-save[data-saved="true"] { transform: scale(1.15); }
 .species-popup-fly-img {
   width: 40px; height: 40px; object-fit: cover; border-radius: 4px; flex-shrink: 0;
 }
