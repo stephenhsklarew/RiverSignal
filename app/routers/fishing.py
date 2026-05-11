@@ -138,6 +138,44 @@ def fishing_stocking(watershed: str):
     ]
 
 
+@router.get("/sites/{watershed}/fishing/stocking/locations")
+def fishing_stocking_locations(watershed: str):
+    """Aggregated stocking locations with coordinates for map display.
+
+    One row per unique waterbody. lat/lon come from the curated
+    stocking_locations table when present; waterbodies without curated
+    coords appear with null lat/lon and the frontend treats them as
+    unmapped.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT waterbody,
+                   max(latitude)        AS latitude,
+                   max(longitude)       AS longitude,
+                   max(location_notes)  AS notes,
+                   max(stocking_date)   AS most_recent_date,
+                   sum(total_fish)      AS total_fish,
+                   count(*)             AS record_count
+              FROM gold.stocking_schedule
+             WHERE watershed = :ws
+             GROUP BY waterbody
+             ORDER BY max(stocking_date) DESC
+        """), {"ws": watershed}).fetchall()
+
+    return [
+        {
+            "waterbody": r[0],
+            "latitude":  float(r[1]) if r[1] is not None else None,
+            "longitude": float(r[2]) if r[2] is not None else None,
+            "notes": r[3],
+            "most_recent_date": str(r[4]) if r[4] else None,
+            "total_fish": int(r[5]) if r[5] is not None else 0,
+            "record_count": int(r[6]),
+        }
+        for r in rows
+    ]
+
+
 @router.get("/sites/{watershed}/fishing/conditions")
 def fishing_conditions(watershed: str):
     """Get monthly water conditions relevant to fishing."""

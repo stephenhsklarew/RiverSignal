@@ -874,7 +874,10 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {/* ── Stocking Alerts ── */}
           {(upcomingStocking.length > 0 || recentStocking.length > 0) && (
             <section className="rnow-section">
-              <div className="rnow-section-title">Fish Stocking <InfoTooltip text="Upcoming and recent fish releases by the state wildlife agency for waters in this drainage. Pulled from the agency's public stocking schedule and refreshed weekly." sources={stateSources.stocking} /></div>
+              <div className="rnow-section-title-row">
+                <span className="rnow-section-title">Fish Stocking <InfoTooltip text="Upcoming and recent fish releases by the state wildlife agency for waters in this drainage. Pulled from the agency's public stocking schedule and refreshed weekly." sources={stateSources.stocking} /></span>
+                <button className="rnow-view-map-btn" onClick={() => navigate(`/path/stocking/${watershed}`)}>View Map</button>
+              </div>
               {upcomingStocking.length > 0 && (
                 <div className="rnow-stocking-upcoming">
                   {upcomingStocking.map((s: any, i: number) => (
