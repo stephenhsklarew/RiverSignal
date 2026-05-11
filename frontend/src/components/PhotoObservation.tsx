@@ -1,9 +1,23 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { useAuth } from './AuthContext'
 import { useSaved } from './SavedContext'
 import { LoginNudge } from './LoginModal'
 import { API_BASE } from '../config'
 import './PhotoObservation.css'
+
+// Watershed center coordinates used as a fallback for the location-picker map
+// when the photo has no GPS metadata and the device hasn't provided geolocation.
+const WS_CENTERS: Record<string, [number, number]> = {
+  mckenzie: [-122.3, 44.1],
+  deschutes: [-121.3, 44.3],
+  metolius: [-121.6, 44.5],
+  klamath: [-121.6, 42.6],
+  johnday: [-119.0, 44.6],
+  skagit: [-121.50, 48.45],
+  green_river: [-110.15, 38.99],
+}
 
 interface PhotoObservationProps {
   app: 'riverpath' | 'deeptrail'
@@ -159,6 +173,20 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
   const [showSourcePicker, setShowSourcePicker] = useState(false)
   const typeaheadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Location-picker map refs — drag/click to adjust the observation pin.
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<maplibregl.Map | null>(null)
+  const markerRef = useRef<maplibregl.Marker | null>(null)
+
+  /** Attach drag handler that pushes the marker's lng/lat back into the form state. */
+  const wireMarkerDrag = useCallback((marker: maplibregl.Marker) => {
+    marker.on('dragend', () => {
+      const ll = marker.getLngLat()
+      setLatitude(ll.lat.toFixed(6))
+      setLongitude(ll.lng.toFixed(6))
+    })
+  }, [])
+
   const categories = app === 'deeptrail' ? DT_CATEGORIES : null
 
   const reset = useCallback(() => {
@@ -300,6 +328,84 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
     }
   }, [success, isLoggedIn])
 
+  // Initialize/teardown the location-picker map when the form opens/closes.
+  // The map only exists while the modal is visible.
+  useEffect(() => {
+    if (!isOpen || !mapContainerRef.current) return
+    const lat = parseFloat(latitude)
+    const lon = parseFloat(longitude)
+    const hasCoords = !isNaN(lat) && !isNaN(lon)
+    const center: [number, number] = hasCoords
+      ? [lon, lat]
+      : (WS_CENTERS[watershed || ''] || [-121.5, 44.0])
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      center,
+      zoom: hasCoords ? 13 : 9,
+    })
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+    mapRef.current = map
+
+    if (hasCoords) {
+      const marker = new maplibregl.Marker({ draggable: true, color: '#1a6b4a' })
+        .setLngLat(center)
+        .addTo(map)
+      wireMarkerDrag(marker)
+      markerRef.current = marker
+    }
+
+    // Tap empty map → place (or move) the pin.
+    map.on('click', (e) => {
+      const { lat: clat, lng: clng } = e.lngLat
+      setLatitude(clat.toFixed(6))
+      setLongitude(clng.toFixed(6))
+      if (markerRef.current) {
+        markerRef.current.setLngLat([clng, clat])
+      } else {
+        const m = new maplibregl.Marker({ draggable: true, color: '#1a6b4a' })
+          .setLngLat([clng, clat])
+          .addTo(map)
+        wireMarkerDrag(m)
+        markerRef.current = m
+      }
+    })
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+      markerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, watershed])
+
+  // Sync external lat/lon edits (manual input, EXIF, geolocation) into the
+  // marker position. Avoids infinite loops by only repositioning when the
+  // marker's current LngLat differs from the form state.
+  useEffect(() => {
+    if (!isOpen) return
+    const map = mapRef.current
+    if (!map) return
+    const lat = parseFloat(latitude)
+    const lon = parseFloat(longitude)
+    if (isNaN(lat) || isNaN(lon)) return
+    if (markerRef.current) {
+      const cur = markerRef.current.getLngLat()
+      if (Math.abs(cur.lat - lat) > 1e-6 || Math.abs(cur.lng - lon) > 1e-6) {
+        markerRef.current.setLngLat([lon, lat])
+        map.easeTo({ center: [lon, lat], duration: 400 })
+      }
+    } else {
+      const marker = new maplibregl.Marker({ draggable: true, color: '#1a6b4a' })
+        .setLngLat([lon, lat])
+        .addTo(map)
+      wireMarkerDrag(marker)
+      markerRef.current = marker
+      map.easeTo({ center: [lon, lat], zoom: 13, duration: 400 })
+    }
+  }, [latitude, longitude, isOpen, wireMarkerDrag])
+
   return (
     <>
       {/* Login nudge after anonymous save */}
@@ -392,6 +498,17 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
                     <label>Longitude</label>
                     <input type="text" value={longitude} onChange={e => setLongitude(e.target.value)} placeholder="Auto-detected" />
                   </div>
+                </div>
+
+                {/* Location picker — drag the pin or tap a new spot to correct EXIF
+                    coordinates. Photos sometimes capture the wrong GPS metadata. */}
+                <div className="photo-location-map-wrap">
+                  <div className="photo-location-map-hint">
+                    {(!latitude || !longitude)
+                      ? 'Tap the map to set the observation location'
+                      : 'Drag the pin or tap a new spot to adjust the location'}
+                  </div>
+                  <div ref={mapContainerRef} className="photo-location-map" />
                 </div>
 
                 {/* Species / name search */}
