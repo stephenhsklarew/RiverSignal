@@ -167,9 +167,91 @@ def ingest_day(target_day: date | None = None) -> dict[str, int]:
     return results
 
 
+def _capture_forecast_for_watershed(client: httpx.Client, ws: str, lat: float, lon: float,
+                                     issued: date) -> int:
+    """Write one row per target_date into bronze.weather_forecasts.
+
+    NWS returns alternating day/night periods. We collapse pairs into a daily
+    summary: temp_max from the daytime period, temp_min from the night period.
+    Returns the number of rows upserted.
+    """
+    pts = client.get(f"{NWS_BASE}/points/{lat},{lon}")
+    pts.raise_for_status()
+    fc_url = pts.json()["properties"]["forecast"]
+    fc = client.get(fc_url)
+    fc.raise_for_status()
+    periods = fc.json()["properties"]["periods"]
+
+    by_date: dict[date, dict] = {}
+    for p in periods:
+        # NWS startTime is ISO, parse the date
+        start = datetime.fromisoformat(p["startTime"].replace("Z", "+00:00")).date()
+        cur = by_date.setdefault(start, {"max": None, "min": None,
+                                          "wind": None, "precip_chance": None, "cloud": None})
+        temp_f = float(p["temperature"]) if p.get("temperature") is not None else None
+        if p.get("isDaytime"):
+            cur["max"] = temp_f
+        else:
+            cur["min"] = temp_f
+        # windSpeed comes as a string like "5 to 10 mph" — pull first number
+        ws_str = (p.get("windSpeed") or "").split()
+        if ws_str:
+            try:
+                cur["wind"] = float(ws_str[0])
+            except ValueError:
+                pass
+
+    n = 0
+    with engine.connect() as conn:
+        for target, vals in by_date.items():
+            conn.execute(text("""
+                INSERT INTO bronze.weather_forecasts
+                    (watershed, issued_date, target_date,
+                     temperature_max_f, temperature_min_f,
+                     wind_speed_avg_mph, data_payload, fetched_at)
+                VALUES (:ws, :iss, :t, :tmax, :tmin, :wind,
+                        CAST(:payload AS jsonb), now())
+                ON CONFLICT (watershed, issued_date, target_date) DO UPDATE
+                  SET temperature_max_f = EXCLUDED.temperature_max_f,
+                      temperature_min_f = EXCLUDED.temperature_min_f,
+                      wind_speed_avg_mph = EXCLUDED.wind_speed_avg_mph,
+                      data_payload = EXCLUDED.data_payload,
+                      fetched_at = EXCLUDED.fetched_at
+            """), {
+                "ws": ws, "iss": issued, "t": target,
+                "tmax": vals["max"], "tmin": vals["min"], "wind": vals["wind"],
+                "payload": json.dumps({"source": "nws_points_forecast"}),
+            })
+            n += 1
+        conn.commit()
+    return n
+
+
+def ingest_forecasts(issued: date | None = None) -> dict[str, int]:
+    """Capture 7-day NWS forecast for each watershed.
+
+    Idempotent for same (watershed, issued_date) — re-running on the same day
+    UPDATEs in place rather than inserting a duplicate row.
+    """
+    if issued is None:
+        issued = datetime.now(timezone.utc).date()
+    results: dict[str, int] = {}
+    with httpx.Client(timeout=20.0, headers={"User-Agent": USER_AGENT}) as client:
+        for ws, (lat, lon) in WS_COORDS.items():
+            try:
+                n = _capture_forecast_for_watershed(client, ws, lat, lon, issued)
+                results[ws] = n
+            except Exception as e:
+                print(f"[nws-fc] {ws} forecast failed: {e}")
+                results[ws] = 0
+    return results
+
+
 if __name__ == "__main__":
-    target = None
-    if len(os.sys.argv) > 1:
-        target = date.fromisoformat(os.sys.argv[1])
-    summary = ingest_day(target)
-    print(json.dumps(summary, indent=2))
+    args = os.sys.argv[1:]
+    if args and args[0] == "forecasts":
+        d = date.fromisoformat(args[1]) if len(args) > 1 else None
+        print(json.dumps(ingest_forecasts(d), indent=2))
+    else:
+        target = date.fromisoformat(args[0]) if args else None
+        print(json.dumps(ingest_day(target), indent=2))
