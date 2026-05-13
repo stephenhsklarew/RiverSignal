@@ -76,6 +76,25 @@ resource "google_cloud_scheduler_job" "refresh_views" {
   depends_on = [google_project_service.apis]
 }
 
+resource "google_cloud_scheduler_job" "tqs_daily_refresh" {
+  name        = "${var.app_name}-tqs-daily-refresh"
+  region      = var.region
+  schedule    = "30 10 * * *"
+  time_zone   = var.scheduler_timezone
+  description = "Daily: refresh gold.trip_quality_daily + append history snapshot"
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.tqs_daily_refresh.name}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.scheduler.email
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
 resource "google_cloud_scheduler_job" "refresh_heavy" {
   name        = "${var.app_name}-refresh-heavy"
   region      = var.region

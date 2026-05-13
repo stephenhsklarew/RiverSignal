@@ -374,6 +374,27 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
     return out
 
 
+def snapshot_history(snapshot_day: date | None = None) -> int:
+    """Append today's gold.trip_quality_daily into gold.trip_quality_history.
+
+    Idempotent for the same snapshot_day via the composite PK
+    (reach_id, target_date, snapshot_date) — ON CONFLICT DO NOTHING.
+    Returns the number of rows appended.
+    """
+    if snapshot_day is None:
+        snapshot_day = date.today()
+    with engine.connect() as conn:
+        with conn.begin():
+            result = conn.execute(text("""
+                INSERT INTO gold.trip_quality_history
+                    (reach_id, target_date, snapshot_date, tqs, confidence)
+                SELECT reach_id, target_date, :s, tqs, confidence
+                FROM gold.trip_quality_daily
+                ON CONFLICT (reach_id, target_date, snapshot_date) DO NOTHING
+            """), {"s": snapshot_day})
+            return result.rowcount or 0
+
+
 def refresh_trip_quality_daily(start_date: date | None = None,
                                 end_date: date | None = None) -> int:
     """Recompute and replace gold.trip_quality_daily for the given range.
