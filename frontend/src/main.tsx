@@ -84,7 +84,7 @@ function ConditionalBottomNav() {
   const isTrailTabRoute = /^\/trail\/(story|explore|collect|learn|saved)/.test(pathname)
   if (isTrailTabRoute) return <DeepTrailBottomNav />
   // RiverPath bottom nav on /path/* routes
-  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking|where)/.test(pathname)
+  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking|where|alerts)/.test(pathname)
   if (isTabRoute) return <BottomNav />
   return null
 }
