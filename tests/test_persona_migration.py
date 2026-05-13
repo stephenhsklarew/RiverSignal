@@ -105,3 +105,44 @@ def test_personas_gin_index_exists(conn):
     assert _index_exists(conn, "idx_users_personas"), (
         "GIN index idx_users_personas missing — array gating queries will be slow"
     )
+
+
+EXPECTED_SEED = {
+    "angler_self_guided": 10,
+    "guide_professional": 20,
+    "family_outdoor": 30,
+    "rockhound": 40,
+    "outdoor_general": 50,
+    "watershed_pro": 60,
+}
+
+
+def test_persona_catalog_seeded_with_six_rows(conn):
+    """After migration i0d1e2f3a4b5, the catalog has the v1 six personas."""
+    rows = conn.execute(
+        text("SELECT key, sort_order FROM user_personas_catalog ORDER BY sort_order")
+    ).fetchall()
+    actual = {key: order for key, order in rows}
+    for expected_key, expected_order in EXPECTED_SEED.items():
+        assert expected_key in actual, f"persona '{expected_key}' missing from catalog"
+        assert actual[expected_key] == expected_order, (
+            f"persona '{expected_key}' has sort_order {actual[expected_key]}, "
+            f"expected {expected_order}"
+        )
+
+
+def test_persona_seed_idempotent_metadata(conn):
+    """Every seeded persona has a non-empty display_label and is_active=true."""
+    rows = conn.execute(
+        text(
+            """
+            SELECT key, display_label, is_active
+            FROM user_personas_catalog
+            WHERE key = ANY(:keys)
+            """
+        ),
+        {"keys": list(EXPECTED_SEED.keys())},
+    ).fetchall()
+    for key, label, active in rows:
+        assert label and label.strip(), f"persona '{key}' has empty display_label"
+        assert active is True, f"persona '{key}' should be is_active=true after seed"
