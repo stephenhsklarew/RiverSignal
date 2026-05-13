@@ -312,15 +312,21 @@ def get_me(request: Request):
     if not user:
         return {"user": None, "anonymous": True}
 
-    # Refresh username/is_new from DB (JWT may be stale)
+    # Refresh username/is_new/personas from DB (JWT may be stale)
     with engine.connect() as conn:
         row = conn.execute(text(
-            "SELECT username, is_new FROM users WHERE id = :uid"
+            """
+            SELECT username, is_new, personas, personas_set_at, personas_version
+            FROM users WHERE id = :uid
+            """
         ), {"uid": user["id"]}).fetchone()
         if row:
             user["username"] = row[0] or ""
             user["is_new"] = bool(row[1])
             user["needs_username"] = not row[0]
+            user["personas"] = list(row[2] or [])
+            user["personas_set_at"] = row[3].isoformat() if row[3] else None
+            user["personas_version"] = int(row[4]) if row[4] is not None else 1
 
     return {"user": user, "anonymous": False}
 
@@ -466,3 +472,104 @@ def save_settings(body: dict, request: Request):
         conn.commit()
 
     return {"message": "Settings saved"}
+
+
+# ═══════════════════════════════════════
+# Personas (self-selection)
+# ═══════════════════════════════════════
+
+@router.get("/personas/catalog")
+def get_personas_catalog():
+    """Return the active persona catalog for the self-selection prompt.
+
+    Public read (no auth required). Returns rows from user_personas_catalog
+    where is_active=true, ordered by sort_order. The catalog is the source
+    of truth for the user-facing persona list — display labels and
+    descriptions can change without rewriting user data because user.personas
+    stores the stable `key`.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(text(
+            """
+            SELECT key, display_label, description, icon, sort_order
+            FROM user_personas_catalog
+            WHERE is_active = true
+            ORDER BY sort_order, key
+            """
+        )).fetchall()
+
+    return {
+        "personas": [
+            {
+                "key": r[0],
+                "display_label": r[1],
+                "description": r[2],
+                "icon": r[3],
+                "sort_order": r[4],
+            }
+            for r in rows
+        ]
+    }
+
+
+class PersonasRequest(BaseModel):
+    personas: list[str] = []  # empty = "skip" — recorded but no keys selected
+
+
+@router.post("/auth/personas")
+def set_personas(body: PersonasRequest, request: Request, response: Response):
+    """Set the current user's persona selections.
+
+    Empty `personas` array is the "skip" case — we still record personas_set_at
+    so the prompt doesn't fire again. Any unknown key (not in catalog) or
+    inactive key rejects the whole request with 400.
+    """
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Must be logged in to set personas")
+
+    requested = list(body.personas or [])
+
+    # Validate every requested key against catalog (must exist + be active).
+    with engine.connect() as conn:
+        if requested:
+            valid_rows = conn.execute(text(
+                """
+                SELECT key FROM user_personas_catalog
+                WHERE key = ANY(:keys) AND is_active = true
+                """
+            ), {"keys": requested}).fetchall()
+            valid_keys = {r[0] for r in valid_rows}
+            unknown = [k for k in requested if k not in valid_keys]
+            if unknown:
+                raise HTTPException(
+                    400,
+                    f"Unknown or inactive persona key(s): {', '.join(unknown)}",
+                )
+
+        # Dedupe while preserving order.
+        seen = set()
+        deduped = [k for k in requested if not (k in seen or seen.add(k))]
+
+        # Build a Postgres array literal (validated keys only, safe to embed).
+        array_literal = "{" + ",".join(f'"{k}"' for k in deduped) + "}"
+
+        row = conn.execute(text(
+            """
+            UPDATE users
+            SET personas = CAST(:p AS varchar[]),
+                personas_set_at = now()
+            WHERE id = :uid
+            RETURNING personas, personas_set_at, personas_version
+            """
+        ), {"p": array_literal, "uid": user["id"]}).fetchone()
+        conn.commit()
+
+    if not row:
+        raise HTTPException(404, "User not found")
+
+    return {
+        "personas": list(row[0] or []),
+        "personas_set_at": row[1].isoformat() if row[1] else None,
+        "personas_version": int(row[2]) if row[2] is not None else 1,
+    }
