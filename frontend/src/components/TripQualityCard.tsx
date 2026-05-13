@@ -182,6 +182,24 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
   )
 }
 
+function GuideDivergenceNote({ reachId, tqs }: { reachId: string; tqs: number }) {
+  const dateIso = todayIso()
+  const { data } = useSWR<{ median_availability_pct: number | null; guide_count: number }>(
+    `${API_BASE}/guide-availability/${reachId}?date=${dateIso}`,
+    (u: string) => fetch(u).then(r => r.json())
+  )
+  // Surface only when TQS ≥ 75 AND guides have unusual availability ≥ 60%
+  if (!data?.median_availability_pct || data.guide_count < 1) return null
+  if (tqs < 75) return null
+  if (data.median_availability_pct < 60) return null
+  return (
+    <div className="tqs-why-note">
+      Local guides have unusual availability for this date
+      (median {Math.round(data.median_availability_pct)}% open across {data.guide_count} {data.guide_count === 1 ? 'guide' : 'guides'}).
+    </div>
+  )
+}
+
 function WatchButton({ reachId }: { reachId: string }) {
   const { isLoggedIn } = useAuth()
   const watchlistUrl = `${API_BASE}/watchlist`
@@ -258,6 +276,7 @@ function WhyPanel({
           {reach.partial_access_flag && (
             <div className="tqs-why-warning">⚠ Partial access concern — see access score</div>
           )}
+          <GuideDivergenceNote reachId={reach.reach_id} tqs={reach.tqs} />
         </div>
 
         <ul className="tqs-why-list">

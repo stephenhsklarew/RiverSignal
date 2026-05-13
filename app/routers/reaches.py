@@ -157,6 +157,24 @@ def get_trip_quality(
         }
 
 
+@router.get("/guide-availability/{reach_id}")
+def guide_availability_for_reach(reach_id: str, date: date_t = Query(...)):
+    """Median guide availability for a (reach, date), for the why-panel
+    divergence callout. Returns null when we have no recent data."""
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY availability_pct) AS median_pct,
+                   COUNT(*) AS guide_count
+            FROM bronze.guide_availability
+            WHERE reach_id = :rid AND target_date = :d
+              AND fetched_date >= (CURRENT_DATE - INTERVAL '14 days')
+              AND availability_pct IS NOT NULL
+        """), {"rid": reach_id, "d": date}).fetchone()
+    if not row or not row[1]:
+        return {"median_availability_pct": None, "guide_count": 0}
+    return {"median_availability_pct": float(row[0]), "guide_count": int(row[1])}
+
+
 @router.get("/trip-quality/ranking")
 def trip_quality_ranking(
     date: date_t = Query(...),

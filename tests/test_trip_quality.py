@@ -256,3 +256,8 @@ def test_weather_score_no_direction_penalty_when_bearing_unknown():
     # NULL flow_bearing → no direction penalty (still get speed penalty)
     s = weather_score(60, 0, 15, 180, None)
     assert s == 95  # only speed penalty (wind ≥ 10 → −5)
+
+
+def test_weather_score_no_inputs_returns_neutral():
+    # No forecast / observation data — function returns 50 (neutral)
+    assert weather_score(None, None, None, None, None) == 50

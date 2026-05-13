@@ -114,6 +114,9 @@ def weather_score(temp_f: float | None, precip_in: float | None,
     weather = 100 − temp_penalty − precip_penalty − wind_speed_penalty
               − wind_direction_penalty − thunderstorm_penalty
     """
+    if temp_f is None and precip_in is None and wind_mph is None:
+        # No forecast / observation data → neutral score
+        return 50
     if thunderstorm:
         # Lightning + fly rod is bad news; the rest of the score is moot.
         return max(0, 100 - 40)
@@ -257,7 +260,8 @@ def _load_reaches(conn):
     rows = conn.execute(text("""
         SELECT id, watershed, name, centroid_lat, centroid_lon,
                primary_usgs_site_id, is_warm_water, typical_species,
-               COALESCE(bbox, ST_GeomFromText('POLYGON EMPTY', 4326)) AS bbox
+               COALESCE(bbox, ST_GeomFromText('POLYGON EMPTY', 4326)) AS bbox,
+               general_flow_bearing
         FROM silver.river_reaches
         WHERE is_active = true
     """)).fetchall()
@@ -317,6 +321,38 @@ def _active_fire_intersects(conn, reach_bbox_geom, target_date: date) -> bool:
         LIMIT 1
     """), {"d": target_date, "bbox": reach_bbox_geom}).fetchone()
     return bool(row)
+
+
+def _weather_inputs(conn, watershed: str, target_date: date) -> tuple[float | None, float | None, float | None, int | None]:
+    """Pull (temp_f, precip_in, wind_mph, wind_bearing) for a watershed × date.
+
+    Source order: live observation (≤1d horizon) → most recent forecast for
+    that target_date → None. Returns Nones throughout if no rows.
+    """
+    today = date.today()
+    horizon = (target_date - today).days
+    if horizon <= 1:
+        row = conn.execute(text("""
+            SELECT temperature_avg_f, precipitation_in, wind_speed_avg_mph
+            FROM bronze.weather_observations
+            WHERE watershed = :ws AND date = :d
+            ORDER BY fetched_at DESC LIMIT 1
+        """), {"ws": watershed, "d": target_date}).fetchone()
+        if row:
+            return float(row[0]) if row[0] is not None else None, \
+                   float(row[1]) if row[1] is not None else None, \
+                   float(row[2]) if row[2] is not None else None, None
+    row = conn.execute(text("""
+        SELECT temperature_max_f, precipitation_in, wind_speed_avg_mph
+        FROM bronze.weather_forecasts
+        WHERE watershed = :ws AND target_date = :d
+        ORDER BY issued_date DESC LIMIT 1
+    """), {"ws": watershed, "d": target_date}).fetchone()
+    if row:
+        return float(row[0]) if row[0] is not None else None, \
+               float(row[1]) if row[1] is not None else None, \
+               float(row[2]) if row[2] is not None else None, None
+    return None, None, None, None
 
 
 def _watershed_has_prediction(conn, watershed: str, target_date: date) -> bool:
@@ -385,27 +421,29 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                     partial_access=False,
                 )
 
-                # Weighted sum + seasonal modifier
-                w = apply_seasonal_modifier(W_V05, d, modifiers, typical_species)
-                # Drop the weather weight entirely for v0.5 (already absent
-                # from W_V05). Renormalize so weights sum to 1.0 after modifier
-                # adjustments (modifiers preserve sums by construction, but
-                # weather not being present means no normalization is needed).
-                total_w = sum(w[k] for k in ("catch", "water_temp", "flow", "hatch", "access"))
+                reach_flow_bearing = int(r[9]) if r[9] is not None else None
+                temp_f, precip_in, wind_mph, wind_bearing = _weather_inputs(conn, ws, d)
+                ws_score = weather_score(
+                    temp_f, precip_in, wind_mph, wind_bearing, reach_flow_bearing,
+                )
+
+                # Weighted sum + seasonal modifier (full §2 weights now that weather has data)
+                w = apply_seasonal_modifier(W_V1, d, modifiers, typical_species)
                 weighted_sum = (
                     w["catch"]      * ct +
                     w["water_temp"] * wt +
                     w["flow"]       * fl +
+                    w["weather"]    * ws_score +
                     w["hatch"]      * ht +
                     w["access"]     * acc
-                ) / max(total_w, 0.0001)
+                )
                 tqs = int(round(weighted_sum))
                 if is_hard_closed:
                     tqs = min(29, tqs)
 
                 scores = {
                     "catch": ct, "water_temp": wt, "flow": fl,
-                    "hatch": ht, "access": acc,
+                    "weather": ws_score, "hatch": ht, "access": acc,
                 }
                 pf = primary_factor(w, scores)
 
@@ -415,7 +453,7 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                     confidence=confidence(d, today),
                     is_hard_closed=is_hard_closed,
                     catch_score=ct, water_temp_score=wt, flow_score=fl,
-                    weather_score=0,  # v0.5 stub
+                    weather_score=ws_score,
                     hatch_score=ht, access_score=acc,
                     primary_factor=pf,
                     partial_access_flag=partial,
