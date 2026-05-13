@@ -43,6 +43,13 @@ resource "google_sql_database_instance" "db" {
       name  = "max_connections"
       value = "100"
     }
+
+    # Cap per-query temp file at 2 GiB to prevent a runaway query from
+    # filling the local disk and triggering an instance crash.
+    database_flags {
+      name  = "temp_file_limit"
+      value = "2147483647"
+    }
   }
 
   deletion_protection = true

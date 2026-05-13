@@ -138,6 +138,20 @@ resource "google_cloud_run_v2_service" "api" {
     google_secret_manager_secret.secrets,
     google_secret_manager_secret_iam_member.api_access,
   ]
+
+  # CI deploys (.github/workflows/deploy.yml) push specific SHAs and call
+  # `gcloud run services update --image <sha>`. Without this, every
+  # `terraform apply` would revert the image to `:latest`/the template value
+  # and undo the most-recent deploy. Same logic applies to the migrate /
+  # daily jobs (handled inline in the gcloud commands), but the API service
+  # is the one terraform contests on every run.
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+      client,
+      client_version,
+    ]
+  }
 }
 
 # Allow unauthenticated access (public API)

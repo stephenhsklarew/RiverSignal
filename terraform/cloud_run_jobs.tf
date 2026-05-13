@@ -4,6 +4,17 @@ resource "google_cloud_run_v2_job" "migrate" {
   name     = "${var.app_name}-migrate"
   location = var.region
 
+  lifecycle {
+    # CI rewrites the image tag on every deploy via
+    # `gcloud run jobs update riversignal-migrate --image <sha>`.
+    # Without this, terraform would constantly revert it.
+    ignore_changes = [
+      template[0].template[0].containers[0].image,
+      client,
+      client_version,
+    ]
+  }
+
   template {
     task_count  = 1
     parallelism = 1
@@ -150,7 +161,7 @@ resource "google_cloud_run_v2_job" "pipeline_weekly" {
       containers {
         image   = local.image
         command = ["/bin/bash", "-c"]
-        args    = ["python -m pipeline.cli ingest fishing -w all && python -m pipeline.cli ingest wqp -w all && python -m pipeline.cli ingest washington -w all"]
+        args    = ["python -m pipeline.cli ingest fishing -w all && python -m pipeline.cli ingest wqp -w all && python -m pipeline.cli ingest washington -w all && python -m pipeline.cli ingest utah -w green_river"]
 
         resources {
           limits = {
@@ -248,7 +259,10 @@ resource "google_cloud_run_v2_job" "refresh_views" {
 
     template {
       max_retries = 1
-      timeout     = "1800s"
+      # 3600s safety margin — silver refresh can spike when sub-views recompute
+      # against large recent windows. Set to 1800s originally; bumped after a
+      # 2026-04 timeout incident.
+      timeout     = "3600s"
 
       service_account = google_service_account.pipeline.email
 

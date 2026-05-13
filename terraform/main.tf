@@ -24,11 +24,18 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+  # Bill API calls to this project's quota so user-creds ADC doesn't fall
+  # back to a default billing project (which may not have the required
+  # APIs enabled — manifests as 403 SERVICE_DISABLED on Service Usage).
+  billing_project       = var.project_id
+  user_project_override = true
 }
 
 provider "google-beta" {
-  project = var.project_id
-  region  = var.region
+  project               = var.project_id
+  region                = var.region
+  billing_project       = var.project_id
+  user_project_override = true
 }
 
 # Enable required GCP APIs
