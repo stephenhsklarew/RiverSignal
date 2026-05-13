@@ -23,6 +23,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import text
 
+from pipeline.alerts.narratives import attach_narratives
 from pipeline.db import engine
 
 
@@ -134,7 +135,14 @@ def compute_alerts(now: datetime | None = None) -> dict[str, int]:
                         else:
                             skipped += 1
         conn.commit()
-    return {"band_cross_up": band_fires, "trend_rising": trend_fires, "rate_limited_skips": skipped}
+    # Attach narratives to any new deliveries (also picks up backlog)
+    narr_written = attach_narratives()
+    return {
+        "band_cross_up": band_fires,
+        "trend_rising": trend_fires,
+        "rate_limited_skips": skipped,
+        "narratives_written": narr_written,
+    }
 
 
 if __name__ == "__main__":

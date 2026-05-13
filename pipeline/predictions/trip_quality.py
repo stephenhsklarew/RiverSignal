@@ -106,6 +106,59 @@ def hatch_score(target_date: date, hatch_windows: list[tuple[int, int]]) -> int:
     return int(best)
 
 
+def weather_score(temp_f: float | None, precip_in: float | None,
+                  wind_mph: float | None, wind_bearing: int | None,
+                  reach_flow_bearing: int | None, thunderstorm: bool = False) -> int:
+    """Full weather sub-score per plan §4.
+
+    weather = 100 − temp_penalty − precip_penalty − wind_speed_penalty
+              − wind_direction_penalty − thunderstorm_penalty
+    """
+    if thunderstorm:
+        # Lightning + fly rod is bad news; the rest of the score is moot.
+        return max(0, 100 - 40)
+
+    score = 100.0
+
+    # Temperature: ideal 50-75°F; 1pt/°F outside that band, cap −30
+    if temp_f is not None:
+        if temp_f < 50:
+            penalty = min(30, 50 - temp_f)
+        elif temp_f > 75:
+            penalty = min(30, temp_f - 75)
+        else:
+            penalty = 0
+        score -= penalty
+
+    # Precipitation: 0-0.25 ideal, 0.25-0.75 mild, > 0.75 heavy
+    if precip_in is not None:
+        if precip_in > 0.75:
+            score -= 25
+        elif precip_in > 0.25:
+            score -= 10
+
+    # Wind speed: < 10 ideal, 10-15 mild, > 15 heavy
+    if wind_mph is not None:
+        if wind_mph > 15:
+            score -= 15
+        elif wind_mph >= 10:
+            score -= 5
+
+        # Wind direction penalty only meaningful at wind ≥ 10 mph
+        if wind_mph >= 10 and wind_bearing is not None and reach_flow_bearing is not None:
+            delta = ((wind_bearing - reach_flow_bearing) + 360) % 360
+            # Penalty curve from §4 wind-direction subsection
+            if 30 <= delta <= 90 or 270 <= delta <= 330:  # quartering
+                score -= 0.5 * wind_mph
+            elif 90 < delta <= 150 or 210 <= delta < 270:  # cross
+                score -= 1.0 * wind_mph
+            elif 150 < delta < 210:  # upstream-in-face
+                score -= 2.0 * wind_mph
+            # 0 ± 30° (downstream) gets no extra penalty
+
+    return max(0, min(100, int(round(score))))
+
+
 def access_score(active_fire_intersects: bool, regulation_closed: bool,
                  partial_access: bool = False) -> tuple[int, bool, bool]:
     """Returns (score, is_hard_closed, partial_access_flag)."""

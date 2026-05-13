@@ -147,3 +147,58 @@ def remove_watch(reach_id: str, request: Request):
         if result.rowcount == 0:
             raise HTTPException(404, "Not watching that reach")
     return None
+
+
+# ─── Alert deliveries (plan §6) ────────────────────────────────────────────
+
+@router.get("/alerts")
+def list_alerts(request: Request, seen: Optional[bool] = None):
+    user = _require_user(request)
+    sql = """
+        SELECT d.id::text, d.reach_id, r.name, r.watershed,
+               d.alert_type, d.target_date, d.tqs_at_alert,
+               d.narrative_text, d.delivered_at, d.seen_at
+        FROM user_alert_deliveries d
+        JOIN silver.river_reaches r ON r.id = d.reach_id
+        WHERE d.user_id = :uid
+    """
+    params: dict[str, object] = {"uid": user["id"]}
+    if seen is False:
+        sql += " AND d.seen_at IS NULL"
+    elif seen is True:
+        sql += " AND d.seen_at IS NOT NULL"
+    sql += " ORDER BY d.delivered_at DESC LIMIT 100"
+    with engine.connect() as conn:
+        rows = conn.execute(text(sql), params).fetchall()
+    return {
+        "alerts": [
+            {
+                "id": r[0], "reach_id": r[1], "reach_name": r[2],
+                "watershed": r[3], "alert_type": r[4],
+                "target_date": r[5].isoformat() if r[5] else None,
+                "tqs_at_alert": int(r[6]),
+                "narrative": r[7],
+                "delivered_at": r[8].isoformat() if r[8] else None,
+                "seen_at": r[9].isoformat() if r[9] else None,
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.post("/alerts/{alert_id}/seen")
+def mark_alert_seen(alert_id: str, request: Request):
+    user = _require_user(request)
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("""
+                UPDATE user_alert_deliveries
+                   SET seen_at = COALESCE(seen_at, now())
+                 WHERE id = CAST(:id AS uuid) AND user_id = :uid
+            """),
+            {"id": alert_id, "uid": user["id"]},
+        )
+        conn.commit()
+    if result.rowcount == 0:
+        raise HTTPException(404, "Alert not found")
+    return {"ok": True}

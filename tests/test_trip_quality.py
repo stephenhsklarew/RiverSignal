@@ -18,6 +18,7 @@ from pipeline.predictions.trip_quality import (
     primary_factor,
     proxy_water_temp_f,
     water_temp_score,
+    weather_score,
 )
 
 
@@ -214,3 +215,44 @@ def test_proxy_water_temp_colder_at_higher_latitudes():
     pnw = proxy_water_temp_f(date(2026, 7, 15), lat=48.0)
     utah = proxy_water_temp_f(date(2026, 7, 15), lat=40.0)
     assert pnw < utah
+
+
+# ─── weather_score ──────────────────────────────────────────────────────────
+
+def test_weather_score_ideal_returns_100():
+    assert weather_score(60, 0, 5, 0, 0) == 100
+
+
+def test_weather_score_thunderstorm_dominates():
+    assert weather_score(60, 0, 5, 0, 0, thunderstorm=True) == 60
+
+
+def test_weather_score_temperature_penalty():
+    # 90°F is 15° above ideal max (75) → −15
+    assert weather_score(90, 0, 5, 0, 0) == 85
+
+
+def test_weather_score_temp_penalty_caps_at_30():
+    # 110°F is 35° above ideal max → would be −35, capped at −30
+    assert weather_score(110, 0, 5, 0, 0) == 70
+
+
+def test_weather_score_heavy_precip_drops_25():
+    assert weather_score(60, 1.5, 5, 0, 0) == 75
+
+
+def test_weather_score_high_wind_drops_15():
+    # wind 20mph + downstream direction (no direction penalty)
+    assert weather_score(60, 0, 20, 0, 0) == 85
+
+
+def test_weather_score_wind_direction_upstream_doubles_penalty():
+    downstream = weather_score(60, 0, 15, 0, 0)   # downstream (0°)
+    upstream   = weather_score(60, 0, 15, 180, 0) # upstream (180°)
+    assert upstream < downstream
+
+
+def test_weather_score_no_direction_penalty_when_bearing_unknown():
+    # NULL flow_bearing → no direction penalty (still get speed penalty)
+    s = weather_score(60, 0, 15, 180, None)
+    assert s == 95  # only speed penalty (wind ≥ 10 → −5)

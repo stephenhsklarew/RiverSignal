@@ -1,0 +1,46 @@
+.tfp-card {
+  position: relative;
+  margin: 8px 12px;
+  padding: 14px 14px 12px;
+  background: #fef9ed;
+  border: 1px solid #e8d9a8;
+  border-radius: 12px;
+  font-family: 'Outfit', sans-serif;
+}
+.tfp-close {
+  position: absolute; top: 6px; right: 8px;
+  background: none; border: none; color: #b8a06b;
+  cursor: pointer; font-size: 0.9rem;
+}
+.tfp-question {
+  font-size: 0.9rem; font-weight: 600; color: #5a4a1a;
+  margin-bottom: 10px;
+}
+.tfp-rating-row {
+  display: flex; gap: 8px; margin-bottom: 8px;
+}
+.tfp-rating {
+  flex: 1;
+  background: #fff; border: 1px solid #e0d8b6;
+  border-radius: 8px;
+  font-size: 1.4rem; line-height: 1;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: transform 0.08s, border-color 0.12s, background 0.12s;
+}
+.tfp-rating:hover { border-color: #d4a96a; background: #fff7e6; }
+.tfp-rating:active { transform: scale(0.96); }
+.tfp-rating.on { border-color: #d4a96a; background: #fff7e6; }
+.tfp-rating:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tfp-notes {
+  width: 100%; padding: 8px 10px;
+  border: 1px solid #e0d8b6; border-radius: 8px;
+  font-family: inherit; font-size: 0.82rem;
+  box-sizing: border-box;
+  background: #fff;
+}
+.tfp-error {
+  margin-top: 6px;
+  font-size: 0.78rem; color: #a13a3a;
+}

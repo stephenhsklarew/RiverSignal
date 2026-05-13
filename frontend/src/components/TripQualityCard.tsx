@@ -9,9 +9,11 @@
  * Default reach selection: location.state.reachId → localStorage → best-scoring.
  */
 import { useEffect, useMemo, useState } from 'react'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 import { useLocation } from 'react-router-dom'
 import { API_BASE } from '../config'
+import { useAuth } from './AuthContext'
+import LoginModal from './LoginModal'
 import './TripQualityCard.css'
 
 const DAY_MS = 86_400_000
@@ -180,6 +182,55 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
   )
 }
 
+function WatchButton({ reachId }: { reachId: string }) {
+  const { isLoggedIn } = useAuth()
+  const watchlistUrl = `${API_BASE}/watchlist`
+  const { data, mutate: refetch } = useSWR<{ watches: Array<{ reach_id: string }> }>(
+    isLoggedIn ? watchlistUrl : null,
+    (u: string) => fetch(u, { credentials: 'include' }).then(r => r.json())
+  )
+  const watching = !!data?.watches?.find(w => w.reach_id === reachId)
+  const [busy, setBusy] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
+
+  async function toggle() {
+    if (!isLoggedIn) { setShowLogin(true); return }
+    setBusy(true)
+    try {
+      if (watching) {
+        await fetch(`${watchlistUrl}/${reachId}`, { method: 'DELETE', credentials: 'include' })
+      } else {
+        await fetch(watchlistUrl, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reach_id: reachId }),
+        })
+      }
+      refetch()
+      mutate(watchlistUrl)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`tqs-watch ${watching ? 'on' : ''}`}
+        onClick={toggle}
+        disabled={busy}
+        aria-pressed={watching}
+      >
+        {watching ? '★ Watching' : '☆ Watch this reach'}
+      </button>
+      {showLogin && (
+        <LoginModal onClose={() => setShowLogin(false)} mode="signup" />
+      )}
+    </>
+  )
+}
+
 function WhyPanel({
   reach, band, reachName, onClose,
 }: {
@@ -228,6 +279,8 @@ function WhyPanel({
             )
           })}
         </ul>
+
+        <WatchButton reachId={reach.reach_id} />
 
         <div className="tqs-why-meta">
           Confidence ±{Math.round(100 - reach.confidence)} ·

@@ -10,6 +10,7 @@ import { tempF } from '../utils/temp'
 import PhotoObservation from '../components/PhotoObservation'
 import InfoTooltip from '../components/InfoTooltip'
 import TripQualityCard from '../components/TripQualityCard'
+import TripFeedbackPrompt, { type FeedbackTarget } from '../components/TripFeedbackPrompt'
 import { useAuth } from '../components/AuthContext'
 const dtMark = '/favicon-deeptrail.svg'
 import { API_BASE } from '../config'
@@ -411,6 +412,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
         <>
           {/* ── TQS Card (above hero) ── */}
           <TripQualityCard watershed={watershed} />
+          <FeedbackPromptFromQuery />
+
 
           {/* ── Hero Card ── */}
           <div className="rnow-hero">
@@ -976,6 +979,26 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
       <PhotoObservation app="riverpath" watershed={watershed} />
     </div>
   )
+}
+
+// ════════════════════════════════════════════
+// Feedback Prompt — surfaces when /path/now is opened with feedback=reach_id&date=YYYY-MM-DD
+// (e.g., from an alert deep-link) or when a saved trip-target row in localStorage matches.
+// ════════════════════════════════════════════
+
+function FeedbackPromptFromQuery() {
+  const [params] = useSearchParams()
+  const [target, setTarget] = useState<FeedbackTarget | null>(null)
+
+  useEffect(() => {
+    const reach_id = params.get('feedback')
+    const date = params.get('date')
+    if (reach_id && date) {
+      setTarget({ reach_id, reach_label: reach_id, trip_date: date })
+    }
+  }, [params])
+
+  return <TripFeedbackPrompt target={target} />
 }
 
 // ════════════════════════════════════════════
