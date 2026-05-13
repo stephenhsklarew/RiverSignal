@@ -32,17 +32,27 @@ def client():
 
 @pytest.fixture
 def authed_user_id():
-    """Return a test user id that exists in the DB. Skips if DATABASE_URL unset."""
+    """Return a test user id. Creates one if none exist. Skips if DATABASE_URL unset."""
     if not os.environ.get("DATABASE_URL"):
         pytest.skip("DATABASE_URL not set")
     from pipeline.db import engine
 
     with engine.connect() as conn:
-        # Find any existing user — tests don't create users, they reuse one
         row = conn.execute(text("SELECT id FROM users LIMIT 1")).fetchone()
-        if not row:
-            pytest.skip("No users in DB; cannot exercise authed endpoints")
-        return str(row[0])
+        if row:
+            return str(row[0])
+        # Create a minimal test user — schema requires provider + provider_id + email.
+        new = conn.execute(
+            text(
+                """
+                INSERT INTO users (provider, provider_id, email, display_name)
+                VALUES ('test', 'persona-fixture', 'persona-fixture@test.local', 'Persona Test')
+                RETURNING id
+                """
+            )
+        ).fetchone()
+        conn.commit()
+        return str(new[0])
 
 
 def _authed_client(client, user_id: str) -> TestClient:

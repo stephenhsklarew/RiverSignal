@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import LoginModal from './LoginModal'
+import PersonaPromptModal from './PersonaPromptModal'
 import './LoginModal.css'
 
 /** Check if this browser has ever logged in before */
@@ -16,6 +17,7 @@ export default function UserMenu({ dark }: { dark?: boolean }) {
   const { user, isLoggedIn, logout } = useAuth()
   const [showLogin, setShowLogin] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showPersonas, setShowPersonas] = useState(false)
 
   // Mark that this browser has an account once logged in
   if (isLoggedIn) markHasAccount()
@@ -65,10 +67,16 @@ export default function UserMenu({ dark }: { dark?: boolean }) {
           <div className="user-dropdown-item" style={{ cursor: 'default', fontSize: '0.72rem', color: '#999' }}>
             {user?.email}
           </div>
+          <button className="user-dropdown-item" onClick={(e) => { e.stopPropagation(); setShowPersonas(true); setShowDropdown(false) }}>
+            Edit interests
+          </button>
           <button className="user-dropdown-item danger" onClick={(e) => { e.stopPropagation(); logout(); setShowDropdown(false) }}>
             Sign out
           </button>
         </div>
+      )}
+      {showPersonas && (
+        <PersonaPromptModal onClose={() => setShowPersonas(false)} dark={dark} />
       )}
     </div>
   )

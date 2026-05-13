@@ -9,6 +9,7 @@ import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
 import PhotoObservation from '../components/PhotoObservation'
 import InfoTooltip from '../components/InfoTooltip'
+import { useAuth } from '../components/AuthContext'
 const dtMark = '/favicon-deeptrail.svg'
 import { API_BASE } from '../config'
 import './RiverNowPage.css'
@@ -219,7 +220,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const geology = geologyData?.units || []
   const fossils = fossilsData?.fossils || []
 
-  const [riverStoryLevel, setRiverStoryLevel] = useState<string>('adult')
+  const { hasPersona } = useAuth()
+  // family_outdoor persona defaults to Kids reading level (overridable by user)
+  const [riverStoryLevel, setRiverStoryLevel] = useState<string>(() => hasPersona('family_outdoor') ? 'kids' : 'adult')
   const { data: riverStoryData, isLoading: riverStoryLoading } = useSWR<any>(
     `/sites/${watershed}/river-story?reading_level=${riverStoryLevel}`,
     { dedupingInterval: DAY }

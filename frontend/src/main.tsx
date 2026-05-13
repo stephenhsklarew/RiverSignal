@@ -1,6 +1,6 @@
 import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { SWRConfig } from 'swr'
 import { swrDefault } from './lib/swr'
 import { SavedProvider } from './components/SavedContext'
@@ -45,6 +45,7 @@ const TrailLearnPage = lazy(() => import('./pages/TrailLearnPage'))
 const TrailSavedPage = lazy(() => import('./pages/TrailSavedPage'))
 const StatusPage = lazy(() => import('./pages/StatusPage'))
 const UsernameSetupPage = lazy(() => import('./pages/UsernameSetupPage'))
+const PersonaPromptModal = lazy(() => import('./components/PersonaPromptModal'))
 
 // RiverPath mobile tab pages
 const RiverNowPage = lazy(() => import('./pages/RiverNowPage'))
@@ -84,6 +85,40 @@ function ConditionalBottomNav() {
   const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking)/.test(pathname)
   if (isTabRoute) return <BottomNav />
   return null
+}
+
+function personaLanding(personas: string[]): string | null {
+  if (!personas.length) return null
+  // Resolve in plan-defined priority — most specific products first
+  if (personas.includes('rockhound')) return '/trail'
+  if (personas.includes('watershed_pro')) return '/riversignal'
+  if (personas.some(p => ['angler_self_guided','guide_professional','family_outdoor','outdoor_general'].includes(p))) return '/path'
+  return null
+}
+
+function PersonaPromptGate() {
+  const { needsPersonas, skipPersonasThisSession } = useAuth()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  // Don't intercept the username setup flow or the OAuth callback redirect
+  if (!needsPersonas) return null
+  if (pathname.startsWith('/auth/')) return null
+  const isDark = pathname === '/' || pathname.startsWith('/status')
+  // Only redirect from the landing page — never bounce users off product pages where they're editing interests
+  const shouldRedirect = pathname === '/'
+  return (
+    <Suspense fallback={null}>
+      <PersonaPromptModal
+        onClose={skipPersonasThisSession}
+        onComplete={(selected) => {
+          if (!shouldRedirect) return
+          const dest = personaLanding(selected)
+          if (dest) navigate(dest, { replace: true })
+        }}
+        dark={isDark}
+      />
+    </Suspense>
+  )
 }
 
 createRoot(document.getElementById('root')!).render(
@@ -147,6 +182,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/status" element={<StatusPage />} />
           </Routes>
           <ConditionalBottomNav />
+          <PersonaPromptGate />
         </Suspense>
         </DeepTrailProvider>
       </SavedProvider>

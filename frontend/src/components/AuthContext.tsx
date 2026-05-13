@@ -9,6 +9,9 @@ export interface User {
   username: string
   is_new: boolean
   needs_username?: boolean
+  personas?: string[]
+  personas_set_at?: string | null
+  personas_version?: number
 }
 
 interface AuthState {
@@ -16,11 +19,17 @@ interface AuthState {
   loading: boolean
   isLoggedIn: boolean
   needsUsername: boolean
+  needsPersonas: boolean
   loginWithGoogle: () => void
   loginWithApple: () => void
   logout: () => void
   setUsername: (username: string) => Promise<{ ok: boolean; error?: string }>
   checkUsername: (username: string) => Promise<{ available: boolean; reason?: string }>
+  setPersonas: (personas: string[]) => Promise<{ ok: boolean; error?: string }>
+  skipPersonasThisSession: () => void
+  hasPersona: (key: string) => boolean
+  hasAnyPersona: (...keys: string[]) => boolean
+  isUnsetOrSkipped: () => boolean
   syncSettings: (key: string, value: any) => void
   showLoginNudge: boolean
   setShowLoginNudge: (v: boolean) => void
@@ -37,10 +46,15 @@ function getAnonymousId(): string {
   return id
 }
 
+const PERSONA_SKIP_SESSION_KEY = 'rs_persona_skipped_session'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLoginNudge, setShowLoginNudge] = useState(false)
+  const [personaSkippedThisSession, setPersonaSkippedThisSession] = useState(() =>
+    typeof sessionStorage !== 'undefined' && sessionStorage.getItem(PERSONA_SKIP_SESSION_KEY) === '1'
+  )
 
   // Check session on mount
   useEffect(() => {
@@ -141,11 +155,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const needsUsername = !!user && (!user.username || user.needs_username === true)
 
+  const setPersonas = useCallback(async (personas: string[]): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const resp = await fetch(`${API_BASE}/auth/personas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ personas }),
+      })
+      if (resp.ok) {
+        const body = await resp.json()
+        setUser(prev => prev ? {
+          ...prev,
+          personas: body.personas,
+          personas_set_at: body.personas_set_at,
+          personas_version: body.personas_version,
+        } : prev)
+        return { ok: true }
+      }
+      const err = await resp.json()
+      return { ok: false, error: err.detail || 'Failed to save personas' }
+    } catch {
+      return { ok: false, error: 'Network error' }
+    }
+  }, [])
+
+  const hasPersona = useCallback((key: string): boolean => {
+    return !!user?.personas?.includes(key)
+  }, [user])
+
+  const hasAnyPersona = useCallback((...keys: string[]): boolean => {
+    if (!user?.personas?.length) return false
+    return keys.some(k => user.personas!.includes(k))
+  }, [user])
+
+  const isUnsetOrSkipped = useCallback((): boolean => {
+    if (!user) return true
+    return !user.personas || user.personas.length === 0
+  }, [user])
+
+  const skipPersonasThisSession = useCallback(() => {
+    try { sessionStorage.setItem(PERSONA_SKIP_SESSION_KEY, '1') } catch {}
+    setPersonaSkippedThisSession(true)
+  }, [])
+
+  const needsPersonas = !!user && !needsUsername && !user.personas_set_at && !personaSkippedThisSession
+
   return (
     <AuthCtx.Provider value={{
-      user, loading, isLoggedIn: !!user, needsUsername,
+      user, loading, isLoggedIn: !!user, needsUsername, needsPersonas,
       loginWithGoogle, loginWithApple, logout,
-      setUsername, checkUsername, syncSettings,
+      setUsername, checkUsername,
+      setPersonas, skipPersonasThisSession,
+      hasPersona, hasAnyPersona, isUnsetOrSkipped,
+      syncSettings,
       showLoginNudge, setShowLoginNudge,
     }}>
       {children}

@@ -1,10 +1,21 @@
 import { NavLink } from 'react-router-dom'
 import { useSaved } from './SavedContext'
+import { useAuth } from './AuthContext'
 import { getSelectedWatershed } from './WatershedHeader'
 import { useUserObsCount } from './useUserObsCount'
 import './BottomNav.css'
 
-const TABS = [
+type Tab = {
+  to: string
+  label: string
+  icon: string
+  key: string
+  // Persona keys that should see this tab. Omit to always show.
+  // Anonymous users and users who skipped persona selection see all tabs.
+  requires?: string[]
+}
+
+const TABS: Tab[] = [
   { to: '/path/now', label: 'River Now', icon: '〰', key: 'now' },
   { to: '/path/explore', label: 'Explore', icon: '◎', key: 'explore' },
   { to: '/path/hatch', label: 'Hatch', icon: '◬', key: 'hatch' },
@@ -14,13 +25,20 @@ const TABS = [
 
 export default function BottomNav() {
   const { countSaved } = useSaved()
+  const { hasAnyPersona, isUnsetOrSkipped } = useAuth()
   const ws = getSelectedWatershed() || 'mckenzie'
   const obsCount = useUserObsCount(ws)
   const savedCount = countSaved(ws) + obsCount
 
+  const visibleTabs = TABS.filter(tab => {
+    if (!tab.requires) return true
+    if (isUnsetOrSkipped()) return true
+    return hasAnyPersona(...tab.requires)
+  })
+
   return (
     <nav className="bottom-nav" role="tablist">
-      {TABS.map(tab => (
+      {visibleTabs.map(tab => (
         <NavLink
           key={tab.to}
           to={tab.to}
