@@ -54,6 +54,7 @@ const HatchPage = lazy(() => import('./pages/HatchPage'))
 const FishRefugePage = lazy(() => import('./pages/FishRefugePage'))
 const StewardPage = lazy(() => import('./pages/StewardPage'))
 const SavedPage = lazy(() => import('./pages/SavedPage'))
+const WherePage = lazy(() => import('./pages/WherePage'))
 const SpeciesMapPage = lazy(() => import('./pages/SpeciesMapPage'))
 const ExploreMapPage = lazy(() => import('./pages/ExploreMapPage'))
 const MyObsMapPage = lazy(() => import('./pages/MyObsMapPage'))
@@ -82,7 +83,7 @@ function ConditionalBottomNav() {
   const isTrailTabRoute = /^\/trail\/(story|explore|collect|learn|saved)/.test(pathname)
   if (isTrailTabRoute) return <DeepTrailBottomNav />
   // RiverPath bottom nav on /path/* routes
-  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking)/.test(pathname)
+  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking|where)/.test(pathname)
   if (isTabRoute) return <BottomNav />
   return null
 }
@@ -154,6 +155,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/path/steward/:watershed" element={<StewardPage />} />
             <Route path="/path/explore-map/:watershed" element={<ExploreMapPage />} />
             <Route path="/path/saved" element={<SavedPage />} />
+            <Route path="/path/where" element={<WherePage />} />
             <Route path="/path/saved/map/:watershed" element={<MyObsMapPage />} />
             <Route path="/path/stocking/:watershed" element={<StockingMapPage />} />
             <Route path="/path/map/:watershed" element={<SpeciesMapPage />} />

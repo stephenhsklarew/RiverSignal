@@ -9,6 +9,7 @@ import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
 import PhotoObservation from '../components/PhotoObservation'
 import InfoTooltip from '../components/InfoTooltip'
+import TripQualityCard from '../components/TripQualityCard'
 import { useAuth } from '../components/AuthContext'
 const dtMark = '/favicon-deeptrail.svg'
 import { API_BASE } from '../config'
@@ -408,6 +409,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
       {site && (
         <>
+          {/* ── TQS Card (above hero) ── */}
+          <TripQualityCard watershed={watershed} />
+
           {/* ── Hero Card ── */}
           <div className="rnow-hero">
             {isLive && (

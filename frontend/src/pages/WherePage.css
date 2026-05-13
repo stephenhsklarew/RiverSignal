@@ -1,0 +1,127 @@
+.where-page {
+  font-family: 'Outfit', sans-serif;
+  padding: 16px 12px 96px;
+  max-width: 720px; margin: 0 auto;
+}
+.where-back {
+  display: inline-block;
+  font-size: 0.82rem; color: #666; text-decoration: none;
+  margin-bottom: 6px;
+}
+.where-title {
+  margin: 0; font-size: 1.4rem; font-weight: 600; color: #1a1612;
+}
+.where-sub {
+  margin: 4px 0 0; font-size: 0.85rem; color: #666;
+}
+
+.where-controls {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center;
+  margin: 16px 0 12px;
+  padding: 12px;
+  background: #fbfaf6; border: 1px solid #e8e5de; border-radius: 12px;
+}
+.where-control {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.82rem; color: #555;
+}
+.where-control input[type="range"] { width: 140px; }
+.where-control-checkbox { gap: 6px; }
+.where-value { font-weight: 600; color: #333; min-width: 50px; }
+.where-coords { font-size: 0.75rem; color: #888; margin-left: auto; }
+.where-relocate {
+  background: none; border: none; color: #1a6b4a;
+  cursor: pointer; padding: 0; text-decoration: underline;
+  font-family: inherit; font-size: 0.75rem;
+}
+
+.where-empty, .where-error {
+  padding: 24px 12px; text-align: center; color: #888;
+  font-size: 0.88rem;
+}
+.where-error { color: #a13a3a; }
+
+.where-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.where-row {
+  border: 1px solid #e8e5de; border-radius: 12px;
+  background: #fff; overflow: hidden;
+}
+
+.where-row-main {
+  display: grid;
+  grid-template-columns: 56px 1fr 28px;
+  align-items: center; gap: 12px;
+  width: 100%; padding: 12px 14px;
+  border: none; background: none;
+  font-family: inherit; cursor: pointer; text-align: left;
+  transition: background 0.12s;
+}
+.where-row-main:hover { background: #fbfaf6; }
+
+.where-score {
+  font-size: 1.8rem; font-weight: 700; line-height: 1; text-align: center;
+}
+.where-score.excellent  { color: #1e7a3e; }
+.where-score.strong     { color: #2b8a4a; }
+.where-score.mixed      { color: #a68b3a; }
+.where-score.marginal   { color: #b5683a; }
+.where-score.unfavorable{ color: #a13a3a; }
+
+.where-row-body {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.where-row-name {
+  font-size: 0.95rem; font-weight: 600; color: #333;
+  text-transform: capitalize;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.where-row-reach { color: #888; font-weight: 500; text-transform: none; }
+.where-row-meta { font-size: 0.78rem; color: #888; }
+.where-row-spread { color: #a17a2a; }
+.where-row-factor { font-size: 0.72rem; color: #888; font-style: italic; }
+
+.where-row-chevron {
+  font-size: 1.2rem; color: #aaa; text-align: center;
+}
+
+/* Expansion */
+.where-expand {
+  list-style: none; padding: 0 14px 12px; margin: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.where-expand-row {
+  display: grid; grid-template-columns: 36px 1fr auto;
+  align-items: center; gap: 10px;
+  width: 100%; padding: 8px 10px;
+  background: #fbfaf6; border: 1px solid transparent; border-radius: 8px;
+  font-family: inherit; cursor: pointer; text-align: left;
+  transition: all 0.12s;
+}
+.where-expand-row:hover { background: #f4f1ea; border-color: #e0ddd8; }
+.where-expand-row.best { background: #eef7f2; }
+.where-expand-row.closed { opacity: 0.55; }
+
+.where-expand-score {
+  font-size: 1rem; font-weight: 700; text-align: center;
+}
+.where-expand-score.excellent  { color: #1e7a3e; }
+.where-expand-score.strong     { color: #2b8a4a; }
+.where-expand-score.mixed      { color: #a68b3a; }
+.where-expand-score.marginal   { color: #b5683a; }
+.where-expand-score.unfavorable{ color: #a13a3a; }
+
+.where-expand-name {
+  font-size: 0.85rem; color: #333;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.where-expand-band {
+  font-size: 0.72rem; color: #888;
+}
+
+.where-expand-loading {
+  padding: 8px 14px; color: #888; font-size: 0.8rem;
+}
