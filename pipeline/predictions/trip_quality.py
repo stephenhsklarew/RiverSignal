@@ -326,8 +326,12 @@ def _active_fire_intersects(conn, reach_bbox_geom, target_date: date) -> bool:
 def _weather_inputs(conn, watershed: str, target_date: date) -> tuple[float | None, float | None, float | None, int | None]:
     """Pull (temp_f, precip_in, wind_mph, wind_bearing) for a watershed × date.
 
-    Source order: live observation (≤1d horizon) → most recent forecast for
-    that target_date → None. Returns Nones throughout if no rows.
+    Source order:
+      - horizon ≤ 1d: live observation for that date
+      - horizon ≤ 7d: most recent forecast for that target_date
+      - horizon 8-30d: monthly climatology + 14-day recent trend (C_2)
+      - horizon > 30d: pure monthly climatology (C_3 will refine with NCEI)
+    Returns Nones if no rows are available at any tier.
     """
     today = date.today()
     horizon = (target_date - today).days
@@ -339,20 +343,58 @@ def _weather_inputs(conn, watershed: str, target_date: date) -> tuple[float | No
             ORDER BY fetched_at DESC LIMIT 1
         """), {"ws": watershed, "d": target_date}).fetchone()
         if row:
-            return float(row[0]) if row[0] is not None else None, \
-                   float(row[1]) if row[1] is not None else None, \
-                   float(row[2]) if row[2] is not None else None, None
-    row = conn.execute(text("""
-        SELECT temperature_max_f, precipitation_in, wind_speed_avg_mph
-        FROM bronze.weather_forecasts
-        WHERE watershed = :ws AND target_date = :d
-        ORDER BY issued_date DESC LIMIT 1
-    """), {"ws": watershed, "d": target_date}).fetchone()
-    if row:
-        return float(row[0]) if row[0] is not None else None, \
-               float(row[1]) if row[1] is not None else None, \
-               float(row[2]) if row[2] is not None else None, None
-    return None, None, None, None
+            return (
+                float(row[0]) if row[0] is not None else None,
+                float(row[1]) if row[1] is not None else None,
+                float(row[2]) if row[2] is not None else None,
+                None,
+            )
+    if horizon <= 7:
+        row = conn.execute(text("""
+            SELECT temperature_max_f, precipitation_in, wind_speed_avg_mph
+            FROM bronze.weather_forecasts
+            WHERE watershed = :ws AND target_date = :d
+            ORDER BY issued_date DESC LIMIT 1
+        """), {"ws": watershed, "d": target_date}).fetchone()
+        if row:
+            return (
+                float(row[0]) if row[0] is not None else None,
+                float(row[1]) if row[1] is not None else None,
+                float(row[2]) if row[2] is not None else None,
+                None,
+            )
+    # Climatological fallback (C_2 for 8-30d; C_3 will refine for > 30d).
+    return _climatology_weather(conn, watershed, target_date, horizon)
+
+
+def _climatology_weather(conn, watershed: str, target_date: date, horizon: int) -> tuple[float | None, float | None, float | None, int | None]:
+    """Monthly mean from bronze.weather_observations (NCEI/NWS history)
+    blended with a 14-day recent-trend signal for the 8-30d horizon."""
+    monthly = conn.execute(text("""
+        SELECT AVG(temperature_avg_f), AVG(precipitation_in), AVG(wind_speed_avg_mph)
+        FROM bronze.weather_observations
+        WHERE watershed = :ws
+          AND EXTRACT(MONTH FROM date) = :m
+    """), {"ws": watershed, "m": target_date.month}).fetchone()
+    base_temp = float(monthly[0]) if monthly and monthly[0] is not None else None
+    base_precip = float(monthly[1]) if monthly and monthly[1] is not None else None
+    base_wind = float(monthly[2]) if monthly and monthly[2] is not None else None
+
+    if 8 <= horizon <= 30:
+        # Blend in the 14-day recent trend (delta from current month's running mean)
+        trend = conn.execute(text("""
+            SELECT AVG(temperature_avg_f), AVG(precipitation_in), AVG(wind_speed_avg_mph)
+            FROM bronze.weather_observations
+            WHERE watershed = :ws AND date >= CURRENT_DATE - INTERVAL '14 days'
+        """), {"ws": watershed}).fetchone()
+        if trend and trend[0] is not None and base_temp is not None:
+            base_temp = (base_temp + float(trend[0])) / 2.0
+        if trend and trend[1] is not None and base_precip is not None:
+            base_precip = (base_precip + float(trend[1])) / 2.0
+        if trend and trend[2] is not None and base_wind is not None:
+            base_wind = (base_wind + float(trend[2])) / 2.0
+
+    return base_temp, base_precip, base_wind, None
 
 
 def _watershed_has_prediction(conn, watershed: str, target_date: date) -> bool:
@@ -385,7 +427,7 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
             forecast_source = (
                 "live" if horizon <= 1
                 else "nws_forecast" if horizon <= 7
-                else "prism+trend" if horizon <= 30
+                else "climatology+trend" if horizon <= 30
                 else "climatology"
             )
             for r in reaches:
