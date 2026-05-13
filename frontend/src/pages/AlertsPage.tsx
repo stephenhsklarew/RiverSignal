@@ -33,7 +33,7 @@ export default function AlertsPage() {
     <>
       <WatershedHeader watershed={watershed} basePath="/path/alerts" />
       <div className="alerts-page">
-        <Link to="/path" className="alerts-back">← Path</Link>
+        <Link to={`/path/now/${watershed}`} className="alerts-back">← {watershed.replace(/_/g, ' ')}</Link>
         {!isLoggedIn ? (
           <NotLoggedInInner />
         ) : (
