@@ -1,0 +1,1 @@
+# Guide source IDs (one per line). Add real adapters in pipeline/ingest/guide_availability.py ADAPTERS.

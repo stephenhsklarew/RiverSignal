@@ -202,3 +202,27 @@ def mark_alert_seen(alert_id: str, request: Request):
     if result.rowcount == 0:
         raise HTTPException(404, "Alert not found")
     return {"ok": True}
+
+
+@router.get("/digest/weekly")
+def get_weekly_digest(request: Request):
+    """Return the most recent weekly digest for the authed user."""
+    user = _require_user(request)
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT narrative_text, target_date, delivered_at, seen_at
+            FROM user_alert_deliveries
+            WHERE user_id = :u AND alert_type = 'weekly_digest'
+            ORDER BY delivered_at DESC
+            LIMIT 1
+        """), {"u": user["id"]}).fetchone()
+    if not row or not row[0]:
+        return {"digest": None}
+    import json as _json
+    payload = _json.loads(row[0])
+    return {
+        "digest": payload,
+        "week_of": row[1].isoformat() if row[1] else None,
+        "delivered_at": row[2].isoformat() if row[2] else None,
+        "seen_at": row[3].isoformat() if row[3] else None,
+    }
