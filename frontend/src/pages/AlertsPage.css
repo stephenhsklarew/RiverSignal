@@ -1,14 +1,14 @@
 .alerts-page {
   font-family: 'Outfit', sans-serif;
-  padding: 16px 12px 96px;
+  padding: 12px 12px 96px;
   max-width: 720px; margin: 0 auto;
 }
 .alerts-back {
   display: inline-block; font-size: 0.82rem; color: #666;
-  text-decoration: none; margin-bottom: 6px;
+  text-decoration: none; margin-bottom: 4px;
 }
 .alerts-title {
-  margin: 0; font-size: 1.4rem; font-weight: 600; color: #1a1612;
+  margin: 4px 0 0; font-size: 1.4rem; font-weight: 600; color: #1a1612;
 }
 
 .alerts-tabs {

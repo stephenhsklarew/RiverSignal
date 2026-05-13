@@ -9,6 +9,7 @@ import useSWR, { mutate } from 'swr'
 import { API_BASE } from '../config'
 import { useAuth } from '../components/AuthContext'
 import LoginModal from '../components/LoginModal'
+import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import './AlertsPage.css'
 
 const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then(r => r.json())
@@ -26,46 +27,48 @@ function bandLabel(tqs: number): { label: string; cls: string } {
 export default function AlertsPage() {
   const { isLoggedIn } = useAuth()
   const [tab, setTab] = useState<Tab>('notifications')
-
-  if (!isLoggedIn) {
-    return <NotLoggedIn />
-  }
+  const watershed = getSelectedWatershed() || 'mckenzie'
 
   return (
-    <div className="alerts-page">
-      <div className="alerts-header">
+    <>
+      <WatershedHeader watershed={watershed} basePath="/path/alerts" />
+      <div className="alerts-page">
         <Link to="/path" className="alerts-back">← Path</Link>
-        <h1 className="alerts-title">Alerts</h1>
+        {!isLoggedIn ? (
+          <NotLoggedInInner />
+        ) : (
+          <>
+            <h1 className="alerts-title">Alerts</h1>
+            <div className="alerts-tabs" role="tablist">
+              {(['notifications', 'watchlist', 'digest'] as Tab[]).map(t => (
+                <button
+                  key={t}
+                  role="tab"
+                  className={`alerts-tab ${tab === t ? 'on' : ''}`}
+                  onClick={() => setTab(t)}
+                >{t === 'notifications' ? 'Notifications' : t === 'watchlist' ? 'Watchlist' : 'Digest'}</button>
+              ))}
+            </div>
+            {tab === 'notifications' && <NotificationsTab />}
+            {tab === 'watchlist' && <WatchlistTab />}
+            {tab === 'digest' && <DigestTab />}
+          </>
+        )}
       </div>
-
-      <div className="alerts-tabs" role="tablist">
-        {(['notifications', 'watchlist', 'digest'] as Tab[]).map(t => (
-          <button
-            key={t}
-            role="tab"
-            className={`alerts-tab ${tab === t ? 'on' : ''}`}
-            onClick={() => setTab(t)}
-          >{t === 'notifications' ? 'Notifications' : t === 'watchlist' ? 'Watchlist' : 'Digest'}</button>
-        ))}
-      </div>
-
-      {tab === 'notifications' && <NotificationsTab />}
-      {tab === 'watchlist' && <WatchlistTab />}
-      {tab === 'digest' && <DigestTab />}
-    </div>
+    </>
   )
 }
 
-function NotLoggedIn() {
+function NotLoggedInInner() {
   const [showLogin, setShowLogin] = useState(false)
   return (
-    <div className="alerts-page">
+    <>
       <div className="alerts-empty">
         <p>Sign in to view your alerts and watchlist.</p>
         <button className="alerts-cta" onClick={() => setShowLogin(true)}>Sign in</button>
       </div>
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} mode="signin" />}
-    </div>
+    </>
   )
 }
 

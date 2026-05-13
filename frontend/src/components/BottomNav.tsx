@@ -10,18 +10,30 @@ import './BottomNav.css'
 type Tab = {
   to: string
   label: string
-  icon: string
+  icon: React.ReactNode
   key: string
   // Persona keys that should see this tab. Omit to always show.
   // Anonymous users and users who skipped persona selection see all tabs.
   requires?: string[]
 }
 
+// Inline SVG bell so the icon stroke inherits the tab's `color` (gray/green)
+// like the other Unicode-glyph icons. Color emoji ignore CSS color.
+const BellIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 3.5a5.5 5.5 0 0 0-5.5 5.5v3.2L4.9 15a.9.9 0 0 0 .8 1.4h12.6a.9.9 0 0 0 .8-1.4l-1.6-2.8V9A5.5 5.5 0 0 0 12 3.5Z"
+      stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"
+    />
+    <path d="M9.7 18.5a2.5 2.5 0 0 0 4.6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+)
+
 const TABS: Tab[] = [
   { to: '/path/now', label: 'River Now', icon: '〰', key: 'now' },
   { to: '/path/explore', label: 'Explore', icon: '◎', key: 'explore' },
   { to: '/path/hatch', label: 'Hatch', icon: '◬', key: 'hatch' },
-  { to: '/path/alerts', label: 'Alerts', icon: '🔔', key: 'alerts',
+  { to: '/path/alerts', label: 'Alerts', icon: <BellIcon />, key: 'alerts',
     requires: ['angler_self_guided', 'guide_professional'] },
   { to: '/path/steward', label: 'Steward', icon: '♻︎', key: 'steward' },
   { to: '/path/saved', label: 'Saved', icon: '♡', key: 'saved' },

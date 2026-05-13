@@ -7,9 +7,14 @@
   color: #888; font-size: 0.82rem; padding: 8px 12px;
 }
 
+.tqs-pill-row {
+  display: flex; align-items: center; gap: 6px;
+}
+
 .tqs-pill {
+  flex: 1;
   display: flex; align-items: baseline; gap: 8px;
-  width: 100%; padding: 10px 14px;
+  padding: 10px 14px;
   border: 1px solid #e0ddd8; border-radius: 14px;
   background: #fbfaf6;
   font-family: inherit; cursor: pointer;

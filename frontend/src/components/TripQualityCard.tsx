@@ -13,8 +13,17 @@ import useSWR, { mutate } from 'swr'
 import { useLocation } from 'react-router-dom'
 import { API_BASE } from '../config'
 import { useAuth } from './AuthContext'
+import InfoTooltip from './InfoTooltip'
 import LoginModal from './LoginModal'
 import './TripQualityCard.css'
+
+const TQS_SOURCES = ['usgs', 'snotel', 'inaturalist', 'mtbs', 'odfw']
+const TQS_TOOLTIP =
+  'A 0–100 score blending six things into one number for this stretch of river: ' +
+  'catch outlook, water temperature, flow, weather, hatch alignment with the season, ' +
+  'and access (closures or active fires). When a reach is closed for a reason, ' +
+  'the score is forced into the bottom band and we show a closed badge instead. ' +
+  'Tap the pill for a breakdown of each sub-score.'
 
 const DAY_MS = 86_400_000
 
@@ -112,6 +121,8 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
   function pickReach(id: string) {
     setSelectedReachId(id)
     try { localStorage.setItem(lsKey, id) } catch { /* localStorage may be unavailable */ }
+    // Open the why-panel so the user can see the breakdown + add to watchlist.
+    setShowWhy(true)
   }
 
   if (error) return null
@@ -132,21 +143,24 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
 
   return (
     <div className="tqs-card">
-      <button type="button" className="tqs-pill" onClick={() => setShowWhy(true)} aria-label="Show trip-quality details">
-        {closed ? (
-          <span className="tqs-closed-badge">Reach closed today</span>
-        ) : (
-          <>
-            <span className="tqs-pill-label">Trip Quality</span>
-            <span className={`tqs-pill-score ${band.cls}`}>{tqs}</span>
-            <span className="tqs-pill-band">{band.label}</span>
-            <span className="tqs-pill-reach">· {reachName}</span>
-            {confidence < 90 && (
-              <span className="tqs-pill-confidence">±{Math.round(100 - confidence)}</span>
-            )}
-          </>
-        )}
-      </button>
+      <div className="tqs-pill-row">
+        <button type="button" className="tqs-pill" onClick={() => setShowWhy(true)} aria-label="Show trip-quality details">
+          {closed ? (
+            <span className="tqs-closed-badge">Reach closed today</span>
+          ) : (
+            <>
+              <span className="tqs-pill-label">Trip Quality</span>
+              <span className={`tqs-pill-score ${band.cls}`}>{tqs}</span>
+              <span className="tqs-pill-band">{band.label}</span>
+              <span className="tqs-pill-reach">· {reachName}</span>
+              {confidence < 90 && (
+                <span className="tqs-pill-confidence">±{Math.round(100 - confidence)}</span>
+              )}
+            </>
+          )}
+        </button>
+        <InfoTooltip text={TQS_TOOLTIP} sources={TQS_SOURCES} />
+      </div>
 
       {showSpreadCaveat && !closed && (
         <div className="tqs-spread-caveat">

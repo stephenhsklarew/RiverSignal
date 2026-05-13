@@ -46,6 +46,14 @@
 .bottom-nav-icon {
   font-size: 18px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* SVG icons inside a tab should inherit the gray/green text color. */
+.bottom-nav-icon svg {
+  stroke: currentColor;
+  display: block;
 }
 
 /* `◬` renders shorter than the other glyphs in most system fonts — bump it. */
