@@ -374,6 +374,63 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
     return out
 
 
+def refresh_trip_quality_daily(start_date: date | None = None,
+                                end_date: date | None = None) -> int:
+    """Recompute and replace gold.trip_quality_daily for the given range.
+
+    Functional equivalent of `REFRESH MATERIALIZED VIEW` but in Python.
+    Default range: today through today+90 (matches plan §3.4 refresh scope).
+    Returns the number of rows written. Wraps the write in a single
+    transaction so the table never contains a half-refresh state.
+    """
+    if start_date is None:
+        start_date = date.today()
+    if end_date is None:
+        end_date = start_date + timedelta(days=90)
+
+    rows = compute_trip_quality_daily(start_date, end_date)
+
+    with engine.connect() as conn:
+        with conn.begin():
+            conn.execute(text(
+                "DELETE FROM gold.trip_quality_daily WHERE target_date BETWEEN :s AND :e"
+            ), {"s": start_date, "e": end_date})
+            if rows:
+                conn.execute(
+                    text("""
+                        INSERT INTO gold.trip_quality_daily
+                            (reach_id, watershed, target_date, tqs, confidence,
+                             is_hard_closed, catch_score, water_temp_score,
+                             flow_score, weather_score, hatch_score, access_score,
+                             primary_factor, partial_access_flag, horizon_days,
+                             forecast_source, computed_at)
+                        VALUES
+                            (:reach_id, :watershed, :target_date, :tqs, :confidence,
+                             :is_hard_closed, :catch_score, :water_temp_score,
+                             :flow_score, :weather_score, :hatch_score, :access_score,
+                             :primary_factor, :partial_access_flag, :horizon_days,
+                             :forecast_source, :computed_at)
+                    """),
+                    [
+                        {
+                            "reach_id": r.reach_id, "watershed": r.watershed,
+                            "target_date": r.target_date, "tqs": r.tqs,
+                            "confidence": r.confidence, "is_hard_closed": r.is_hard_closed,
+                            "catch_score": r.catch_score, "water_temp_score": r.water_temp_score,
+                            "flow_score": r.flow_score, "weather_score": r.weather_score,
+                            "hatch_score": r.hatch_score, "access_score": r.access_score,
+                            "primary_factor": r.primary_factor,
+                            "partial_access_flag": r.partial_access_flag,
+                            "horizon_days": r.horizon_days,
+                            "forecast_source": r.forecast_source,
+                            "computed_at": r.computed_at,
+                        }
+                        for r in rows
+                    ],
+                )
+    return len(rows)
+
+
 if __name__ == "__main__":
     from datetime import date as _d
     rows = compute_trip_quality_daily(_d.today(), _d.today())
