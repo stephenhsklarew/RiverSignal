@@ -1,9 +1,16 @@
 # Design Plan: Metric History, Trends, and Forecasts
 
 **Date**: 2026-05-10
-**Status**: DRAFT (pre-collaborative review)
+**Status**: RETIRED — ON HOLD (2026-05-14)
 **Refinement Rounds**: 3 (solo)
 **Scope**: Turn the derived scores currently shown on `/path/now` (Catch Probability, Hatch Confidence, Health Score, cold-water refuge availability, etc.) from one-shot point-in-time computations into a queryable time series that can drive trend charts and, eventually, forecasts.
+
+> **Retirement note (2026-05-14)**: This plan has been retired in favor of `plan-2026-05-14-tqs-forecast-history.md`, which absorbs the snapshot infrastructure, 5-year backfill, backcast, and forecast UI for the headline metric (TQS). The remaining unique scope of this plan — Hatch Confidence history + phenology forecasts, and InfoTooltip sparklines for non-TQS metrics — will be re-scoped as two smaller follow-up plans when prioritized:
+>
+> - `plan-XXXX-XX-XX-hatch-forecast.md` — phenology-aware hatch confidence forecasting (~3 days work)
+> - `plan-XXXX-XX-XX-metric-sparklines.md` — UI sparklines on InfoTooltips for remaining metrics (~2 days work)
+>
+> The original 5 open forks below are preserved for future reference but no longer require resolution.
 
 > **Note**: this plan reflects a single-author pass and is intentionally opinionated where decisions could be made differently. Sections marked **OPEN FORK** are explicit decision points to work through collaboratively before committing to implementation, mirroring how the trip-share plan resolved 8 forks with the product owner.
 
