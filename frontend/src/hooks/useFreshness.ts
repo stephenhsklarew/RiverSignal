@@ -20,6 +20,8 @@ const SOURCE_LABELS: Record<string, string> = {
   inaturalist: 'iNaturalist',
   usgs: 'USGS gauges',
   snotel: 'NRCS SNOTEL',
+  nws: 'NWS weather observations',
+  nws_forecast: 'NWS 7-day forecast',
   fishing: 'ODFW fishing',
   wqp: 'EPA Water Quality Portal',
   wqp_bugs: 'WQP macroinvertebrates',

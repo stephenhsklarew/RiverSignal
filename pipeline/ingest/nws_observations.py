@@ -113,6 +113,30 @@ def _rollup(features: list[dict]) -> dict:
     }
 
 
+def _watershed_site_id(conn, watershed: str) -> str | None:
+    """Return any one site_id within the watershed, for ingestion_jobs FK."""
+    row = conn.execute(text(
+        "SELECT id FROM sites WHERE watershed = :ws LIMIT 1"
+    ), {"ws": watershed}).fetchone()
+    return str(row[0]) if row else None
+
+
+def _log_ingestion_job(conn, watershed: str, source: str, records: int,
+                       status: str, error: str | None = None) -> None:
+    """Record one ingestion_jobs row so /data-status/freshness can surface it."""
+    site_id = _watershed_site_id(conn, watershed)
+    if not site_id:
+        return  # No sites in this watershed; skip the log
+    conn.execute(text("""
+        INSERT INTO ingestion_jobs
+            (id, site_id, source_type, status, started_at, completed_at,
+             records_created, records_updated, error_message)
+        VALUES (gen_random_uuid(), CAST(:sid AS uuid), :src, :st,
+                now(), now(), :rc, 0, :err)
+    """), {"sid": site_id, "src": source, "st": status,
+           "rc": records, "err": error})
+
+
 def ingest_day(target_day: date | None = None) -> dict[str, int]:
     """Ingest one day per watershed. Returns {watershed: rows_inserted}."""
     if target_day is None:
@@ -158,12 +182,20 @@ def ingest_day(target_day: date | None = None) -> dict[str, int]:
                             "payload": json.dumps({"feature_count": len(features)}),
                         },
                     )
+                    _log_ingestion_job(conn, ws, source="nws", records=1, status="completed")
                     conn.commit()
                 results[ws] = 1
             except Exception as e:
                 # Don't let one watershed kill the whole run
                 print(f"[nws] {ws} ingest failed: {e}")
                 results[ws] = 0
+                try:
+                    with engine.connect() as conn:
+                        _log_ingestion_job(conn, ws, source="nws", records=0,
+                                           status="failed", error=str(e)[:500])
+                        conn.commit()
+                except Exception:
+                    pass
     return results
 
 
@@ -241,9 +273,21 @@ def ingest_forecasts(issued: date | None = None) -> dict[str, int]:
             try:
                 n = _capture_forecast_for_watershed(client, ws, lat, lon, issued)
                 results[ws] = n
+                with engine.connect() as conn:
+                    _log_ingestion_job(conn, ws, source="nws_forecast",
+                                       records=n, status="completed")
+                    conn.commit()
             except Exception as e:
                 print(f"[nws-fc] {ws} forecast failed: {e}")
                 results[ws] = 0
+                try:
+                    with engine.connect() as conn:
+                        _log_ingestion_job(conn, ws, source="nws_forecast",
+                                           records=0, status="failed",
+                                           error=str(e)[:500])
+                        conn.commit()
+                except Exception:
+                    pass
     return results
 
 

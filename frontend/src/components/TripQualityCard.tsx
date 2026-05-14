@@ -19,7 +19,8 @@ import './TripQualityCard.css'
 
 // Canonical source IDs that match app/routers/data_status.py freshness keys.
 // 'fishing' is the project-wide identifier for ODFW (rendered as "ODFW fishing").
-const TQS_SOURCES = ['usgs', 'snotel', 'mtbs', 'fishing', 'prism']
+// 'nws' = daily weather observations roll-up; 'nws_forecast' = 7-day forecast.
+const TQS_SOURCES = ['usgs', 'snotel', 'nws', 'nws_forecast', 'mtbs', 'fishing', 'prism']
 const TQS_TOOLTIP =
   'A 0–100 score blending six things into one number for this stretch of river: ' +
   'catch outlook, water temperature, flow, weather, hatch alignment with the season, ' +

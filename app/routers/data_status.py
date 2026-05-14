@@ -19,6 +19,8 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "inaturalist": 24,
     "usgs": 24,
     "snotel": 24,
+    "nws": 24,            # NWS daily observations roll-up
+    "nws_forecast": 24,   # NWS 7-day forecast capture (refreshed daily)
     # Weekly ingestion (Mon 04:00 PT)
     "fishing": 168,
     "wqp": 168,
