@@ -14,6 +14,7 @@ The orchestrator (compute_trip_quality_daily) handles DB lookups.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Iterable
@@ -254,6 +255,11 @@ class TQSRow:
     horizon_days: int
     forecast_source: str
     computed_at: datetime
+    # Snapshot of the inputs actually consumed during scoring. Persisted so
+    # future ML feature engineering has access to "what we saw at decision
+    # time" — NWS forecasts aren't archived elsewhere. See plan
+    # plan-2026-05-14-tqs-forecast-history.md AD-2 / forecast_inputs_payload.
+    forecast_inputs_payload: dict | None = None
 
 
 def _load_reaches(conn):
@@ -445,6 +451,7 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                 wt = water_temp_score(wt_f, is_warm)
 
                 band = flow_bands.get(rid)
+                proxy_cfs: float | None = None
                 if band:
                     # Mid-of-ideal as a proxy until USGS time-series integration
                     proxy_cfs = (band[1] + band[2]) / 2.0
@@ -489,6 +496,30 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                 }
                 pf = primary_factor(w, scores)
 
+                # Capture the inputs actually consumed at scoring time. NWS
+                # doesn't archive forecasts, so without this snapshot the
+                # inputs that drove a past score would be lost.
+                inputs_payload = {
+                    "nws": {
+                        "temp_f":         temp_f,
+                        "precip_in":      precip_in,
+                        "wind_mph":       wind_mph,
+                        "wind_bearing":   wind_bearing,
+                        "forecast_source": forecast_source,
+                    },
+                    "water": {
+                        "temp_f": wt_f,
+                        "source": "proxy_seasonal",
+                    },
+                    "flow": (
+                        {"cfs": proxy_cfs, "source": "ideal_band_midpoint"}
+                        if band else
+                        {"cfs": None, "source": "no_band"}
+                    ),
+                    "fire_intersects": fire,
+                    "computed_at": datetime.now(timezone.utc).isoformat(),
+                }
+
                 out.append(TQSRow(
                     reach_id=rid, watershed=ws, target_date=d,
                     tqs=max(0, min(100, tqs)),
@@ -502,6 +533,7 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                     horizon_days=horizon,
                     forecast_source=forecast_source,
                     computed_at=datetime.now(timezone.utc),
+                    forecast_inputs_payload=inputs_payload,
                 ))
             d += timedelta(days=1)
     return out
@@ -509,6 +541,10 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
 
 def snapshot_history(snapshot_day: date | None = None) -> int:
     """Append today's gold.trip_quality_daily into gold.trip_quality_history.
+
+    Carries the full sub-score decomposition + forecast metadata + the
+    inputs payload, enabling future forecast-accuracy analysis and ML
+    feature engineering off the history table alone.
 
     Idempotent for the same snapshot_day via the composite PK
     (reach_id, target_date, snapshot_date) — ON CONFLICT DO NOTHING.
@@ -520,8 +556,14 @@ def snapshot_history(snapshot_day: date | None = None) -> int:
         with conn.begin():
             result = conn.execute(text("""
                 INSERT INTO gold.trip_quality_history
-                    (reach_id, target_date, snapshot_date, tqs, confidence)
-                SELECT reach_id, target_date, :s, tqs, confidence
+                    (reach_id, target_date, snapshot_date, tqs, confidence,
+                     catch_score, water_temp_score, flow_score, weather_score,
+                     hatch_score, access_score, forecast_source, horizon_days,
+                     primary_factor, forecast_inputs_payload)
+                SELECT reach_id, target_date, :s, tqs, confidence,
+                       catch_score, water_temp_score, flow_score, weather_score,
+                       hatch_score, access_score, forecast_source, horizon_days,
+                       primary_factor, forecast_inputs_payload
                 FROM gold.trip_quality_daily
                 ON CONFLICT (reach_id, target_date, snapshot_date) DO NOTHING
             """), {"s": snapshot_day})
@@ -557,13 +599,14 @@ def refresh_trip_quality_daily(start_date: date | None = None,
                              is_hard_closed, catch_score, water_temp_score,
                              flow_score, weather_score, hatch_score, access_score,
                              primary_factor, partial_access_flag, horizon_days,
-                             forecast_source, computed_at)
+                             forecast_source, computed_at, forecast_inputs_payload)
                         VALUES
                             (:reach_id, :watershed, :target_date, :tqs, :confidence,
                              :is_hard_closed, :catch_score, :water_temp_score,
                              :flow_score, :weather_score, :hatch_score, :access_score,
                              :primary_factor, :partial_access_flag, :horizon_days,
-                             :forecast_source, :computed_at)
+                             :forecast_source, :computed_at,
+                             CAST(:forecast_inputs_payload AS jsonb))
                     """),
                     [
                         {
@@ -578,6 +621,10 @@ def refresh_trip_quality_daily(start_date: date | None = None,
                             "horizon_days": r.horizon_days,
                             "forecast_source": r.forecast_source,
                             "computed_at": r.computed_at,
+                            "forecast_inputs_payload": (
+                                json.dumps(r.forecast_inputs_payload)
+                                if r.forecast_inputs_payload is not None else None
+                            ),
                         }
                         for r in rows
                     ],
