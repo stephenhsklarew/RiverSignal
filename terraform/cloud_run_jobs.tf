@@ -86,7 +86,9 @@ resource "google_cloud_run_v2_job" "pipeline_daily" {
       containers {
         image   = local.image
         command = ["/bin/bash", "-c"]
-        args    = ["python -m pipeline.cli ingest inaturalist -w all && python -m pipeline.cli ingest snotel -w all && python -m pipeline.cli ingest usgs -w all"]
+        # NWS observations + 7-day forecast capture appended at the END so an
+        # NWS outage doesn't short-circuit inaturalist/snotel/usgs above.
+        args    = ["python -m pipeline.cli ingest inaturalist -w all && python -m pipeline.cli ingest snotel -w all && python -m pipeline.cli ingest usgs -w all && python -m pipeline.ingest.nws_observations && python -m pipeline.ingest.nws_observations forecasts"]
 
         resources {
           limits = {
