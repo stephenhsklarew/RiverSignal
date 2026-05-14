@@ -1,8 +1,8 @@
 /**
- * Trip Quality Score (TQS) card for /path/now.
+ * Go Score card for /path/now.
  *
  * Renders three layers from plan §7:
- *  - Pill: "Trip Quality: 82 · Strong · Lower stretch" + reach_spread caveat
+ *  - Pill: "Go Score: 82 · Go Today · Lower stretch" + reach_spread caveat
  *  - Reach chips: Upper · Middle · Lower (when watershed has ≥2 reaches)
  *  - Why-panel (modal): 6 sub-scores with weighted primary factor highlighted
  *
@@ -22,10 +22,10 @@ import './TripQualityCard.css'
 // 'nws' = daily weather observations roll-up; 'nws_forecast' = 7-day forecast.
 const TQS_SOURCES = ['usgs', 'snotel', 'nws', 'nws_forecast', 'mtbs', 'fishing', 'prism']
 const TQS_TOOLTIP =
-  'A 0–100 score blending six things into one number for this stretch of river: ' +
+  'A 0–100 score blending six factors into one number for this stretch of river: ' +
   'catch outlook, water temperature, flow, weather, hatch alignment with the season, ' +
-  'and access (closures or active fires). When a reach is closed for a reason, ' +
-  'the score is forced into the bottom band and we show a closed badge instead. ' +
+  'and access (closures or active fires). Higher scores mean better conditions — ' +
+  'when the Go Score is high, drop everything and go. ' +
   'Tap the pill for a breakdown of each sub-score.'
 
 const DAY_MS = 86_400_000
@@ -37,11 +37,11 @@ const SCORE_LABELS: Record<string, string> = {
 }
 
 function bandLabel(tqs: number): { label: string; copy: string; cls: string } {
-  if (tqs >= 90) return { label: 'Excellent', copy: 'All indicators favorable', cls: 'excellent' }
-  if (tqs >= 70) return { label: 'Strong',     copy: 'Conditions look strong', cls: 'strong' }
-  if (tqs >= 50) return { label: 'Mixed',      copy: 'Conditions are mixed — manage expectations', cls: 'mixed' }
-  if (tqs >= 30) return { label: 'Marginal',   copy: 'Several indicators weak — better options likely nearby', cls: 'marginal' }
-  return            { label: 'Unfavorable', copy: 'Conditions unfavorable', cls: 'unfavorable' }
+  if (tqs >= 90) return { label: 'Drop Everything', copy: 'Rare alignment — hatch, temp, and flow all firing', cls: 'excellent' }
+  if (tqs >= 70) return { label: 'Go Today',        copy: 'Conditions are strong across the board', cls: 'strong' }
+  if (tqs >= 50) return { label: 'Worth a Shot',    copy: 'Mixed signals — manage expectations but fish are moving', cls: 'mixed' }
+  if (tqs >= 30) return { label: 'Wait for Better', copy: 'Several factors working against you — watch for improvement', cls: 'marginal' }
+  return              { label: 'Stay Home',        copy: 'Conditions are off — save it for another day', cls: 'unfavorable' }
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10)
@@ -130,7 +130,7 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
 
   if (error) return null
   if (!rollupData) {
-    return <div className="tqs-card tqs-loading">Loading trip quality…</div>
+    return <div className="tqs-card tqs-loading">Loading Go Score…</div>
   }
 
   const showing: ReachScore | WatershedRollup = selectedReach || rollupData
@@ -147,12 +147,12 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
   return (
     <div className="tqs-card">
       <div className="tqs-pill-row">
-        <button type="button" className="tqs-pill" onClick={() => setShowWhy(true)} aria-label="Show trip-quality details">
+        <button type="button" className="tqs-pill" onClick={() => setShowWhy(true)} aria-label="Show Go Score details">
           {closed ? (
             <span className="tqs-closed-badge">Reach closed today</span>
           ) : (
             <>
-              <span className="tqs-pill-label">Trip Quality</span>
+              <span className="tqs-pill-label">Go Score</span>
               <span className={`tqs-pill-score ${band.cls}`}>{tqs}</span>
               <span className="tqs-pill-band">{band.label}</span>
               <span className="tqs-pill-reach">· {reachName}</span>

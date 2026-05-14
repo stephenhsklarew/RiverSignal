@@ -97,7 +97,7 @@ export default function WherePage() {
             : <Link to="/path" className="where-back">← Path</Link>
         })()}
         <h1 className="where-title">Where should I fish?</h1>
-        <p className="where-sub">Best trip quality within drive distance, today.</p>
+        <p className="where-sub">Best Go Score within drive distance, today.</p>
       </div>
 
       <div className="where-controls">
