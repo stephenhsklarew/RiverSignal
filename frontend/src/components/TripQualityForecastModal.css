@@ -5,7 +5,8 @@
   position: fixed; inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex; align-items: flex-end; justify-content: center;
-  z-index: 220;
+  /* Above the bottom-nav (z-index 1000) so the dots aren't hidden behind it. */
+  z-index: 1100;
   animation: tqs-fc-fade-in 0.18s ease-out;
 }
 @keyframes tqs-fc-fade-in {
