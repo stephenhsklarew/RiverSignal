@@ -1,8 +1,22 @@
 # Design Plan: TQS Forecast — History, Backcast, and Forecast Modal
 
 **Date**: 2026-05-14
-**Status**: DRAFT (pre-collaborative review)
-**Refinement Rounds**: 3 (solo)
+**Status**: CONVERGED (post-collaborative review)
+**Refinement Rounds**: 3 + 6 collaborative forks resolved with product owner
+
+## Collaborative Review Outcomes (2026-05-14)
+
+Six forks worked through with the product owner:
+
+| Fork | Decision | Key implication |
+|---|---|---|
+| OF-1 Endpoint shape | Single endpoint returns all 14 days at once | One SWR cache key; ~14 KB payload; trivial server cost |
+| OF-2 Carousel | CSS `scroll-snap`, swipe + tap-pagination-dot nav | Zero dependencies; native momentum; mobile-native feel |
+| OF-3 Confidence | Bucketed labels (High/Medium/Low) + border treatment | Today's card gets "Today" badge instead of confidence chip |
+| OF-4 Backfill start | 2021-01-01 (year-aligned) | 5 complete calendar years + partial 2026; clean seasonal cycles for future ML |
+| OF-5 Unrecognized reaches | Drop, log counter in post-flight report | Backfill is bounded to current `sites` table; gaps surfaced for review |
+| OF-6 ML phase | Separate lightweight readiness doc to follow | This plan ends at rule-based forecast UI; ML decisions await real data |
+
 **Scope**: Extend the Trip Quality Score (TQS) feature with (a) a 5-year backfill of all feasible raw input sources, (b) a backcast of historical TQS sub-scores using current scoring logic against the backfilled inputs, (c) sub-score history capture going forward, and (d) a user-facing forecast modal accessed from `TripQualityCard` that shows expected TQS over the next 14 days with swipeable day cards.
 
 > Sections marked **OPEN FORK** are decision points to work through collaboratively, mirroring earlier HELIX plans.
