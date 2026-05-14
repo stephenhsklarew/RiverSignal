@@ -291,11 +291,37 @@ def ingest_forecasts(issued: date | None = None) -> dict[str, int]:
     return results
 
 
+def ingest_range(start_day: date, end_day: date | None = None) -> dict[str, int]:
+    """Backfill NWS daily observations for every day in [start_day, end_day].
+
+    Inclusive on both ends. If end_day is None, defaults to yesterday (the
+    most recent fully-observed day). Returns aggregated totals per watershed.
+    Idempotent — each per-day INSERT uses ON CONFLICT semantics in ingest_day.
+    """
+    if end_day is None:
+        end_day = (datetime.now(timezone.utc) - timedelta(days=1)).date()
+    if start_day > end_day:
+        raise ValueError(f"start_day ({start_day}) must be <= end_day ({end_day})")
+
+    aggregate: dict[str, int] = {}
+    cur = start_day
+    while cur <= end_day:
+        day_result = ingest_day(cur)
+        for ws, n in day_result.items():
+            aggregate[ws] = aggregate.get(ws, 0) + n
+        cur += timedelta(days=1)
+    return aggregate
+
+
 if __name__ == "__main__":
     args = os.sys.argv[1:]
     if args and args[0] == "forecasts":
         d = date.fromisoformat(args[1]) if len(args) > 1 else None
         print(json.dumps(ingest_forecasts(d), indent=2))
+    elif args and args[0] == "range":
+        start = date.fromisoformat(args[1])
+        end = date.fromisoformat(args[2]) if len(args) > 2 else None
+        print(json.dumps(ingest_range(start, end), indent=2))
     else:
         target = date.fromisoformat(args[0]) if args else None
         print(json.dumps(ingest_day(target), indent=2))

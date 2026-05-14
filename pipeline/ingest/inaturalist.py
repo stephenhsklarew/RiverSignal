@@ -46,7 +46,6 @@ class INaturalistAdapter(IngestionAdapter):
             raise ValueError(f"Site {self.site_id} has no bounding box configured")
 
         bbox = site.bbox
-        last_sync = self.get_last_sync()
 
         params = {
             "nelat": bbox["north"],
@@ -59,8 +58,13 @@ class INaturalistAdapter(IngestionAdapter):
             "order_by": "id",
         }
 
-        if last_sync:
-            params["d1"] = last_sync.strftime("%Y-%m-%d")
+        # Backfill override beats last_sync.
+        if self.from_date is not None:
+            params["d1"] = self.from_date.strftime("%Y-%m-%d")
+        else:
+            last_sync = self.get_last_sync()
+            if last_sync:
+                params["d1"] = last_sync.strftime("%Y-%m-%d")
 
         created = 0
         total_fetched = 0

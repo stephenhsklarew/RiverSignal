@@ -44,7 +44,15 @@ def main():
     default="all",
     help="Watershed to ingest (default: all)",
 )
-def ingest(source: str, watershed: str):
+@click.option(
+    "--from-date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=None,
+    help="Override the adapter's default lookback start date (YYYY-MM-DD). "
+         "Used for backfill runs. Without this, each adapter uses its built-in "
+         "delta-sync logic (last_sync timestamp).",
+)
+def ingest(source: str, watershed: str, from_date):
     """Run ingestion pipeline for a data source."""
     from pipeline.ingest.biodata import BioDataAdapter
     from pipeline.ingest.fish_passage import FishPassageAdapter
@@ -100,6 +108,9 @@ def ingest(source: str, watershed: str):
 
     watersheds = list(WATERSHEDS.keys()) if watershed == "all" else [watershed]
     sources = list(adapters.keys()) if source == "all" else [source]
+    from_date_arg = from_date.date() if from_date else None
+    if from_date_arg:
+        console.print(f"[yellow]Backfill mode: from {from_date_arg}[/yellow]")
 
     session = get_session()
     try:
@@ -108,7 +119,7 @@ def ingest(source: str, watershed: str):
             site = get_or_create_site(session, ws)
 
             for src in sources:
-                adapter = adapters[src](session, site.id)
+                adapter = adapters[src](session, site.id, from_date=from_date_arg)
                 adapter.run()
     finally:
         session.close()

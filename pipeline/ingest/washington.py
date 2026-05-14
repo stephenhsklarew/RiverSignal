@@ -205,11 +205,14 @@ class WashingtonDataAdapter(IngestionAdapter):
                 )
             """))
 
-            # Query by county (Socrata SoQL — county values have trailing spaces)
+            # Query by county (Socrata SoQL — county values have trailing spaces).
+            # In backfill mode, also constrain to release_start_date >= from_date.
             county_filter = " OR ".join(
                 f"starts_with(county, '{c}')" for c in SKAGIT_COUNTIES
             )
             where = f"({county_filter})"
+            if self.from_date is not None:
+                where = f"{where} AND release_start_date >= '{self.from_date.strftime('%Y-%m-%d')}'"
 
             offset = 0
             while True:

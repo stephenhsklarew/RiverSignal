@@ -332,7 +332,9 @@ class UtahDataAdapter(IngestionAdapter):
         """UDWR fish stocking data — HTML table scrape."""
         created = 0
         current_year = datetime.now().year
-        years = range(current_year - 2, current_year + 1)
+        # Backfill mode broadens the year window; default keeps the last 3 years.
+        start_year = self.from_date.year if self.from_date is not None else current_year - 2
+        years = range(start_year, current_year + 1)
 
         with engine.begin() as conn:
             for water_name in UDWR_WATER_NAMES:

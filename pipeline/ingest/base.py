@@ -2,7 +2,7 @@
 
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from rich.console import Console
 from sqlalchemy.orm import Session
@@ -17,9 +17,21 @@ class IngestionAdapter(ABC):
 
     source_type: str
 
-    def __init__(self, session: Session, site_id: uuid.UUID):
+    def __init__(self, session: Session, site_id: uuid.UUID, *, from_date: date | None = None):
+        """
+        Args:
+          session: SQLAlchemy session.
+          site_id: Site UUID this adapter is running against.
+          from_date: Optional override for the start of the ingestion window.
+            When set, overrides each adapter's built-in last_sync / default
+            lookback logic. Used for one-off backfill runs over arbitrary
+            historical ranges (see plan-2026-05-14-tqs-forecast-history.md).
+            Adapters opt in by consulting `self.from_date` in their ingest()
+            implementation.
+        """
         self.session = session
         self.site_id = site_id
+        self.from_date = from_date
 
     def get_last_sync(self) -> datetime | None:
         ds = (

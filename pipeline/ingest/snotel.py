@@ -33,12 +33,15 @@ class SNOTELAdapter(IngestionAdapter):
             raise ValueError(f"Site {self.site_id} has no bounding box configured")
 
         bbox = site.bbox
-        last_sync = self.get_last_sync()
 
-        if last_sync:
-            start_date = last_sync.strftime("%Y-%m-%d")
+        if self.from_date is not None:
+            start_date = self.from_date.strftime("%Y-%m-%d")
         else:
-            start_date = (datetime.now() - timedelta(days=365 * 5)).strftime("%Y-%m-%d")
+            last_sync = self.get_last_sync()
+            if last_sync:
+                start_date = last_sync.strftime("%Y-%m-%d")
+            else:
+                start_date = (datetime.now() - timedelta(days=365 * 5)).strftime("%Y-%m-%d")
         end_date = datetime.now().strftime("%Y-%m-%d")
 
         # Find SNOTEL stations near this watershed
