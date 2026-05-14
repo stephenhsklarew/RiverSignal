@@ -32,7 +32,7 @@ These must exist before training begins. Status as of 2026-05-14:
 | Backcast TQS sub-scores for 2021-01-01 → backcast-run date, tagged `forecast_source='backcast'` | Pending — Phase 3 | Engineering |
 | Forecast accuracy tracking — comparing `snapshot_date < target_date` forecasts to `snapshot_date = target_date` actuals — running for ≥ 6 months | Pending — emerges from Phase 3 | Engineering |
 | `TripFeedbackPrompt` response capture, joined to the score the user saw at the time | **Partially implemented** — verify the join-to-score-at-decision-time is captured, not just feedback timestamp | Engineering |
-| Persistence of NWS forecast values *at the time of scoring* (not just actuals) | **Gap** — NWS forecasts are not currently captured; only observed values land in `nws_observations`. To train a forecast model, we need feature snapshots of "what NWS *predicted* when our scorer ran" | Engineering — discuss before ML build |
+| Persistence of NWS forecast values *at the time of scoring* (not just actuals) | **Scoped into forecast-history plan Phase 2** — the scorer writes a `forecast_inputs_payload` JSONB snapshot to `trip_quality_history` on every run, capturing the exact NWS forecast values consumed. Going-forward only; backcast rows will have null NWS payload | Engineering |
 | Decision on minimum-feedback threshold to start training | This doc | Product |
 | Decision on evaluation methodology | This doc | Product + Engineering |
 

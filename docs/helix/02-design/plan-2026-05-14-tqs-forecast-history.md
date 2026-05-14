@@ -267,18 +267,53 @@ type WeatherSummary = {
 ### Schema changes
 
 ```sql
--- Extend trip_quality_history with sub-scores and forecast metadata.
+-- Extend trip_quality_history with sub-scores, forecast metadata, and a
+-- JSON snapshot of the NWS forecast values used at scoring time.
 ALTER TABLE gold.trip_quality_history
-  ADD COLUMN IF NOT EXISTS catch_score      integer,
-  ADD COLUMN IF NOT EXISTS water_temp_score integer,
-  ADD COLUMN IF NOT EXISTS flow_score       integer,
-  ADD COLUMN IF NOT EXISTS weather_score    integer,
-  ADD COLUMN IF NOT EXISTS hatch_score      integer,
-  ADD COLUMN IF NOT EXISTS access_score     integer,
-  ADD COLUMN IF NOT EXISTS forecast_source  text,
-  ADD COLUMN IF NOT EXISTS horizon_days     integer,
-  ADD COLUMN IF NOT EXISTS primary_factor   text;
+  ADD COLUMN IF NOT EXISTS catch_score             integer,
+  ADD COLUMN IF NOT EXISTS water_temp_score        integer,
+  ADD COLUMN IF NOT EXISTS flow_score              integer,
+  ADD COLUMN IF NOT EXISTS weather_score           integer,
+  ADD COLUMN IF NOT EXISTS hatch_score             integer,
+  ADD COLUMN IF NOT EXISTS access_score            integer,
+  ADD COLUMN IF NOT EXISTS forecast_source         text,
+  ADD COLUMN IF NOT EXISTS horizon_days            integer,
+  ADD COLUMN IF NOT EXISTS primary_factor          text,
+  -- Snapshot of the NWS forecast values consumed at scoring time, for
+  -- future ML feature engineering. NWS does not archive their forecasts,
+  -- so without this snapshot the inputs that drove a past score are lost.
+  ADD COLUMN IF NOT EXISTS forecast_inputs_payload jsonb;
 ```
+
+`forecast_inputs_payload` shape (set by the scorer each run):
+
+```json
+{
+  "nws": {
+    "temp_high_f":   72.0,
+    "temp_low_f":    48.0,
+    "precip_in":     0.05,
+    "precip_chance": 30,
+    "wind_mph":      8.0,
+    "wind_direction":"WSW",
+    "wind_bearing":  248,
+    "gust_mph":      14.0,
+    "thunderstorm":  false,
+    "conditions":    "Partly Cloudy",
+    "fetched_at":    "2026-05-14T03:05:12Z"
+  },
+  "usgs": {
+    "water_temp_c": 11.5,
+    "flow_cfs":     590.0,
+    "do_mg_l":      8.6,
+    "observed_at":  "2026-05-14T03:00:00Z"
+  }
+}
+```
+
+For backcast rows, `forecast_inputs_payload.nws` is NULL (we don't have
+historical NWS forecasts) but `usgs` is populated from `time_series`.
+For going-forward rows, both blocks are populated.
 
 No new tables. All extensions are additive and nullable.
 
@@ -339,8 +374,9 @@ Phase 1 — Backfill execution (~24h wall clock, unattended)
 └── Verification: spot-check row counts per source per year
 
 Phase 2 — Schema extension (Alembic migration)
-├── ALTER trip_quality_history (add sub-score columns)
+├── ALTER trip_quality_history (add sub-score columns + forecast_inputs_payload)
 ├── Update existing trip_quality scoring writer to populate the new columns
+├── Capture NWS forecast values consumed at scoring time as JSON snapshot
 └── Migration runs in standard deploy pipeline
 
 Phase 3 — Backcast execution (~1h)
@@ -373,7 +409,7 @@ Phase 6 — Polish + observability
 
 1. **Adapter backfill flags**: add `--from-date` to USGS, iNat, SNOTEL, PRISM, NWS observations, UDWR, WDFW. AC: each adapter respects flag without regressing default behaviour; integration test for each.
 2. **`riversignal-backfill-5y` Cloud Run Job**: terraform resource + script that invokes each adapter sequentially with `--from-date 2021-05-14`. AC: runs end-to-end on staging; post-flight coverage report.
-3. **Schema migration**: extend `gold.trip_quality_history`. AC: alembic upgrade head succeeds; existing rows unchanged; scoring writer populates new columns.
+3. **Schema migration**: extend `gold.trip_quality_history` with sub-score columns + `forecast_inputs_payload` JSONB column. AC: alembic upgrade head succeeds; existing rows unchanged; scoring writer populates new columns AND writes the NWS+USGS inputs it consumed into `forecast_inputs_payload` on every run.
 4. **Backcast job**: `pipeline/scripts/tqs_backcast.py` + cloud-run-job. AC: 30 reaches × 1825 days completes < 1h; rows tagged `forecast_source='backcast'`.
 5. **Forecast endpoint**: `GET /trip-quality/forecast`. AC: returns 14 days with correct shape; P95 < 250ms.
 6. **Forecast modal component**: scroll-snap carousel + day card. AC: 14-day swipe works on iOS Safari + Android Chrome; pagination dots track active day.
