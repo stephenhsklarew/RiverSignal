@@ -168,7 +168,7 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <InfoTooltip text={TQS_TOOLTIP} sources={TQS_SOURCES} dark />
+            <InfoTooltip text={TQS_TOOLTIP} sources={TQS_SOURCES} />
           </span>
         </div>
         <div className="tqs-banner-body">

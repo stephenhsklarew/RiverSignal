@@ -47,6 +47,13 @@
   display: inline-flex; align-items: center;
   flex-shrink: 0;
 }
+/* Force the info-tooltip glyph to white so it reads on the colored banner;
+   InfoTooltip's default and dark variants are both too muted for this contrast. */
+.tqs-banner-info .info-tooltip-btn {
+  color: #fff;
+  opacity: 0.9;
+}
+.tqs-banner-info .info-tooltip-btn:hover { opacity: 1; }
 
 /* Body — score tile | detail | 14-day link */
 .tqs-banner-body {
