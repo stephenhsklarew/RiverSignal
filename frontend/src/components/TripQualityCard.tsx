@@ -1,10 +1,12 @@
 /**
- * Go Score card for /path/now.
+ * Go Score card for /path/now — Option B (Action Banner Card).
  *
- * Renders three layers from plan §7:
- *  - Pill: "Go Score: 82 · Go Today · Lower stretch" + reach_spread caveat
- *  - Reach chips: Upper · Middle · Lower (when watershed has ≥2 reaches)
- *  - Why-panel (modal): 6 sub-scores with weighted primary factor highlighted
+ *  - Banner (band-colored, full width): action verdict ("Go Today" / "Stay Home")
+ *    + InfoTooltip. Tap = open why-panel.
+ *  - Body row: score tile | reach + descriptive copy + confidence | 14-day link.
+ *  - Reach chips: Upper · Middle · Lower (when watershed has ≥2 reaches).
+ *  - Why-panel (modal): 6 sub-scores with weighted primary factor highlighted.
+ *  - Hard-closed override: banner replaces score entirely with "Reach closed today".
  *
  * Default reach selection: location.state.reachId → localStorage → best-scoring.
  */
@@ -146,33 +148,56 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
     : (reachLabels[rollupData.best_reach_id] || rollupData.best_reach_id)
   const confidence = showing.confidence
 
+  const bannerCls = closed ? 'unfavorable' : band.cls
+  const bannerAction = closed ? 'Reach closed today' : band.label
+
   return (
     <div className="tqs-card">
-      <div className="tqs-pill-row">
-        <button type="button" className="tqs-pill" onClick={() => setShowWhy(true)} aria-label="Show Go Score details">
-          {closed ? (
-            <span className="tqs-closed-badge">Reach closed today</span>
-          ) : (
-            <>
-              <span className="tqs-pill-label">Go Score</span>
-              <span className={`tqs-pill-score ${band.cls}`}>{tqs}</span>
-              <span className="tqs-pill-band">{band.label}</span>
-              <span className="tqs-pill-reach">· {reachName}</span>
-              {confidence < 90 && (
-                <span className="tqs-pill-confidence">±{Math.round(100 - confidence)}</span>
-              )}
-            </>
+      <div
+        className={`tqs-banner-card ${bannerCls}`}
+        role="button"
+        tabIndex={0}
+        onClick={() => setShowWhy(true)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowWhy(true) }}
+        aria-label="Show Go Score details"
+      >
+        <div className={`tqs-banner ${bannerCls}`}>
+          <span className="tqs-banner-action">{bannerAction}</span>
+          <span
+            className="tqs-banner-info"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <InfoTooltip text={TQS_TOOLTIP} sources={TQS_SOURCES} dark />
+          </span>
+        </div>
+        <div className="tqs-banner-body">
+          {!closed && (
+            <div className={`tqs-banner-score ${bannerCls}`}>
+              <span className="tqs-banner-score-n">{tqs}</span>
+              <span className="tqs-banner-score-lab">Go Score</span>
+            </div>
           )}
-        </button>
-        <InfoTooltip text={TQS_TOOLTIP} sources={TQS_SOURCES} />
-        <button
-          type="button"
-          className="tqs-forecast-btn"
-          onClick={() => setShowForecast(true)}
-          aria-label="View 14-day Go Score forecast"
-        >
-          14-day forecast →
-        </button>
+          <div className="tqs-banner-detail">
+            <span className="tqs-banner-reach">{reachName}</span>
+            <span className="tqs-banner-sub">
+              {closed
+                ? 'Regulation or active fire — see the why panel for details.'
+                : band.copy}
+              {!closed && confidence < 90 && (
+                <span className="tqs-banner-conf"> · ±{Math.round(100 - confidence)}</span>
+              )}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="tqs-forecast-btn"
+            onClick={(e) => { e.stopPropagation(); setShowForecast(true) }}
+            aria-label="View 14-day Go Score forecast"
+          >
+            14-day →
+          </button>
+        </div>
       </div>
       {showForecast && (
         <TripQualityForecastModal

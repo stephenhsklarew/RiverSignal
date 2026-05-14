@@ -7,47 +7,94 @@
   color: #888; font-size: 0.82rem; padding: 8px 12px;
 }
 
-.tqs-pill-row {
-  display: flex; align-items: center; gap: 6px;
+/* ──────────────────────────────────────────────────────────────
+   Action Banner Card (Option B)
+   ────────────────────────────────────────────────────────────── */
+.tqs-banner-card {
+  background: #fff;
+  border: 1px solid #e0ddd8;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.05s, box-shadow 0.15s;
+  outline: none;
+}
+.tqs-banner-card:hover { box-shadow: 0 2px 10px rgba(40, 30, 0, 0.05); }
+.tqs-banner-card:active { transform: scale(0.998); }
+.tqs-banner-card:focus-visible { box-shadow: 0 0 0 3px #d4a96a55; }
+
+/* Banner — band-colored, full width. Action verdict + info icon. */
+.tqs-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  color: #fff;
+}
+.tqs-banner.excellent   { background: #1e7a3e; }
+.tqs-banner.strong      { background: #2b8a4a; }
+.tqs-banner.mixed       { background: #a68b3a; }
+.tqs-banner.marginal    { background: #b5683a; }
+.tqs-banner.unfavorable { background: #a13a3a; }
+
+.tqs-banner-action {
+  font-size: 1.25rem; font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.tqs-banner-info {
+  display: inline-flex; align-items: center;
+  flex-shrink: 0;
 }
 
-.tqs-pill {
-  flex: 1;
-  display: flex; align-items: baseline; gap: 8px;
-  padding: 10px 14px;
-  border: 1px solid #e0ddd8; border-radius: 14px;
-  background: #fbfaf6;
-  font-family: inherit; cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, background 0.15s, transform 0.05s;
-}
-.tqs-pill:hover { border-color: #c8c0a8; }
-.tqs-pill:active { transform: scale(0.99); }
-
-.tqs-pill-label {
-  font-size: 0.7rem; color: #888;
-  text-transform: uppercase; letter-spacing: 0.05em;
-}
-.tqs-pill-score {
-  font-size: 1.6rem; font-weight: 700; line-height: 1;
-}
-.tqs-pill-score.excellent  { color: #1e7a3e; }
-.tqs-pill-score.strong     { color: #2b8a4a; }
-.tqs-pill-score.mixed      { color: #a68b3a; }
-.tqs-pill-score.marginal   { color: #b5683a; }
-.tqs-pill-score.unfavorable{ color: #a13a3a; }
-.tqs-pill-band {
-  font-size: 0.92rem; font-weight: 600; color: #333;
-}
-.tqs-pill-reach { font-size: 0.85rem; color: #666; }
-.tqs-pill-confidence {
-  font-size: 0.72rem; color: #999; margin-left: auto;
+/* Body — score tile | detail | 14-day link */
+.tqs-banner-body {
+  display: grid;
+  grid-template-columns: 76px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
 }
 
-.tqs-closed-badge {
-  display: inline-block; padding: 4px 10px; border-radius: 8px;
-  background: #fcebea; color: #a13a3a; font-weight: 600; font-size: 0.85rem;
+.tqs-banner-score {
+  border-radius: 12px;
+  padding: 8px 0;
+  text-align: center;
+  border: 1px solid;
 }
+.tqs-banner-score.excellent   { background: #eaf5ed; border-color: #c4dfcb; }
+.tqs-banner-score.strong      { background: #eaf5ed; border-color: #c4dfcb; }
+.tqs-banner-score.mixed       { background: #f7f1e0; border-color: #e6d6a8; }
+.tqs-banner-score.marginal    { background: #faecdf; border-color: #ecc9ad; }
+.tqs-banner-score.unfavorable { background: #fcebea; border-color: #f4cbc8; }
+
+.tqs-banner-score-n {
+  display: block;
+  font-size: 1.7rem; font-weight: 800; line-height: 1;
+}
+.tqs-banner-score.excellent   .tqs-banner-score-n { color: #1e7a3e; }
+.tqs-banner-score.strong      .tqs-banner-score-n { color: #2b8a4a; }
+.tqs-banner-score.mixed       .tqs-banner-score-n { color: #a68b3a; }
+.tqs-banner-score.marginal    .tqs-banner-score-n { color: #b5683a; }
+.tqs-banner-score.unfavorable .tqs-banner-score-n { color: #a13a3a; }
+.tqs-banner-score-lab {
+  display: block;
+  font-size: 0.6rem; letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #888; margin-top: 4px;
+}
+
+.tqs-banner-detail {
+  display: flex; flex-direction: column; gap: 3px;
+  min-width: 0;
+}
+.tqs-banner-reach {
+  font-size: 0.95rem; font-weight: 600; color: #1a1612;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tqs-banner-sub {
+  font-size: 0.78rem; color: #666; line-height: 1.35;
+}
+.tqs-banner-conf { color: #999; }
 
 .tqs-spread-caveat {
   font-size: 0.75rem; color: #a68b3a;
@@ -193,13 +240,15 @@
   font-size: 0.72rem; color: #888;
 }
 
-/* 14-day forecast launcher */
+/* 14-day forecast launcher — lives in the banner body's right column */
 .tqs-forecast-btn {
   background: none; border: none; cursor: pointer;
   color: var(--accent, #1a6b4a);
-  font-family: inherit; font-size: 0.75rem; font-weight: 500;
-  padding: 4px 6px;
-  min-height: 32px;
+  font-family: inherit; font-size: 0.78rem; font-weight: 600;
+  padding: 6px 8px;
+  min-height: 36px;
   white-space: nowrap;
+  border-radius: 8px;
+  transition: background 0.12s;
 }
-.tqs-forecast-btn:hover { text-decoration: underline; }
+.tqs-forecast-btn:hover { background: #f0ede5; text-decoration: underline; }
