@@ -632,6 +632,80 @@ def refresh_trip_quality_daily(start_date: date | None = None,
     return len(rows)
 
 
+def backcast_history(start_date: date, end_date: date, chunk_days: int = 30) -> int:
+    """Compute TQS for past dates and write rows directly into history.
+
+    Used for one-off backfill of synthetic-but-logic-consistent history
+    over the past N years. Writes to gold.trip_quality_history with
+    snapshot_date = target_date and forecast_source = 'backcast' so the
+    rows are distinguishable from real-time forecasts and (future) ML
+    predictions. Does NOT touch gold.trip_quality_daily — that table is
+    reserved for current and future-horizon forecasts.
+
+    Processes in chunk_days windows to keep memory bounded. Idempotent
+    via the (reach_id, target_date, snapshot_date) PK on history.
+    Returns the total rows written.
+    """
+    total = 0
+    cur = start_date
+    while cur <= end_date:
+        chunk_end = min(end_date, cur + timedelta(days=chunk_days - 1))
+        rows = compute_trip_quality_daily(cur, chunk_end)
+
+        if rows:
+            with engine.connect() as conn:
+                with conn.begin():
+                    conn.execute(
+                        text("""
+                            INSERT INTO gold.trip_quality_history
+                                (reach_id, target_date, snapshot_date, tqs, confidence,
+                                 catch_score, water_temp_score, flow_score, weather_score,
+                                 hatch_score, access_score, forecast_source, horizon_days,
+                                 primary_factor, forecast_inputs_payload)
+                            VALUES
+                                (:reach_id, :target_date, :target_date, :tqs, :confidence,
+                                 :catch_score, :water_temp_score, :flow_score, :weather_score,
+                                 :hatch_score, :access_score, 'backcast', 0,
+                                 :primary_factor, CAST(:payload AS jsonb))
+                            ON CONFLICT (reach_id, target_date, snapshot_date) DO UPDATE SET
+                                tqs = EXCLUDED.tqs,
+                                confidence = EXCLUDED.confidence,
+                                catch_score = EXCLUDED.catch_score,
+                                water_temp_score = EXCLUDED.water_temp_score,
+                                flow_score = EXCLUDED.flow_score,
+                                weather_score = EXCLUDED.weather_score,
+                                hatch_score = EXCLUDED.hatch_score,
+                                access_score = EXCLUDED.access_score,
+                                forecast_source = 'backcast',
+                                primary_factor = EXCLUDED.primary_factor,
+                                forecast_inputs_payload = EXCLUDED.forecast_inputs_payload
+                        """),
+                        [
+                            {
+                                "reach_id": r.reach_id,
+                                "target_date": r.target_date,
+                                "tqs": r.tqs,
+                                "confidence": r.confidence,
+                                "catch_score": r.catch_score,
+                                "water_temp_score": r.water_temp_score,
+                                "flow_score": r.flow_score,
+                                "weather_score": r.weather_score,
+                                "hatch_score": r.hatch_score,
+                                "access_score": r.access_score,
+                                "primary_factor": r.primary_factor,
+                                "payload": (
+                                    json.dumps(r.forecast_inputs_payload)
+                                    if r.forecast_inputs_payload is not None else None
+                                ),
+                            }
+                            for r in rows
+                        ],
+                    )
+            total += len(rows)
+        cur = chunk_end + timedelta(days=1)
+    return total
+
+
 if __name__ == "__main__":
     from datetime import date as _d
     rows = compute_trip_quality_daily(_d.today(), _d.today())

@@ -149,6 +149,29 @@ def refresh(mode: str):
 
 
 @main.command()
+@click.option("--from-date", required=True, type=click.DateTime(formats=["%Y-%m-%d"]),
+              help="Backcast start date (YYYY-MM-DD), inclusive.")
+@click.option("--to-date", required=False, type=click.DateTime(formats=["%Y-%m-%d"]),
+              default=None, help="Backcast end date (YYYY-MM-DD), inclusive. Defaults to yesterday.")
+@click.option("--chunk-days", type=int, default=30,
+              help="Process this many days per insert chunk (default: 30).")
+def backcast_tqs(from_date, to_date, chunk_days):
+    """Backcast Trip Quality Score history over a date range.
+
+    Writes rows into gold.trip_quality_history with forecast_source='backcast'.
+    Does not touch gold.trip_quality_daily. Idempotent via composite PK.
+    """
+    from datetime import date as _date, timedelta as _td
+    from pipeline.predictions.trip_quality import backcast_history
+
+    start = from_date.date()
+    end = to_date.date() if to_date else (_date.today() - _td(days=1))
+    console.print(f"\n[bold]Backcasting TQS from {start} to {end}[/bold]")
+    n = backcast_history(start, end, chunk_days=chunk_days)
+    console.print(f"[green]Done. {n} backcast rows written.[/green]")
+
+
+@main.command()
 def status():
     """Show data status for all watersheds."""
     session = get_session()
