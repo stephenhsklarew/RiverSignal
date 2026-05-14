@@ -136,6 +136,11 @@ export default function TripQualityForecastModal({
           <div className="tqs-fc-title">14-day Forecast</div>
           <button className="tqs-fc-close" onClick={onClose} aria-label="Close forecast">✕</button>
         </header>
+        {data && data.days.length > 1 && (
+          <div className="tqs-fc-hint" aria-hidden="true">
+            Swipe right to see other days →
+          </div>
+        )}
 
         {error && (
           <div className="tqs-fc-state">Couldn't load the forecast. Try again later.</div>
