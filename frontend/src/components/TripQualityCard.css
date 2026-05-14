@@ -1,10 +1,12 @@
 .tqs-card {
   display: flex; flex-direction: column; gap: 8px;
-  margin: 8px 12px 12px;
+  /* Horizontal margins come from the page container (.rnow padding).
+     Vertical breathing room only. */
+  margin: 8px 0 16px;
   font-family: 'Outfit', sans-serif;
 }
 .tqs-loading {
-  color: #888; font-size: 0.82rem; padding: 8px 12px;
+  color: #888; font-size: 0.82rem; padding: 8px 0;
 }
 
 /* ──────────────────────────────────────────────────────────────
