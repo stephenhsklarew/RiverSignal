@@ -175,6 +175,125 @@ def guide_availability_for_reach(reach_id: str, date: date_t = Query(...)):
     return {"median_availability_pct": float(row[0]), "guide_count": int(row[1])}
 
 
+@router.get("/sites/{watershed}/trip-quality/forecast")
+def get_trip_quality_forecast(
+    watershed: str,
+    days: int = Query(14, ge=1, le=21, description="Number of forecast days starting from today"),
+):
+    """Watershed-level TQS forecast for the next N days.
+
+    Returns one entry per calendar day, drawn from
+    gold.trip_quality_watershed_daily (the daily rollup across reaches).
+    Each entry includes TQS, confidence band, primary factor, sub-scores
+    averaged across reaches (best-reach proxy), and the inputs payload
+    so the UI can show wind / weather chips without a second fetch.
+
+    Days beyond the NWS forecast horizon (~7 days) carry
+    forecast_source='climatology+trend' or 'climatology' which the UI
+    surfaces as an "Approximate" badge.
+    """
+    import datetime as _dt
+    today = _dt.date.today()
+    end = today + _dt.timedelta(days=days - 1)
+
+    with engine.connect() as conn:
+        rollup_rows = conn.execute(
+            text("""
+                SELECT target_date, watershed_tqs, confidence, primary_factor,
+                       best_reach_id, best_reach_is_hard_closed,
+                       horizon_days, forecast_source
+                FROM gold.trip_quality_watershed_daily
+                WHERE watershed = :ws AND target_date BETWEEN :s AND :e
+                ORDER BY target_date
+            """),
+            {"ws": watershed, "s": today, "e": end},
+        ).fetchall()
+        if not rollup_rows:
+            return {"watershed": watershed, "generated_at": _dt.datetime.utcnow().isoformat() + "Z", "days": []}
+
+        # Sub-scores + payload from the best reach of each day (representative).
+        best_ids = [r[4] for r in rollup_rows]
+        detail_rows = conn.execute(
+            text("""
+                SELECT reach_id, target_date, catch_score, water_temp_score,
+                       flow_score, weather_score, hatch_score, access_score,
+                       forecast_inputs_payload
+                FROM gold.trip_quality_daily
+                WHERE watershed = :ws AND target_date BETWEEN :s AND :e
+                  AND reach_id = ANY(:ids)
+            """),
+            {"ws": watershed, "s": today, "e": end, "ids": best_ids},
+        ).fetchall()
+        detail_by_date = {(d[0], d[1]): d for d in detail_rows}
+
+    def _band(tqs: int) -> str:
+        if tqs >= 80: return "excellent"
+        if tqs >= 60: return "good"
+        if tqs >= 40: return "fair"
+        return "poor"
+
+    def _confidence_bucket(c: int) -> str:
+        if c >= 70: return "high"
+        if c >= 40: return "medium"
+        return "low"
+
+    days_out: list[dict] = []
+    for r in rollup_rows:
+        target_date, tqs, conf, pf, best_rid, hard_closed, horizon, fsource = r
+        tqs_i = int(tqs)
+        conf_i = int(conf)
+        offset = (target_date - today).days
+        detail = detail_by_date.get((best_rid, target_date))
+
+        sub_scores = None
+        payload = None
+        if detail is not None:
+            sub_scores = {
+                "catch":      int(detail[2]),
+                "water_temp": int(detail[3]),
+                "flow":       int(detail[4]),
+                "weather":    int(detail[5]),
+                "hatch":      int(detail[6]),
+                "access":     int(detail[7]),
+            }
+            payload = detail[8]  # already a dict via psycopg JSONB → Python
+
+        weather = None
+        if payload and isinstance(payload, dict):
+            nws = payload.get("nws") or {}
+            water = payload.get("water") or {}
+            weather = {
+                "temp_f":           nws.get("temp_f"),
+                "precip_in":        nws.get("precip_in"),
+                "wind_mph":         nws.get("wind_mph"),
+                "wind_bearing":     nws.get("wind_bearing"),
+                "water_temp_f":     water.get("temp_f"),
+                "forecast_source":  nws.get("forecast_source"),
+            }
+
+        days_out.append({
+            "target_date":    target_date.isoformat(),
+            "offset_days":    offset,
+            "tqs":            tqs_i,
+            "confidence":     _confidence_bucket(conf_i),
+            "confidence_pct": conf_i,
+            "band":           _band(tqs_i),
+            "primary_factor": pf,
+            "sub_scores":     sub_scores,
+            "weather":        weather,
+            "forecast_source": fsource,
+            "is_climatological": fsource in ("climatology", "climatology+trend"),
+            "is_actual":      offset == 0,
+            "is_hard_closed": bool(hard_closed),
+        })
+
+    return {
+        "watershed":    watershed,
+        "generated_at": _dt.datetime.utcnow().isoformat() + "Z",
+        "days":         days_out,
+    }
+
+
 @router.get("/trip-quality/ranking")
 def trip_quality_ranking(
     date: date_t = Query(...),

@@ -15,6 +15,7 @@ import { API_BASE } from '../config'
 import { useAuth } from './AuthContext'
 import InfoTooltip from './InfoTooltip'
 import LoginModal from './LoginModal'
+import TripQualityForecastModal from './TripQualityForecastModal'
 import './TripQualityCard.css'
 
 // Canonical source IDs that match app/routers/data_status.py freshness keys.
@@ -102,6 +103,7 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
 
   const [selectedReachId, setSelectedReachId] = useState<string | null>(null)
   const [showWhy, setShowWhy] = useState(false)
+  const [showForecast, setShowForecast] = useState(false)
 
   // Default reach selection: nav-state > localStorage > best
   useEffect(() => {
@@ -163,7 +165,22 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
           )}
         </button>
         <InfoTooltip text={TQS_TOOLTIP} sources={TQS_SOURCES} />
+        <button
+          type="button"
+          className="tqs-forecast-btn"
+          onClick={() => setShowForecast(true)}
+          aria-label="View 14-day Go Score forecast"
+        >
+          14-day forecast →
+        </button>
       </div>
+      {showForecast && (
+        <TripQualityForecastModal
+          watershed={watershed}
+          open={showForecast}
+          onClose={() => setShowForecast(false)}
+        />
+      )}
 
       {showSpreadCaveat && !closed && (
         <div className="tqs-spread-caveat">

@@ -1,0 +1,195 @@
+/* 14-day TQS forecast modal — slide up from bottom, scroll-snap carousel.
+   See plan-2026-05-14-tqs-forecast-history.md AD-5 / OF-2. */
+
+.tqs-fc-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: flex-end; justify-content: center;
+  z-index: 220;
+  animation: tqs-fc-fade-in 0.18s ease-out;
+}
+@keyframes tqs-fc-fade-in {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+.tqs-fc-sheet {
+  width: 100%; max-width: 720px;
+  max-height: 92vh;
+  background: var(--bg, #fffbef);
+  border-radius: 18px 18px 0 0;
+  padding: 14px 0 18px;
+  display: flex; flex-direction: column;
+  animation: tqs-fc-slide 0.22s ease-out;
+}
+@keyframes tqs-fc-slide {
+  from { transform: translateY(100%); } to { transform: translateY(0); }
+}
+
+.tqs-fc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px 10px;
+  border-bottom: 1px solid var(--border, #e8e6e1);
+}
+.tqs-fc-title {
+  font-family: 'Fraunces', serif;
+  font-size: 18px; font-weight: 500;
+}
+.tqs-fc-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--text-muted, #9e9b96);
+  min-width: 36px; min-height: 36px;
+}
+
+.tqs-fc-state {
+  padding: 24px; text-align: center; color: var(--text-muted, #888);
+  font-size: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.tqs-fc-spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid rgba(0,0,0,0.12);
+  border-top-color: var(--accent, #1a6b4a);
+  animation: tqs-fc-spin 0.9s linear infinite;
+}
+@keyframes tqs-fc-spin { to { transform: rotate(360deg); } }
+
+/* Carousel — native scroll-snap, no JS gesture handling */
+.tqs-fc-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 12px 0;
+  gap: 8px;
+}
+.tqs-fc-carousel::-webkit-scrollbar { display: none; }
+
+/* Each card: ~88% of viewport wide, centered on snap */
+.tqs-fc-card {
+  flex: 0 0 88%;
+  scroll-snap-align: center;
+  margin: 0 6%;
+  background: var(--surface, #fff);
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  display: flex; flex-direction: column;
+  gap: 10px;
+  /* Confidence border treatment (OF-3) */
+  border: 2px solid var(--border, #e8e6e1);
+}
+.tqs-fc-card.conf-high   { border-style: solid; }
+.tqs-fc-card.conf-medium { border-style: dashed; }
+.tqs-fc-card.conf-low    { border-style: dotted; }
+
+/* Make sure the first card has margin-left and the last has margin-right
+   so they can fully center on snap */
+.tqs-fc-carousel > .tqs-fc-card:first-child { margin-left: 6%; }
+.tqs-fc-carousel > .tqs-fc-card:last-child  { margin-right: 6%; }
+
+.tqs-fc-card-head {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.tqs-fc-card-date { display: flex; flex-direction: column; line-height: 1.1; }
+.tqs-fc-card-weekday {
+  font-size: 13px; font-weight: 600; color: var(--text-secondary, #444);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.tqs-fc-card-calendar {
+  font-size: 16px; font-weight: 500;
+}
+.tqs-fc-card-today, .tqs-fc-card-approx, .tqs-fc-card-confidence {
+  font-size: 10px; padding: 3px 8px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+}
+.tqs-fc-card-today { background: var(--accent, #1a6b4a); color: white; }
+.tqs-fc-card-approx { background: #eee; color: #888; }
+.tqs-fc-card-confidence.conf-high   { background: #e0f0e8; color: #1a6b4a; }
+.tqs-fc-card-confidence.conf-medium { background: #fff4d6; color: #8a6a18; }
+.tqs-fc-card-confidence.conf-low    { background: #f4e2e0; color: #b03825; }
+
+.tqs-fc-card-score {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 0 4px;
+}
+.tqs-fc-card-score-value {
+  font-family: 'Fraunces', serif;
+  font-size: 56px; font-weight: 500; line-height: 1;
+}
+.tqs-fc-card-score-band {
+  font-size: 13px; font-weight: 600; text-transform: capitalize;
+}
+.tqs-fc-card-score.band-excellent .tqs-fc-card-score-value { color: #1a6b4a; }
+.tqs-fc-card-score.band-good      .tqs-fc-card-score-value { color: #4d8c43; }
+.tqs-fc-card-score.band-fair      .tqs-fc-card-score-value { color: #c98c3a; }
+.tqs-fc-card-score.band-poor      .tqs-fc-card-score-value { color: #b03825; }
+.tqs-fc-card-score.closed .tqs-fc-card-closed {
+  font-size: 16px; font-weight: 600; color: #b03825;
+}
+
+.tqs-fc-card-factor {
+  font-size: 12px; color: var(--text-secondary, #555);
+}
+.tqs-fc-card-factor strong { color: var(--text, #2a2a2a); text-transform: capitalize; }
+
+.tqs-fc-card-weather-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.tqs-fc-chip {
+  font-size: 11px; padding: 3px 8px; border-radius: 10px;
+  background: rgba(0,0,0,0.04); color: var(--text-secondary, #555);
+}
+.tqs-fc-chip.warn {
+  background: #f4e2e0; color: #b03825;
+}
+
+.tqs-fc-card-why-btn {
+  align-self: flex-start;
+  background: none; border: none; cursor: pointer;
+  color: var(--accent, #1a6b4a);
+  font-family: inherit; font-size: 12px; padding: 4px 0;
+  font-weight: 500;
+}
+.tqs-fc-card-why-btn:hover { text-decoration: underline; }
+
+.tqs-fc-card-why {
+  display: flex; flex-direction: column; gap: 6px;
+  border-top: 1px solid var(--border, #e8e6e1);
+  padding-top: 8px;
+}
+.tqs-fc-subscore {
+  display: grid;
+  grid-template-columns: 84px 1fr 32px;
+  gap: 8px; align-items: center;
+  font-size: 11px;
+}
+.tqs-fc-subscore-label { color: var(--text-secondary, #555); }
+.tqs-fc-subscore-bar {
+  height: 6px; background: rgba(0,0,0,0.06);
+  border-radius: 3px; overflow: hidden;
+}
+.tqs-fc-subscore-fill {
+  height: 100%; background: var(--accent, #1a6b4a);
+}
+.tqs-fc-subscore-fill.band-excellent { background: #1a6b4a; }
+.tqs-fc-subscore-fill.band-good      { background: #4d8c43; }
+.tqs-fc-subscore-fill.band-fair      { background: #c98c3a; }
+.tqs-fc-subscore-fill.band-poor      { background: #b03825; }
+.tqs-fc-subscore-value { font-family: var(--mono, monospace); text-align: right; }
+
+/* Pagination dots */
+.tqs-fc-dots {
+  display: flex; justify-content: center; gap: 6px;
+  padding: 10px 18px 0;
+  flex-wrap: wrap;
+}
+.tqs-fc-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(0,0,0,0.18); border: none; cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, transform 0.15s;
+}
+.tqs-fc-dot.active {
+  background: var(--accent, #1a6b4a);
+  transform: scale(1.4);
+}
