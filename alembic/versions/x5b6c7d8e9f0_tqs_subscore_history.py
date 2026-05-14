@@ -1,8 +1,8 @@
 """extend trip_quality_history with sub-scores + forecast_inputs_payload
 
-Revision ID: h9c0d1e2f3a4
-Revises: g8b9c0d1e2f3
-Create Date: 2026-05-14 00:00:00.000000
+Revision ID: x5b6c7d8e9f0
+Revises: w4f5a6b7c8d9
+Create Date: 2026-05-14 13:30:00.000000
 
 Phase 2 of plan-2026-05-14-tqs-forecast-history.md.
 
@@ -21,8 +21,8 @@ from typing import Sequence, Union
 from alembic import op
 
 
-revision: str = 'h9c0d1e2f3a4'
-down_revision: Union[str, Sequence[str], None] = 'g8b9c0d1e2f3'
+revision: str = 'x5b6c7d8e9f0'
+down_revision: Union[str, Sequence[str], None] = 'w4f5a6b7c8d9'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
