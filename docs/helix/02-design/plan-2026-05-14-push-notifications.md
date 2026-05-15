@@ -1,9 +1,11 @@
 # Design Plan: Push Notifications for Watershed Conditions
 
 **Date**: 2026-05-14
-**Status**: DRAFT (pre-collaborative review)
+**Status**: SUPERSEDED 2026-05-15 by `plan-2026-05-15-sms-alerts.md`
 **Refinement Rounds**: 3 (solo)
 **Scope**: Deliver phone-level push notifications and home-screen badges to RiverPath users when a metric (initially Trip Quality Score) crosses a configurable threshold for one of their watched watersheds.
+
+> **Supersession note (2026-05-15)**: After working through opt-in friction and iOS install-cliff concerns, this plan was retired in favor of an SMS-first alert channel. Web Push adoption is fundamentally capped by permission-grant rates (5–15%) and iOS PWA-install friction; SMS via Telnyx delivers the same outcome at meaningful cost but vastly higher reach (95%+ open rates) and intuitive UX (phone-number opt-in matches what consumers expect). See `plan-2026-05-15-sms-alerts.md` for the replacement design.
 
 > Sections marked **OPEN FORK** are decision points to work through collaboratively, mirroring the trip-share and metric-history plans. The "Recommendation" inside each fork is my current lean — not a locked decision.
 
