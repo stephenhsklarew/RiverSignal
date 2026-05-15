@@ -210,3 +210,113 @@ refresh complete; gold refresh in progress (~10 of 22 MVs done).
 
 The 4 prod-deploy approval gates from runbook §2.8 are intentionally **not** crossed by this
 agent without an explicit user "yes" per gate.
+
+---
+
+## §3.10 — Session 2 addendum (2026-05-15, later)
+
+Continuation of work after the user approved Option B (full v0+P1+P2+P3 implementation)
+and then asked to commit + continue with everything else. Original §3.1–§3.9 stay as
+the earlier snapshot; this section captures everything that changed.
+
+### Adapters that went from scaffold → real
+
+| Adapter | File | Live behaviour | First-run rows |
+|---|---|---|---|
+| VA DWR stocking | `pipeline/ingest/virginia.py::_ingest_dwr_stocking` | HTML scrape of `<table id="stocking-table">` on `dwr.virginia.gov/fishing/trout-stocking-schedule/`. Filters by `SHENANDOAH_WATERS` + `SHENANDOAH_COUNTIES` allowlists (Mill Creek-disambiguation guard included). Inserts into `interventions` with type=`fish_stocking`, JSONB description `source=va_dwr`. Dedupe key: `(stocking_date, waterbody.lower())`. | **14** Shenandoah-drainage events |
+| WV DNR stocked-streams registry | `pipeline/ingest/west_virginia.py::_ingest_dnr_stocking` | ArcGIS FeatureServer query against `services9.arcgis.com/SQbkdxLkuQJuLGtx/.../West_Virginia_Stocked_Trout_Streams/FeatureServer/33`. Scoped to Jefferson County by `where` clause, then narrowed to `WV_SHENANDOAH_WATERS=("bullskin run","evitts run")` to exclude Potomac-drainage Berkeley County streams. `started_at=NULL` (WV publishes no per-event dates) with `_data_shape=stream_registry` in description JSONB. | **2** registry rows |
+| VGS geology | `pipeline/ingest/virginia.py::_ingest_vgs_geology` | ArcGIS MapServer query against `energy.virginia.gov/gis/rest/services/DGMR/Geology/MapServer/4` (DGMR layer 4 = "Map Units, Lithology"). Paginated via shared `_arcgis_query_paginated` helper. `source='vgs'`, `formation`=Label (e.g. "Ob"), `unit_name`=Symbol (e.g. "Beekmantown Group"), `rock_type`=RockType1, `lithology`=RockType2, ages NULL (VGS does not publish numeric ages). | **1,190** polygons / 163 unique formations |
+
+### Schema changes (new alembic migrations)
+
+- `hh08c9d0e1f2_extend_stocking_schedule_va_dwr.py` — `gold.stocking_schedule` MV gains a 4th UNION branch keyed on `description::jsonb ->> 'source' = 'va_dwr'`. After REFRESH, **14** Shenandoah rows surface with `source_type='va_dwr_stocking'`. Indices on `(watershed)` and `(stocking_date DESC)` preserved.
+- `ii09d0e1f2g3_shenandoah_fishing_regulations_seed.py` — Appends `[regs: …]` block to `silver.river_reaches.notes` for all 3 Shenandoah reaches. Each block summarises VA DWR Heritage Trout Waters / fly-fishing-only / catch-and-release stretches (Mossy Creek, Beaver Creek, Smith Creek, Passage Creek, Rose / Hughes / Robinson Rivers, statewide smallmouth season closures) plus WV DNR Jefferson Co. trout regs. Idempotent (`LIKE '%[regs:%'` guard).
+
+### Infrastructure
+
+- `terraform/cloud_run_jobs.tf` — `pipeline_weekly` job args extended to chain `virginia -w shenandoah && west_virginia -w shenandoah` after the existing fishing/wqp/washington/utah chain. Both adapters self-skip non-VA/non-WV watersheds via their internal `if site.watershed not in (...)` guard, so this is safe for future watersheds.
+- `terraform/cloud_scheduler.tf` — `weekly_pipeline` description updated to "Weekly (Monday): fishing, WQP, Washington, Utah, Virginia, West Virginia".
+- `pipeline/cli.py` — `virginia` and `west_virginia` added to the ingest source `click.Choice` list. (Prerequisite for the Cloud Run Job args above.)
+
+### Verified end-to-end paths
+
+| Path | Verification |
+|---|---|
+| Live VA DWR HTML → `interventions` row | `python -m pipeline.cli ingest virginia -w shenandoah` → 14 created on first run, 0 on second run (idempotent). |
+| Live WV DNR FeatureServer → `interventions` row | Same pattern: 2 created → 0 on re-run. |
+| Live VA DGMR MapServer → `geologic_units` row | 1190 created → 0 on re-run; dedup via `source_id` lookup before insert. |
+| `interventions` (va_dwr) → `gold.stocking_schedule` | After `REFRESH MATERIALIZED VIEW gold.stocking_schedule`: 14 rows visible with `source_type='va_dwr_stocking'`. |
+| Reach regs → `silver.river_reaches.notes` | `SELECT id, notes FROM silver.river_reaches WHERE watershed='shenandoah'` shows the appended `[regs: …]` block on all 3 reaches. |
+
+### Local-state snapshot (post-session-2)
+
+```
+=== gold (per-watershed) ===
+  gold.cold_water_refuges        9   ✓
+  gold.fishing_conditions       25   ✓
+  gold.watershed_scorecard       1   ✓
+  gold.stocking_schedule        14   ✓ (new — va_dwr branch)
+  gold.trip_quality_daily        0   ⏳  (tqs_daily_refresh still to run)
+  gold.river_health_score        0   ⏳  (gold heavy refresh still to run)
+  gold.species_by_reach          0   ⏳  (gold heavy refresh)
+  gold.species_gallery           0   ⏳  (gold heavy refresh)
+  gold.swim_safety               0   ⏳  (gold heavy refresh)
+  gold.river_miles               0   ⏳  (gold heavy refresh)
+
+=== bronze ===
+  observations              434,200   ✓ (iNaturalist — completed in prior session)
+  geologic_units (vgs)        1,149   ✓ (within bbox; 1190 total inserted)
+  interventions (va_dwr)         14   ✓
+  interventions (wv_dnr)          2   ✓ (registry, no dates)
+
+=== ingestion still needed (background re-run in progress) ===
+  fishing, wqp, impaired, wetlands, recreation, fish_passage,
+  macrostrat, pbdb, idigbio, mrds, wqp_bugs, biodata, prism
+```
+
+The prior session's claim that these were "queued in background" did not survive — only
+mtbs/nhdplus/usgs/wbd/virginia/west_virginia have completed ingestion_jobs rows. A
+background chain re-runs the missing adapters in priority order; counts will be updated
+in §3.11 once it finishes.
+
+### Commits added this session
+
+- `a025465` Shenandoah §2.2 P1+P2+P3: real VA/WV stocking + VGS geology + regs seed
+- `f29ae22` Shenandoah §2.7: schedule virginia + west_virginia in pipeline_weekly
+
+(Working tree also contains in-flight SMS-alerts and TQS-feedback-loops work from
+parallel agents; those changes are intentionally NOT in either commit above.)
+
+### Beads closed by this session
+
+| Bead | Closed by |
+|---|---|
+| P1 — VA DWR stocking parser | `virginia.py::_ingest_dwr_stocking` real |
+| P1 — WV DNR stocking | `west_virginia.py::_ingest_dnr_stocking` real (as registry — fundamentally different shape than VA, follow-on for gold MV) |
+| P2 — VA + WV fishing regulations seed | `ii09d0e1f2g3` migration |
+| P2 — VGS geology adapter | `virginia.py::_ingest_vgs_geology` real |
+
+### New beads opened
+
+| Priority | Bead | Why |
+|---|---|---|
+| P2 | Extend `gold.stocking_schedule` with a 5th UNION branch for `wv_dnr` (registry rows) | WV registry rows have `started_at=NULL`, don't fit the current "dated events" shape — needs either NULL-tolerant branch or separate frontend surface |
+| P2 | UI follow-on: render "stream stocked annually — date TBD" for WV registry rows on `/path/now/shenandoah` stocking panel | Once the MV branch lands |
+| P3 | Disambiguate Mill Creek across multiple VA basins (currently county-gated to Shenandoah-drainage counties only — works for v0 but brittle) | A second future VA watershed could re-inherit Mill Creek incorrectly |
+
+### Deliverables checklist (updated)
+
+- [x] `shenandoah-source-inventory-2026-05-15.md`
+- [x] Watershed entry in `pipeline/config/watersheds.py`
+- [x] Sites bootstrap + 3 reach seed migrations + flow bands + hatch chart + fly_shops + placeholders
+- [x] New state-bundle adapters merged with ADR-008 license docstrings — **and now with real implementations** for VA stocking, WV stocking, VGS geology
+- [x] Alembic seed migrations: river_reaches, flow_quality_bands, hatch_chart, fly_shops_guides, mineral_shops + rockhounding_sites (intentionally empty)
+- [⏳] `gold.trip_quality_daily` populated for shenandoah — needs `pipeline.jobs.tqs_daily_refresh` after the in-flight bronze refresh + silver/gold refresh
+- [x] Frontend dicts updated (11 files)
+- [x] **Terraform args updated** (§2.7) — committed `f29ae22`
+- [ ] Commits pushed; CI deploy succeeded — **§2.8 Gate 1: requires user "yes"**
+- [ ] Manual one-shot ingest runs on prod (virginia + west_virginia) completed — **§2.8 Gate 2: requires user "yes"**
+- [ ] `/data-status/refresh` POST'd on prod — **§2.8 Gate 3: requires user "yes"**
+- [ ] `alembic upgrade head` against prod DB (new migrations hh08, ii09) — **§2.8 Gate 4: requires user "yes"**
+- [x] This verification report (now updated with §3.10 addendum)
+
