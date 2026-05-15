@@ -67,6 +67,171 @@ After this read-pass, the agent should be able to predict every place a watershe
 
 ---
 
+## Reference example: McKenzie watershed — what "fully loaded" looks like
+
+McKenzie is the most-complete tracked watershed today. Every row count below was measured against
+the local DB on 2026-05-15 and the prod `/data-status` endpoint; numbers will shift as new ingest
+runs land, but the *shape* (which adapters write to which tables, what features end up lit up)
+is the durable reference. When the agent finishes a new watershed and the verification grid in
+§3.6 looks materially shorter than this table, something was skipped.
+
+### Watershed config (the starting point)
+
+```python
+# pipeline/config/watersheds.py
+"mckenzie": {
+    "name": "McKenzie River",
+    "description": (
+        "McKenzie River watershed from headwaters to confluence with "
+        "Willamette, including Blue River and South Fork"
+    ),
+    "bbox": { "north": 44.45, "south": 43.85, "east": -121.70, "west": -123.10 },
+},
+```
+
+Headwaters: Clear Lake (~44.40°N). Mouth: Willamette confluence at Eugene (~44.08°N, -123.10°W).
+Three curated reaches in `silver.river_reaches` (`mckenzie_upper`, `mckenzie_middle`,
+`mckenzie_lower`) anchored on USGS gauges `14159200` / `14162200` / `14165500`.
+
+### Adapters that touch McKenzie (every live ingest)
+
+| CLI key | `ingestion_jobs.source_type` | Cadence | Source URL | License | Commercial-OK | Bronze table(s) written |
+|---|---|---|---|---|---|---|
+| `inaturalist` | `inaturalist` | daily | api.inaturalist.org/v1 | CC-BY-NC (mixed photo licenses; many CC-BY) | **false** for photo URLs; observation metadata true | `observations`, `time_series` |
+| `usgs` | `usgs` | daily | waterservices.usgs.gov/nwis | Public Domain | true | `observations`, `time_series` |
+| `snotel` | `snotel` | daily | wcc.sc.egov.usda.gov/awdbRestApi | Public Domain | true | `observations`, `time_series` |
+| (job) | `nws` | daily | api.weather.gov | Public Domain | true | `bronze.weather_observations` |
+| (job) | `nws_forecast` | daily | api.weather.gov | Public Domain | true | `bronze.weather_forecasts` |
+| `fishing` | `fishing` | weekly | dfw.state.or.us (ODFW) | Public Records (OR) | true | `interventions` (stocking), `harvest_trends` (catch counts) |
+| `wqp` | `owdp` *(divergence)* | weekly | waterqualitydata.us | Public Domain | true | `observations` (WQ measurements) |
+| `washington` | `washington` | weekly | data.wa.gov + WDFW | Public Records (WA) | true | `interventions` (stocking) — currently scoped to Skagit only |
+| `mtbs` | `mtbs` | quarterly | apps.fs.usda.gov/arcx (MTBS) | Public Domain | true | `fire_perimeters` |
+| `nhdplus` | `nhdplus` | annual | hydro.nationalmap.gov | Public Domain | true | `stream_flowlines` |
+| `wbd` | `wbd` | annual | hydro.nationalmap.gov | Public Domain | true | `watershed_boundaries` |
+| `impaired` | `impaired` *(label `deq_303d`)* | quarterly | gispub.epa.gov ATTAINS | Public Domain | true | `impaired_waters` |
+| `wetlands` | `wetlands` *(label `nwi`)* | annual | fwspublicservices.wim.usgs.gov | Public Domain | true | `wetlands` |
+| `prism` | `prism` | monthly | data.prism.oregonstate.edu | Academic Free | true | `time_series` (PRISM climate) |
+| `restoration` | `restoration` | monthly | OWRI / NOAA RC / PCSRF | Public Records | true | `interventions` |
+| `recreation` | `recreation` | monthly | RIDB + OSMB + state parks | Public Domain / Public Records | true | `recreation_sites` |
+| `biodata` | `biodata` | monthly | aquatic.biodata.usgs.gov | Public Domain | true | `observations`, `time_series` |
+| `wqp_bugs` | `wqp_bugs` | monthly | waterqualitydata.us (macroinverts) | Public Domain | true | `observations` |
+| `gbif` | `gbif` | monthly | gbif.org | CC-BY 4.0 | true | `observations`, `fossil_occurrences` |
+| `idigbio` | `idigbio` | monthly | api.idigbio.org | CC0 / CC-BY (varies) | true | `fossil_occurrences` |
+| `pbdb` | `pbdb` | monthly | paleobiodb.org | CC-BY 4.0 | true | `fossil_occurrences` |
+| `streamnet` | `streamnet` | monthly | streamnet.org | Public Records (PNW co-op) | true | `observations` (fish counts) |
+| `fish_passage` | `fish_passage` *(label `fish_barrier`)* | quarterly | streamnet + state passage feeds | Public Records | true | `interventions` (barrier rows) |
+| `macrostrat` | `macrostrat` | annual | macrostrat.org/api/v2 | CC-BY 4.0 | true | `geologic_units` |
+| `blm_sma` | `blm_sma` | annual | gis.blm.gov | Public Domain | true | `land_ownership` |
+| `dogami` | `dogami` | annual | gis.dogami.oregon.gov (OR only) | Public Records (OR) | true | `geologic_units` |
+| `mrds` | `mrds` | annual | mrdata.usgs.gov | Public Domain | true | `mineral_deposits` |
+
+Note the three CLI-key vs source-type divergences flagged earlier (impaired/deq_303d,
+wetlands/nwi, fish_passage/fish_barrier) plus the wqp→owdp source-type mismatch. New adapters
+must not introduce more.
+
+### Manually curated tables (no adapter — humans seed these)
+
+| Table | McKenzie rows | What it holds | Where the curator edits |
+|---|---|---|---|
+| `silver.river_reaches` | 3 | Upper/Middle/Lower reach defs with gauge + species + bbox | alembic seed migration |
+| `silver.flow_quality_bands` | 3 | cfs ideal/low/high band per reach | alembic seed migration |
+| `silver.tqs_seasonal_modifiers` | 3 (cross-watershed) | Dry-fly summer / winter steelhead / spring runoff weight nudges | one seed migration, applies to all watersheds |
+| `curated_hatch_chart` | 10 | Aquatic insect emergence windows per species | hand-curated; entomologist-reviewed |
+| `river_stories` | 3 | LLM-drafted river narrative at 3 reading levels (adult/kids/expert) | `python -m pipeline.generate_river_stories -w mckenzie` |
+| `deep_time_stories` | 29 (cross-watershed) | LLM-drafted geology story per significant location | DeepTrail curator + LLM |
+| `rockhounding_sites` | 1 | Legal collecting sites with PLSS access notes | manual curation from BLM + state guides |
+| `fly_tying_videos` | 47 (cross-watershed) | YouTube tutorial links per fly pattern | manually curated from named channels |
+| `mineral_sites` photos | ~137 | Wikimedia-Commons photos matched per commodity | static lookup table |
+
+### Bronze rows landed for McKenzie (sampled 2026-05-15)
+
+| Table | Rows | Driven by |
+|---|---|---|
+| `time_series` | 403,493 | usgs + snotel + prism + biodata + wqp_bugs |
+| `stream_flowlines` | 129,069 | nhdplus |
+| `observations` | 76,306 | inaturalist + usgs + biodata + wqp + streamnet |
+| `geologic_units` | 35,998 (cross-watershed) | macrostrat + dogami |
+| `interventions` | 550 | fishing + washington + restoration + fish_passage + streamnet stocking |
+| `wetlands` | 4,500 | wetlands (NWI) |
+| `watershed_boundaries` | 320 | wbd |
+| `impaired_waters` | 318 | impaired (EPA ATTAINS) |
+| `recreation_sites` | 221 | recreation (RIDB + OSMB) |
+| `mineral_deposits` | 137 | mrds |
+| `fire_perimeters` | 63 | mtbs (Holiday Farm 2020 + smaller historic fires) |
+| `fossil_occurrences` | 23 | pbdb + idigbio + gbif |
+
+### Gold tables that surface McKenzie data
+
+| MV / view | Rows (McKenzie) | Feeds which app/feature |
+|---|---|---|
+| `gold.water_quality_monthly` | 9,084 | RiverSignal trends + reports |
+| `gold.river_miles` | 8,385 | river-mile lookup powering species-by-reach + reach selector |
+| `gold.species_gallery` | 7,031 | RiverPath species cards + photo grid |
+| `gold.hatch_chart` | 784 | RiverPath Hatch tab |
+| `gold.swim_safety` | 638 | RiverPath swim-safety badge |
+| `gold.river_story_timeline` | 517 | RiverPath River Story narrative timeline |
+| `gold.stocking_schedule` | 274 | RiverPath stocking section |
+| `gold.trip_quality_daily` | 273 (3 reaches × 91 days) | RiverPath Go Score + ranking |
+| `gold.trip_quality_history` | 273 | Go Score trend slope + alert engine |
+| `gold.post_fire_recovery` | 114 | RiverSignal restoration + RiverPath River Story |
+| `gold.trip_quality_watershed_daily` | 91 (1 row/day) | Go Score watershed pill + `/path/where` ranking |
+| `gold.species_by_reach` | 75 | RiverPath fish-present cards |
+| `gold.fishing_conditions` | 65 | RiverSignal angling dashboard |
+| `gold.cold_water_refuges` | 54 | RiverPath swim-safety + RiverSignal thermal refugia |
+| `gold.stewardship_opportunities` | 34 | RiverPath Steward tab |
+| `gold.river_health_score` | 27 | RiverSignal scorecard + RiverPath River Now |
+| `gold.indicator_species_status` | 12 | RiverSignal indicator metrics |
+| `gold.harvest_trends` | 8 | RiverPath catch-history sparkline |
+| `gold.species_trends` | 8 | RiverSignal species-trend dashboards |
+| `gold.site_ecological_summary` | 8 | RiverSignal site summary card |
+| `gold.watershed_scorecard` | 1 | RiverSignal one-page scorecard |
+
+### Pipelines (Cloud Run Jobs) and what they refresh for McKenzie
+
+| Job | Schedule | Runs (in order) | Watershed-scoped touch for McKenzie |
+|---|---|---|---|
+| `riversignal-pipeline-daily` | 02:00 PT | `inaturalist -w all && snotel -w all && usgs -w all && nws && nws forecasts` | new observations + time-series + weather rows; ingestion_jobs entries for all 5 sources |
+| `riversignal-pipeline-weekly` | Mon 04:00 PT | `fishing -w all && wqp -w all && washington -w all && utah -w green_river` | stocking + WQ updates; harvest_trends MV inputs |
+| `riversignal-pipeline-monthly` | 1st @ 05:00 PT | `biodata && wqp_bugs && gbif && recreation && pbdb && restoration && prism && streamnet && idigbio` | climate + biodiversity + restoration refresh |
+| `riversignal-refresh-views` | 10:00 PT daily | `pipeline.cli refresh --mode light` | silver layer + fast gold views |
+| `riversignal-refresh-heavy` | Sun 03:00 PT | `pipeline.cli refresh --mode heavy` | slow gold views (species_gallery, river_miles, etc.) |
+| `riversignal-tqs-daily-refresh` | 10:30 PT daily | `pipeline.jobs.tqs_daily_refresh` | recompute `gold.trip_quality_daily` for McKenzie's 3 reaches × 91 days + append `trip_quality_history` snapshot |
+| `riversignal-migrate` | on deploy | `alembic upgrade head` | schema changes; not McKenzie-specific |
+
+### Feature surfaces lit up for McKenzie (the success criterion)
+
+| App | Feature | Lit up today? | Driven by |
+|---|---|---|---|
+| RiverSignal | Site dashboard | ✓ | `gold.site_ecological_summary` + `gold.river_health_score` + `gold.water_quality_monthly` |
+| RiverSignal | Scorecard | ✓ | `gold.watershed_scorecard` |
+| RiverSignal | Restoration tracking | ✓ | `interventions` (550 rows incl. Holiday Farm Fire restoration projects) |
+| RiverSignal | Fire recovery | ✓ | `gold.post_fire_recovery` (114 rows incl. 2020 Holiday Farm) |
+| RiverSignal | Predictions | ✓ | `predictions` (LLM-generated; refreshed monthly) |
+| RiverPath | Go Score pill + ranking | ✓ | `gold.trip_quality_watershed_daily` + `gold.trip_quality_daily` |
+| RiverPath | River Now hero | ✓ | live USGS instantaneous + NWS via `app/routers/weather.py` |
+| RiverPath | Hatch tab | ✓ | `gold.hatch_chart` (10 curated species) |
+| RiverPath | Steward tab | ✓ | `gold.stewardship_opportunities` (34 rows) |
+| RiverPath | River Story | ✓ | `river_stories` (3 reading levels) + `gold.river_story_timeline` (517 events) |
+| RiverPath | Species cards | ✓ | `gold.species_gallery` (7,031 rows w/ photos) |
+| RiverPath | Stocking | ✓ | `gold.stocking_schedule` (274 rows from ODFW) |
+| RiverPath | Swim safety | ✓ | `gold.swim_safety` |
+| RiverPath | Snowpack | ✓ | snotel time-series → `gold.fishing_conditions` snowpack column |
+| RiverPath | Photo observations | ✓ | inaturalist photos via `gold.species_gallery` |
+| RiverPath | Fish passage | ✓ | `interventions` rows where `intervention_type='fish_passage'` |
+| RiverPath | 14-day forecast | ✓ | `gold.trip_quality_daily` next 14 days |
+| DeepTrail | Geology units | ✓ | `geologic_units` (macrostrat + DOGAMI for OR) |
+| DeepTrail | Fossil sites | ✓ | `fossil_occurrences` (23 rows: pbdb + idigbio + gbif) |
+| DeepTrail | Rockhound sites | ⚠ | `rockhounding_sites` has only 1 McKenzie row — under-curated |
+| DeepTrail | Mineral deposits | ✓ | `mineral_deposits` (137 rows) |
+| DeepTrail | Deep Time story | ⚠ | `deep_time_stories` is cross-watershed; specific McKenzie story coverage depends on `location_id` mapping (see RiverSignal `/trail/story` route) |
+
+**"Fully loaded" means most rows in that table are ✓** — a new watershed won't match these counts
+on day 1 (those grow with each weekly ingest), but the *check marks* should be present.
+If a new watershed's verification grid in §3.6 has ⚠ or ✗ in a row that McKenzie shows ✓, the
+agent missed an adapter or a curation seed — go back to §1.3 and look for the gap.
+
+---
+
 ## STEP 0 — Pre-flight clarification (mandatory, before any code or ingest)
 
 Before writing the inventory report, the agent **asks the user** the questions below. Defaults
