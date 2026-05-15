@@ -23,7 +23,12 @@ from alembic import op
 
 
 revision: str = 'bb02c3d4e5f6'
-down_revision: Union[str, Sequence[str], None] = 'aa01b2c3d4e5'
+# Re-parented from aa01b2c3d4e5 (SMS alerts foundation, currently
+# UNTRACKED in git — owned by parallel SMS agent) to z7d8e9f0a1b2 so the
+# Shenandoah migration chain applies cleanly on prod without depending on
+# an unmerged migration. When the SMS agent commits aa01, they'll need to
+# re-parent aa01 onto whatever the Shenandoah head is at that moment.
+down_revision: Union[str, Sequence[str], None] = 'z7d8e9f0a1b2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
