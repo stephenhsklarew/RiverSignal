@@ -314,9 +314,33 @@ parallel agents; those changes are intentionally NOT in either commit above.)
 - [⏳] `gold.trip_quality_daily` populated for shenandoah — needs `pipeline.jobs.tqs_daily_refresh` after the in-flight bronze refresh + silver/gold refresh
 - [x] Frontend dicts updated (11 files)
 - [x] **Terraform args updated** (§2.7) — committed `f29ae22`
-- [ ] Commits pushed; CI deploy succeeded — **§2.8 Gate 1: requires user "yes"**
-- [ ] Manual one-shot ingest runs on prod (virginia + west_virginia) completed — **§2.8 Gate 2: requires user "yes"**
-- [ ] `/data-status/refresh` POST'd on prod — **§2.8 Gate 3: requires user "yes"**
-- [ ] `alembic upgrade head` against prod DB (new migrations hh08, ii09) — **§2.8 Gate 4: requires user "yes"**
-- [x] This verification report (now updated with §3.10 addendum)
+- [x] **§2.8 Gate 1**: 8 commits pushed; CI built image + ran `alembic upgrade head` (z7d8e9f0a1b2 → jj10e1f2g3h4 chain). First CI attempt failed with `KeyError: 'aa01b2c3d4e5'` because the Shenandoah migration chain pointed at the SMS agent's still-untracked migration; commit `49aba79` re-parented bb02 onto z7d8e9f0a1b2 to unblock.
+- [x] **§2.8 Gate 2**: `terraform apply` ran in-place updates to `google_cloud_run_v2_job.pipeline_weekly` (args + virginia + west_virginia) and `google_cloud_scheduler_job.weekly_pipeline` (description). Plan initially flagged a destructive Cloud SQL `disk_size = 31 → 25 (forces replacement)`; resolved by truing up `terraform.tfvars` to 31 GB.
+- [x] **§2.8 Gate 3**: `gcloud run jobs execute riversignal-pipeline-weekly --wait` completed; freshness shows `virginia` and `west_virginia` synced within minutes. Surfaced a pre-existing fishing-adapter bug (denylist instead of allowlist) that polluted shenandoah's site_id with 495 ODFW rows — fixed in commit `dac7837` (adapter switched to OREGON_WATERSHEDS allowlist + migration `jj10e1f2g3h4` purges historic pollution).
+- [x] **§2.8 Gate 4**: `POST /api/v1/data-status/refresh` → `{refreshed:true, pipelines:30}`. After the fix-deploy + refresh_views, `/api/v1/sites/shenandoah/fishing/stocking` returns 14 real Shenandoah-drainage VA DWR events (Rose River, South River, Mill Creek, Robinson, Hughes, Passage Creek, Moormans) dated 2026-05-11 → 2026-05-15.
+- [x] This verification report (§3.10 addendum + §3.11 prod deploy log)
+
+### §3.11 — Prod deploy log (2026-05-15)
+
+| Step | Commit | Outcome |
+|---|---|---|
+| Push 7 shenandoah commits | `64987af` | CI failed: `KeyError: 'aa01b2c3d4e5'` (SMS migration not in repo) |
+| Re-parent `bb02` onto `z7d8e9f0a1b2` | `49aba79` | CI success — alembic head advanced to `ii09d0e1f2g3` |
+| Truth up `terraform.tfvars` `db_disk_size_gb=31` | (gitignored) | `terraform plan` shrank from "1 add / 9 change / 1 destroy" to "0 add / 2 change / 0 destroy" |
+| `terraform apply` (cloud_run_jobs + scheduler) | (state-only) | pipeline_weekly args now end `... && virginia -w shenandoah && west_virginia -w shenandoah` |
+| `gcloud run jobs execute riversignal-pipeline-weekly --wait` | n/a | 22 min runtime; virginia + west_virginia logged ingestion_jobs rows on prod |
+| `POST /api/v1/data-status/refresh` | n/a | `{refreshed:true, pipelines:30}`; freshness shows fresh va/wv |
+| Discover ODFW pollution (495 rows misattributed) | n/a | `/api/v1/sites/shenandoah/fishing/stocking` returned 20 Oregon waterbodies |
+| Fix fishing adapter + purge migration | `dac7837` | CI success; `jj10e1f2g3h4` deleted 495 polluted rows |
+| `gcloud run jobs execute riversignal-refresh-views --wait` | n/a | `gold.stocking_schedule` refreshed; va_dwr rows visible |
+| Final verification | n/a | 14 clean Shenandoah va_dwr events on `/api/v1/sites/shenandoah/fishing/stocking` |
+
+### §3.12 — Beads opened during prod-deploy
+
+| Priority | Bead | Why |
+|---|---|---|
+| P1 | SMS agent re-parents `aa01b2c3d4e5` onto current Shenandoah head | SMS migration is still untracked locally; whenever they commit, they need to point `down_revision` at the post-Shenandoah head instead of `z7d8e9f0a1b2` |
+| P2 | Curator research: seed `silver.stocking_locations` with VA DWR Shenandoah waters | 12 unique Shenandoah waterbodies surface in `/fishing/stocking` list but have no lat/lon, so they don't pin on the stocking map |
+| P2 | Verify other adapters for the same denylist-vs-allowlist pitfall as fishing | The bug was old (`("skagit","green_river")` denylist) and a similar pattern could exist in `prism`, `restoration`, `streamnet`, etc. |
+| P2 | Document terraform drift handling in the runbook | The `disk_size 31→25 → forces replacement` plan was a near-miss; the runbook should explicitly mention pre-plan `terraform refresh` and tfvars truth-up before applying anything |
 
