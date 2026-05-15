@@ -32,6 +32,7 @@ WS_COORDS: dict[str, tuple[float, float]] = {
     "johnday":    (44.60, -119.15),
     "skagit":     (48.45, -121.50),
     "green_river":(40.50, -109.50),
+    "shenandoah": (38.92, -78.20),    # Shenandoah Valley centroid; NWS office LWX (Sterling VA) covers
 }
 
 

@@ -60,7 +60,7 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
   },
 }
 
-const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()

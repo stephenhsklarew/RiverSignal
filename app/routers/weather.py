@@ -17,6 +17,7 @@ WS_COORDS = {
     "johnday": (44.60, -119.15),
     "skagit": (48.45, -121.50),
     "green_river": (40.50, -109.50),  # Dinosaur National Monument area
+    "shenandoah": (38.92, -78.20),    # Shenandoah Valley centroid (between forks confluence and main stem)
 }
 
 # USGS gauge station IDs per watershed (primary stations)
@@ -28,6 +29,7 @@ WS_GAUGES = {
     "johnday": ["14048000", "14046000"],       # John Day at Service Creek, at Dayville
     "skagit": ["12189500", "12200500"],        # Skagit nr Concrete, nr Mount Vernon
     "green_river": ["09234500", "09315000"],   # Green River nr Greendale UT (Flaming Gorge tailwater), at Green River UT (Desolation/Gray)
+    "shenandoah": ["01631000", "01634000", "01636500"],  # SF at Front Royal, NF at Strasburg, Main Stem at Millville WV
 }
 
 # Simple in-memory cache: {key: (timestamp, data)}

@@ -30,6 +30,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   klamath: [-121.55, 42.65],
   mckenzie: [-122.3, 44.08],
   metolius: [-121.57, 44.50],
+  shenandoah: [-78.20, 38.92],
   skagit: [-121.50, 48.45],
 }
 
@@ -54,7 +55,7 @@ export default function RiverNowPage() {
 
 import logo from '../assets/riverpath-logo.svg'
 
-const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
 const PHOTOS: Record<string, string> = {
   deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop',
@@ -62,6 +63,7 @@ const PHOTOS: Record<string, string> = {
   klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop',
   mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop',
   metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop',
+  shenandoah: 'https://images.unsplash.com/photo-1572125675722-238a4f1f8ea7?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {
@@ -71,6 +73,7 @@ const TAGLINES: Record<string, string> = {
   klamath: 'The largest dam removal in American history',
   mckenzie: 'Fire, recovery, and the return of salmon',
   metolius: "Spring-fed sanctuary — Oregon's purest river",
+  shenandoah: 'Blue Ridge headwaters, limestone springs, and smallmouth main stem',
   skagit: 'All five salmon species in the shadow of the North Cascades',
 }
 
@@ -173,6 +176,7 @@ function RiverCard({ site, photo, tagline, onNavigate, onAsk }: {
 const WS_STATE_SOURCES: Record<string, { stocking: string[]; access: string[] }> = {
   skagit:      { stocking: ['washington'],         access: ['recreation', 'washington'] },
   green_river: { stocking: ['utah'],               access: ['recreation', 'utah'] },
+  shenandoah:  { stocking: ['virginia', 'west_virginia'], access: ['recreation', 'virginia', 'west_virginia'] },
 }
 const DEFAULT_STATE_SOURCES = { stocking: ['fishing'], access: ['recreation'] }
 

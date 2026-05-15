@@ -17,6 +17,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   johnday: [-119.0, 44.6],
   skagit: [-121.50, 48.45],
   green_river: [-110.15, 38.99],
+  shenandoah: [-78.20, 38.92],
 }
 
 interface PhotoObservationProps {
