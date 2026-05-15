@@ -1,9 +1,20 @@
 # Design Plan: SMS Alerts for Trip Quality Score Thresholds
 
 **Date**: 2026-05-15
-**Status**: DRAFT (pre-collaborative review)
-**Refinement Rounds**: 3 (solo)
+**Status**: CONVERGED (post-collaborative review)
+**Refinement Rounds**: 3 (solo) + 6 forks resolved with product owner
 **Supersedes**: `plan-2026-05-14-push-notifications.md`
+
+## Collaborative Review Outcomes
+
+| Fork | Decision | Notes |
+|---|---|---|
+| OF-1 Threshold | Per-watershed band selector: Excellent (80) or Good+ (70). **Default = Excellent.** | `sms_alert_subscriptions.threshold` stays per-row |
+| OF-2 Nudge frequency | Show banner first time + after qualifying day appears; **suppress 7 days after dismissal** via localStorage key | Once subscription exists for the watershed, banner is hidden permanently |
+| OF-3 Weekly cap | **3 SMS per user per rolling 7-day window** | Global per-user, digest collapses multi-watershed matches into one |
+| OF-4 Dispatcher time | **Single daily batch at 09:00 PT (= 12:00 PM ET)** year-round via cron `0 9 * * *` TZ `America/Los_Angeles` | No user TZ collection needed; per-user quiet-hours rule becomes a dormant safety net |
+| OF-5 International | **US + Canada (`+1`)** | Telnyx handles both via same flow; covers cross-border PNW anglers (Skagit) naturally |
+| OF-6 Anonymous opt-in | **Account-required.** Tied to `users.id` | F3 hybrid (anonymous-first with later linking) deferred until conversion data warrants |
 **Scope**: Send time-sensitive SMS alerts to opted-in users when the Trip Quality Score for one of their explicitly-watched watersheds is forecast to cross a "fishable" threshold within the next 3 days. Includes per-watershed opt-in, anti-spam dispatch rules, and prepaid-budget caps.
 
 ## Problem Statement
