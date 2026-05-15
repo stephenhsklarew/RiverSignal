@@ -67,6 +67,28 @@ After this read-pass, the agent should be able to predict every place a watershe
 
 ---
 
+## STEP 0 — Pre-flight clarification (mandatory, before any code or ingest)
+
+Before writing the inventory report, the agent **asks the user** the questions below. Defaults
+are shown but the agent must echo the chosen answers back and get explicit acknowledgement. No
+work begins until every question has an answer the user has confirmed.
+
+| # | Question | Default | Why it matters |
+|---|---|---|---|
+| Q1 | **HUC boundary level for the bbox refinement** — HUC8, HUC10, or HUC12? | HUC8 with a 0.05° buffer | HUC10/HUC12 yield tighter bboxes but more excluded edge reaches; HUC8 is forgiving for v0 reach curation. |
+| Q2 | **Paid-API tolerance** — if a required-for-v1 source needs a paid developer key (e.g., a commercial state-data API), should the agent stop, ask, and skip? Or skip silently with a documented gap? | Stop and ask | A paid commitment is a business decision, not a technical one. |
+| Q3 | **License filter for B2B surfaces** — should the agent gate any non-`commercial:true` sources out of the data pipeline serving RiverSignal (the B2B paid product), even when those sources serve the B2C apps? | Yes — gate non-commercial sources out of RiverSignal queries | ADR-008 mandates this for paid features. iNat photos are the most-common offender. |
+| Q4 | **Confluence into an existing tracked watershed** — if the new watershed's mouth flows into one of the seven already-tracked watersheds, may the agent **renumber or re-segment** the existing watershed's reaches to reflect the new tributary? | No — annotate only via `silver.river_reaches.notes`; do not restructure existing reaches | Reach IDs are referenced from `user_reach_watches`, `user_trip_feedback`, `user_trip_intentions`. Renaming silently drops user data. |
+| Q5 | **Curation pace** — should the agent ship v0 reach names + flow bands + hatch chart now (all marked `needs_review=true`), or pause and wait for guide-reviewer + entomologist input before shipping any of those tables? | Ship v0, mark for review | Aligns with the runbook's "auto-draft v0" curation policy. Override only if a guide reviewer is already engaged and waiting. |
+| Q6 | **Target ship date** — when does the watershed need to appear on prod? Drives whether terraform changes can wait a deploy cycle or need a same-session apply. | No deadline — ship at the next natural deploy cycle | Production deploys require explicit user approval per §2.8; tight deadlines force pre-confirmation. |
+
+Output: a short transcript at the top of the §1 inventory report capturing each Q + answer + the
+timestamp the user acknowledged it.
+
+**Do not proceed to §1 without an answer in hand for every question above.**
+
+---
+
 ## STEP 1 — Source identification & gap report
 
 **Output:** `docs/helix/06-iterate/watershed-add/<WATERSHED_SLUG>-source-inventory-<YYYY-MM-DD>.md`
@@ -350,9 +372,13 @@ report (§3.6) if the new watershed touches the WQP adapter. Don't replicate thi
 4. **River story draft** — `pipeline/generate_river_stories.py <WATERSHED_SLUG>` produces an
    LLM-grounded narrative; mark `is_draft=true` in metadata so the UI can show a "draft" badge
    if it wants to.
-5. **Stocking** — if no state stocking adapter exists yet, insert an empty placeholder row in
-   `stocking_schedule` derived view's source table with `source='manual_pending'` so the UI
-   renders an "Updates coming" empty state rather than crashing.
+5. **Stocking** — if no state stocking adapter exists yet, **do not insert placeholder rows**.
+   `gold.stocking_schedule` is a materialized view assembled from state-adapter outputs
+   (ODFW via `fishing.py`, WDFW via `washington.py`, UDWR via `utah.py`); it has no
+   writable source table that accepts a "manual_pending" sentinel. The RiverPath stocking UI
+   already handles the empty-state correctly (verified against Green River, which ships with
+   only UDWR data). Instead: open a P2 follow-on bead — *"Author <STATE> stocking adapter for
+   <WATERSHED_SLUG>"* — referencing this prompt's §1.3 gap-report line for the source.
 
 Each draft seed = one commit, message format:
 `v0 seed: <WATERSHED_SLUG> <artifact> — needs_review=true`.
@@ -421,24 +447,66 @@ Apply only after the user reviews. Take a Cloud SQL backup first if any change t
 instance (look for `google_sql_database_instance.db` in the plan — should NOT appear for arg-only
 changes).
 
-### 2.8 Commit, push, deploy
+### 2.8 Commit, push, deploy — **EXPLICIT USER APPROVAL REQUIRED AT EACH GATE**
+
+Production state changes from here on. The agent **must pause and request explicit user
+approval** at four gates. Each gate is a separate ask; bundling them together is not acceptable.
+
+Discover the prod API URL fresh — do not hard-code it. The runbook used to embed
+`https://riversignal-api-500769847975.us-west1.run.app`; that URL can change with terraform
+or domain mapping. Read it once:
 
 ```
-git add -p   # commit per artifact category
+PROD_API_URL=$(gcloud run services describe riversignal-api --region us-west1 \
+                --format='value(status.url)')
+```
+
+Then use `$PROD_API_URL` for every subsequent prod call.
+
+**Gate 1 — push to main.** Show the full `git log --oneline <previous-head>..HEAD` since the
+previous push, plus `git diff --stat`. Ask:
+
+> Approve pushing the above N commits to main (triggers GitHub Actions deploy)?
+
+Do not run `git push` until the user says yes. After approval:
+
+```
 git push origin main
-gh run watch <latest-run-id>
+LATEST_RUN_ID=$(gh run list --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+gh run watch "$LATEST_RUN_ID" --exit-status
 ```
 
-After the deploy completes, manually trigger one ingest run so the new watershed has data on prod
-*today* instead of waiting for tomorrow's cron:
+**Gate 2 — execute prod Cloud Run jobs.** After the deploy succeeds, list the jobs the agent
+intends to invoke and the order. Ask:
+
+> Approve manually executing these N Cloud Run jobs on prod so the new watershed has data today
+> instead of waiting for tomorrow's cron?
+
+After approval (and only after):
 
 ```
-gcloud run jobs execute riversignal-pipeline-daily   --region us-west1 --wait
-gcloud run jobs execute riversignal-pipeline-weekly  --region us-west1 --wait
-gcloud run jobs execute riversignal-pipeline-monthly --region us-west1 --wait
+gcloud run jobs execute riversignal-pipeline-daily    --region us-west1 --wait
+gcloud run jobs execute riversignal-pipeline-weekly   --region us-west1 --wait
+gcloud run jobs execute riversignal-pipeline-monthly  --region us-west1 --wait
 gcloud run jobs execute riversignal-tqs-daily-refresh --region us-west1 --wait
-curl -s -X POST "https://riversignal-api-500769847975.us-west1.run.app/api/v1/data-status/refresh"
 ```
+
+If any job fails, halt and show the failing job's last 50 log lines before proceeding.
+
+**Gate 3 — bust the prod freshness cache.** Show that the `/data-status/freshness` cache is stale
+(it caches for ~6h) and the POST is what makes the new watershed's freshness rows visible. Ask:
+
+> Approve POST `$PROD_API_URL/api/v1/data-status/refresh` to rebuild the freshness cache?
+
+After approval:
+
+```
+curl -s -X POST "$PROD_API_URL/api/v1/data-status/refresh"
+```
+
+**Gate 4 — any prod URL with side effects.** Beyond the explicitly-named POSTs above, every
+write-side prod call requires the same per-call approval pattern. Read-only `curl -s` GETs
+against prod are fine without approval (used by §3.4 verification).
 
 ---
 
@@ -503,12 +571,9 @@ Each should return a non-error payload with watershed-specific values.
 
 ### 3.4 API smoke (prod, after deploy)
 
-Same URLs, but against
-`https://riversignal-api-500769847975.us-west1.run.app/api/v1/...`. Plus a force-refresh:
-
-```
-curl -s -X POST "https://riversignal-api-500769847975.us-west1.run.app/api/v1/data-status/refresh"
-```
+Same URLs as §3.3, but against `$PROD_API_URL/api/v1/...` (discovered in §2.8 — do not hard-code).
+Read-only GETs, no approval needed. The force-refresh POST was already handled at Gate 3 of §2.8;
+if that gate was deferred, surface the new watershed in the freshness payload here.
 
 If any prod endpoint returns 404 or empty where local returned data, the most likely cause is a
 deploy lag or terraform args drift — diagnose before declaring done.
