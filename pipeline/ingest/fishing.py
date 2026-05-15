@@ -239,14 +239,24 @@ class FishingDataAdapter(IngestionAdapter):
 
         return created
 
+    # Oregon-only ALLOWLIST. ODFW data must never be attributed to a
+    # non-Oregon watershed (the previous denylist of ("skagit",
+    # "green_river") let ODFW stocking data leak onto shenandoah's
+    # site_id when pipeline_weekly ran `fishing -w all`). When a new
+    # Oregon watershed is onboarded, add it here.
+    OREGON_WATERSHEDS = ("mckenzie", "deschutes", "metolius", "klamath", "johnday")
+
     def _ingest_stocking(self, site: Site) -> int:
         """Scrape ODFW trout stocking schedule.
 
-        ODFW covers Oregon only. Skip watersheds outside Oregon — those have
-        their own state-specific stocking sources (wa_fish_stocking for WA,
-        UDWR interventions for the Green River basin in UT/WY).
+        ODFW covers Oregon only. Allowlisted to OREGON_WATERSHEDS; any
+        other watershed (Skagit/WA, Green River/UT-WY, Shenandoah/VA-WV,
+        future East-Coast onboardings) skips silently and returns 0.
+        Out-of-Oregon stocking lives in state-specific adapters
+        (wa_fish_stocking for WA; UDWR interventions for Green River;
+        va_dwr interventions for Shenandoah).
         """
-        if site.watershed in ("skagit", "green_river"):
+        if site.watershed not in self.OREGON_WATERSHEDS:
             return 0
 
         created = 0
