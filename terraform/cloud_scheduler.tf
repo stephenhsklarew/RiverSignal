@@ -24,7 +24,7 @@ resource "google_cloud_scheduler_job" "weekly_pipeline" {
   region      = var.region
   schedule    = "0 4 * * 1"
   time_zone   = var.scheduler_timezone
-  description = "Weekly (Monday): fishing, WQP, Washington"
+  description = "Weekly (Monday): fishing, WQP, Washington, Utah, Virginia, West Virginia"
 
   http_target {
     http_method = "POST"
