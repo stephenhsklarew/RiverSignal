@@ -128,4 +128,28 @@ WATERSHEDS = {
             "west": -111.50,
         },
     },
+    "shenandoah": {
+        "name": "Shenandoah River",
+        "description": (
+            "Shenandoah River from North Fork (Bergton, VA) and South "
+            "Fork (Sherando, VA) headwaters in the Blue Ridge / Allegheny "
+            "foothills, through the Shenandoah Valley between the Blue "
+            "Ridge and Massanutten Mountain, to confluence with the "
+            "Potomac River at Harpers Ferry, WV. First Atlantic-slope "
+            "watershed on the platform. Smallmouth bass dominant on the "
+            "warm-water main stem; wild brook trout in cold Blue Ridge "
+            "tributaries; brown trout in limestone-spring streams "
+            "(Mossy Creek, Beaver Creek)."
+        ),
+        # HUC8s 02070005 (South Fork), 02070006 (North Fork), 02070007
+        # (main stem) + 0.05° buffer. North bound clears the Potomac
+        # confluence at Harpers Ferry; south bound covers Augusta County
+        # headwater springs.
+        "bbox": {
+            "north": 39.35,
+            "south": 37.70,
+            "east": -77.65,
+            "west": -79.40,
+        },
+    },
 }
