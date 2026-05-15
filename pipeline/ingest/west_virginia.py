@@ -26,7 +26,10 @@ Follow-on beads (one per sub-source):
         (Check RIDB coverage first — WV state parks may already be there)
 """
 
+import json
+
 import httpx
+from sqlalchemy import text
 
 from pipeline.ingest.base import IngestionAdapter, console
 from pipeline.models import Site
@@ -38,6 +41,25 @@ WV_DNR_STOCKING_URL = "https://wvdnr.gov/fishing/"
 WV_DNR_REGS_URL     = "https://wvdnr.gov/wildlife/fishing-regulations/"
 WVGES_ARCGIS_BASE   = "https://www.wvgs.wvnet.edu/"  # discover specific endpoints during impl
 WV_STATE_PARKS_URL  = "https://wvstateparks.com/"
+
+# WV DNR stocked-trout-streams data lives in an ArcGIS FeatureServer that
+# powers the wvdnr.gov/fishing/fish-stocking/west-virginia-trout-stocking-map/
+# page (via mapwv.gov/huntfish). It is a *registry of stocked streams*, not a
+# dated stocking-event feed — there is no per-event schedule published as
+# structured data. Per-event dates are only released via a phone hotline.
+WV_DNR_STOCKED_STREAMS_FS = (
+    "https://services9.arcgis.com/SQbkdxLkuQJuLGtx/ArcGIS/rest/services/"
+    "West_Virginia_Stocked_Trout_Streams/FeatureServer/33/query"
+)
+
+# Shenandoah-drainage waters in WV. The Shenandoah only enters WV in
+# Jefferson County (Harpers Ferry confluence), so the stocked-streams list
+# is small. Berkeley County streams drain to the Potomac via Opequon /
+# Back Creek, NOT the Shenandoah — they are deliberately excluded.
+WV_SHENANDOAH_WATERS: tuple[str, ...] = (
+    "bullskin run",
+    "evitts run",
+)
 
 
 # ── Adapter ─────────────────────────────────────────────────────────────────
@@ -86,13 +108,84 @@ class WestVirginiaDataAdapter(IngestionAdapter):
     # ── Sub-source stubs ────────────────────────────────────────────────────
 
     def _ingest_dnr_stocking(self, client, site) -> int:
-        """WV DNR weekly trout stocking schedule.
-        TODO: HTML scrape of WV_DNR_STOCKING_URL. Same shape as VA DWR
-        stocking — water_name, county, date, species, count → interventions.
-        Follow-on bead: P1 WV DNR stocking adapter implementation.
+        """WV DNR stocked-trout-streams registry (NOT dated events).
+
+        WV DNR exposes a list of stocked streams as an ArcGIS FeatureServer
+        (see WV_DNR_STOCKED_STREAMS_FS). The schema has stream name, county,
+        regulation type, hatchery, "stock extent" (a prose description of
+        the stocked section), and mileage — but no per-event dates and no
+        species per event. Dates are only released afterwards via the phone
+        hotline (304-558-3399), with no machine-readable feed.
+
+        Approach: pull the registry and upsert rows into `interventions`
+        with type='fish_stocking', source='wv_dnr', and started_at=NULL.
+        The frontend's gold MV branch for wv_dnr can render these as
+        "stocked annually — date TBD". Surfacing them is a follow-on bead;
+        this adapter's responsibility is to keep the registry current.
         """
-        console.print(f"      [dim]_ingest_dnr_stocking: not yet implemented (scaffold)[/dim]")
-        return 0
+        params = {
+            "where": "County_1 IN ('Jefferson') OR County_2 IN ('Jefferson') OR County_3 IN ('Jefferson')",
+            "outFields": "Name,RegType,Hatchery,NearCity,County_1,County_2,County_3,StockExtent,Mileage",
+            "returnGeometry": "false",
+            "f": "json",
+        }
+        resp = client.get(WV_DNR_STOCKED_STREAMS_FS, params=params)
+        resp.raise_for_status()
+        features = resp.json().get("features", [])
+
+        existing = self.session.execute(
+            text(
+                "SELECT description FROM interventions "
+                "WHERE site_id = :sid AND type = 'fish_stocking' "
+                "AND description LIKE '{%' "
+                "AND description::jsonb ->> 'source' = 'wv_dnr'"
+            ),
+            {"sid": self.site_id},
+        ).scalars().all()
+        seen: set[str] = set()
+        for d in existing:
+            try:
+                seen.add(json.loads(d).get("waterbody", "").lower())
+            except Exception:
+                continue
+
+        inserted = 0
+        for feat in features:
+            attrs = feat.get("attributes", {})
+            name = (attrs.get("Name") or "").strip()
+            if not name or name.lower() not in WV_SHENANDOAH_WATERS:
+                continue
+            if name.lower() in seen:
+                continue
+            seen.add(name.lower())
+
+            counties = [
+                c for c in (attrs.get("County_1"), attrs.get("County_2"), attrs.get("County_3"))
+                if c and c.strip()
+            ]
+            desc = json.dumps({
+                "source": "wv_dnr",
+                "waterbody": name,
+                "county": counties[0] if counties else None,
+                "counties": counties,
+                "regulation": attrs.get("RegType"),
+                "hatchery": attrs.get("Hatchery"),
+                "nearest_city": attrs.get("NearCity"),
+                "stock_extent": attrs.get("StockExtent"),
+                "mileage": attrs.get("Mileage"),
+                "_data_shape": "stream_registry",
+            }, ensure_ascii=False)
+
+            self.session.execute(
+                text(
+                    "INSERT INTO interventions (id, site_id, type, description, started_at, created_at) "
+                    "VALUES (gen_random_uuid(), :sid, 'fish_stocking', :desc, NULL, now())"
+                ),
+                {"sid": self.site_id, "desc": desc},
+            )
+            inserted += 1
+
+        return inserted
 
     def _ingest_dnr_regs(self, client, site) -> int:
         """WV DNR fishing regulations.

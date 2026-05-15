@@ -27,6 +27,8 @@ Follow-on beads (one per sub-source):
         (Check RIDB coverage first — most VA state parks may already be there)
 """
 
+import json
+import re
 from datetime import datetime, timezone
 
 import httpx
@@ -34,6 +36,7 @@ from sqlalchemy import text
 
 from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
+from pipeline.ingest.geology import _arcgis_query_paginated, _esri_rings_to_geojson
 from pipeline.models import Site
 
 
@@ -41,8 +44,59 @@ from pipeline.models import Site
 
 VA_DWR_STOCKING_URL = "https://dwr.virginia.gov/fishing/trout-stocking-schedule/"
 VA_DWR_REGS_URL     = "https://dwr.virginia.gov/fishing/regulations/"
-VGS_ARCGIS_BASE     = "https://services.arcgis.com/p5v98VHDX9Atv3l7/ArcGIS/rest/services"
+# Virginia Energy DGMR (formerly VGS / DMME) — 1:500k state geologic map.
+# Layer 4 = "Map Units, Lithology" (polygons of geologic units with rock-type
+# attribution). Lives on the agency's own ArcGIS Server, not the public
+# services.arcgis.com tenant.
+VGS_GEOLOGY_MAPSERVER = (
+    "https://energy.virginia.gov/gis/rest/services/DGMR/Geology/MapServer/4/query"
+)
 VA_DCR_PARKS_URL    = "https://www.dcr.virginia.gov/state-parks/"
+
+# Waterbodies known to drain into the Shenandoah River. Used to scope VA-wide
+# stocking events to the Shenandoah watershed during ingest. Substring match
+# (case-insensitive) on the cleaned waterbody name from the DWR stocking page.
+# Conservative: omits waters near the Shenandoah valley that actually drain
+# elsewhere (e.g., Bullpasture → James, Maury → James, South Branch Potomac →
+# Potomac main stem, NOT Shenandoah). Add new entries here as guide review
+# identifies missed waters.
+SHENANDOAH_WATERS: tuple[str, ...] = (
+    # Main forks and main stem
+    "north fork shenandoah", "south fork shenandoah",
+    # Major tributaries
+    "south river", "north river", "middle river",
+    "hughes river", "rose river", "robinson river",
+    "moormans river", "moorman's river",
+    "dry river", "smith creek", "passage creek", "mossy creek", "beaver creek",
+    "linville creek", "war branch", "muddy creek",
+    "swift run",
+    # Mill Creek is ambiguous (multiple VA streams named that); only stocking
+    # rows in Shenandoah/Rockingham counties count as Shenandoah
+)
+SHENANDOAH_COUNTIES: tuple[str, ...] = (
+    "augusta", "rockingham", "shenandoah", "page", "warren",
+    "frederick", "clarke", "madison", "greene",
+    # Northern Albemarle drains into the South Fork via the Moormans + Rockfish
+    "albemarle",
+)
+
+
+def _is_shenandoah_water(waterbody: str, county: str) -> bool:
+    """Return True if this stocking row should be attributed to Shenandoah.
+
+    Two filters in OR: (a) the waterbody substring matches a known
+    Shenandoah water, OR (b) the waterbody is 'Mill Creek' and the county
+    is in a Shenandoah-drainage county (Mill Creek is a common name).
+    """
+    w = waterbody.lower()
+    c = county.lower().replace(" county", "").strip()
+    for name in SHENANDOAH_WATERS:
+        if name in w:
+            return True
+    # Mill Creek ambiguity guard — only count it when it's in a SR county.
+    if "mill creek" in w and c in SHENANDOAH_COUNTIES:
+        return True
+    return False
 
 
 # ── Adapter ─────────────────────────────────────────────────────────────────
@@ -98,18 +152,99 @@ class VirginiaDataAdapter(IngestionAdapter):
     def _ingest_dwr_stocking(self, client, site) -> int:
         """VA DWR weekly trout stocking schedule.
 
-        TODO: HTML scrape of VA_DWR_STOCKING_URL.
-          - Identify the stocking-table CSS selector (DOM inspection needed).
-          - Parse rows: water_name, county, stocking_date, species, fish_count.
-          - Map water_name → reach_id heuristically (lookup `silver.river_reaches`
-            for the watershed; match by lowercase substring on `name`).
-          - Insert into `interventions` table with intervention_type='stocking',
-            source_type='va_dwr', site_id=self.site_id.
-          - Existing `gold.stocking_schedule` MV will pick up rows automatically.
-        Follow-on bead: P1 VA DWR stocking adapter implementation.
+        Parses the DataTables HTML at VA_DWR_STOCKING_URL (table id=stocking-table)
+        and inserts Shenandoah-attributable rows into `interventions` with
+        type='fish_stocking'. The JSONB description matches the UDWR pattern so
+        the existing `gold.stocking_schedule` MV's UDWR UNION branch picks rows
+        up — source key is 'va_dwr' (the MV's UDWR predicate keys on 'udwr',
+        so a follow-on bead must extend `gold.stocking_schedule` to UNION
+        va_dwr rows too).
         """
-        console.print(f"      [dim]_ingest_dwr_stocking: not yet implemented (scaffold)[/dim]")
-        return 0
+        resp = client.get(VA_DWR_STOCKING_URL)
+        resp.raise_for_status()
+        html = resp.text
+
+        m = re.search(
+            r'<table[^>]*id=["\']stocking-table["\'][^>]*>(.*?)</table>',
+            html, re.DOTALL | re.IGNORECASE,
+        )
+        if not m:
+            console.print("      [yellow]VA DWR: stocking-table not found in HTML[/yellow]")
+            return 0
+        rows = re.findall(r'<tr[^>]*>(.*?)</tr>', m.group(1), re.DOTALL | re.IGNORECASE)
+
+        existing = self.session.execute(
+            text(
+                "SELECT description FROM interventions "
+                "WHERE site_id = :sid AND type = 'fish_stocking' "
+                "AND description::jsonb ->> 'source' = 'va_dwr'"
+            ),
+            {"sid": self.site_id},
+        ).scalars().all()
+        seen: set[tuple[str, str]] = set()
+        for d in existing:
+            try:
+                j = json.loads(d)
+                seen.add((j.get("stocking_date", ""), j.get("waterbody", "").lower()))
+            except Exception:
+                continue
+
+        inserted = 0
+        for row in rows:
+            cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL | re.IGNORECASE)
+            if len(cells) < 4:
+                continue
+            date_raw  = re.sub(r'<[^>]+>', '', cells[0]).strip()
+            county    = re.sub(r'<[^>]+>', '', cells[1]).strip()
+            waterbody = re.sub(r'<[^>]+>', '', cells[2]).strip()
+            category  = re.sub(r'<[^>]+>', '', cells[3]).strip() if len(cells) > 3 else ""
+            species_cell = cells[4] if len(cells) > 4 else cells[-1]
+            species_list = [
+                re.sub(r'<[^>]+>', '', li).strip()
+                for li in re.findall(r'<li[^>]*>(.*?)</li>', species_cell, re.DOTALL | re.IGNORECASE)
+            ]
+            if not species_list:
+                txt = re.sub(r'<[^>]+>', '', species_cell).strip()
+                species_list = [s.strip() for s in re.split(r'[,;]| and ', txt) if s.strip()]
+
+            if not _is_shenandoah_water(waterbody, county):
+                continue
+
+            started_at = None
+            for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%B %d, %Y"):
+                try:
+                    started_at = datetime.strptime(date_raw, fmt).replace(tzinfo=timezone.utc)
+                    break
+                except ValueError:
+                    continue
+            if started_at is None:
+                continue
+            date_iso = started_at.date().isoformat()
+
+            key = (date_iso, waterbody.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+
+            desc = json.dumps({
+                "source": "va_dwr",
+                "waterbody": waterbody,
+                "county": county,
+                "category": category,
+                "species": species_list,
+                "stocking_date": date_iso,
+            }, ensure_ascii=False)
+
+            self.session.execute(
+                text(
+                    "INSERT INTO interventions (id, site_id, type, description, started_at, created_at) "
+                    "VALUES (gen_random_uuid(), :sid, 'fish_stocking', :desc, :sa, now())"
+                ),
+                {"sid": self.site_id, "desc": desc, "sa": started_at},
+            )
+            inserted += 1
+
+        return inserted
 
     def _ingest_dwr_regs(self, client, site) -> int:
         """VA DWR fishing regulations — special-regulation streams.
@@ -128,16 +263,78 @@ class VirginiaDataAdapter(IngestionAdapter):
         return 0
 
     def _ingest_vgs_geology(self, client, site) -> int:
-        """VGS geologic units intersecting the watershed bbox.
+        """DGMR (formerly VGS) — VA state geologic-unit polygons in bbox.
 
-        TODO: ArcGIS REST query against VGS FeatureServer for geologic units
-        within site.bbox. Insert into `geologic_units` table (same schema as
-        macrostrat + DOGAMI rows). source_type='vgs'.
-        Follow-on bead: P2 VGS geology adapter (discover ArcGIS endpoint;
-        DMME may have moved to a successor agency in recent VA reorgs).
+        Mirrors the DOGAMI pattern in pipeline/ingest/geology.py — ArcGIS
+        REST polygons → geologic_units rows. VGS publishes no numeric ages
+        (only formation labels like "Ob"/"Cb" that encode period), so
+        age_min_ma/age_max_ma stay NULL like DOGAMI rows do.
         """
-        console.print(f"      [dim]_ingest_vgs_geology: not yet implemented (scaffold)[/dim]")
-        return 0
+        bbox = site.bbox
+        if not bbox:
+            return 0
+        features = _arcgis_query_paginated(client, VGS_GEOLOGY_MAPSERVER, bbox, max_per_page=1000)
+        if not features:
+            return 0
+
+        SQL = text("""
+            INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                geometry, data_payload)
+            VALUES (gen_random_uuid(), 'vgs', :source_id, :unit_name, :formation,
+                :rock_type, :lithology, NULL, NULL, NULL, :description,
+                ST_GeomFromGeoJSON(:geojson), CAST(:payload AS jsonb))
+            ON CONFLICT DO NOTHING
+        """)
+        SQL_NO_GEOM = text("""
+            INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                data_payload)
+            VALUES (gen_random_uuid(), 'vgs', :source_id, :unit_name, :formation,
+                :rock_type, :lithology, NULL, NULL, NULL, :description,
+                CAST(:payload AS jsonb))
+            ON CONFLICT DO NOTHING
+        """)
+
+        # Dedup against any prior vgs rows for this bbox (re-runs are idempotent
+        # at the (source, source_id) level since OBJECTID is stable per feature).
+        existing_ids = {
+            row[0] for row in self.session.execute(
+                text("SELECT source_id FROM geologic_units WHERE source = 'vgs'")
+            )
+        }
+
+        created = 0
+        with engine.connect() as conn:
+            for f in features:
+                attrs = f.get("attributes", {}) or {}
+                source_id = str(attrs.get("OBJECTID", ""))
+                if not source_id or source_id in existing_ids:
+                    continue
+                geojson = _esri_rings_to_geojson(f.get("geometry"))
+                unit_name = (attrs.get("Symbol") or "")[:255]
+                formation = (attrs.get("Label") or "")[:255]
+                rock_type = (attrs.get("RockType1") or "")[:100]
+                lithology = (attrs.get("RockType2") or "")[:255]
+                description = attrs.get("Notes") or ""
+
+                params = {
+                    "source_id": source_id,
+                    "unit_name": unit_name,
+                    "formation": formation,
+                    "rock_type": rock_type,
+                    "lithology": lithology,
+                    "description": description,
+                    "payload": json.dumps(attrs),
+                }
+                if geojson:
+                    params["geojson"] = geojson
+                    conn.execute(SQL, params)
+                else:
+                    conn.execute(SQL_NO_GEOM, params)
+                created += 1
+            conn.commit()
+        return created
 
     def _ingest_dcr_parks(self, client, site) -> int:
         """VA DCR state parks within the watershed bbox.
