@@ -107,8 +107,23 @@ unavailable / manual?*
 | DeepTrail | Deep Time stories | All of the above feeding `gold.deep_time_story` | derived |
 
 The agent expands this table with concrete answers for the target watershed. For any **NEW** adapter,
-it identifies the authoritative source (state agency URL, API doc, robots.txt status, rate limits,
-whether an API key is required).
+it identifies:
+
+- Authoritative source URL + API doc URL
+- `robots.txt` status (HTML scrapers only) and the User-Agent the agent will identify as
+- Rate limits / quota
+- API key requirement — **stop and ask the user before proceeding** if a paid key is required
+  (see §"Pause / escalation triggers")
+- **License (per ADR-008):** one of `Public Domain`, `CC0`, `CC BY 4.0`, `CC BY-NC`,
+  `Public Records`, `Varies`, `Academic Free`, `All rights reserved`, or the exact license string
+  the source asserts
+- **`commercial: true|false`** — whether the license permits use behind a paid B2B feature.
+  iNaturalist CC-BY-NC photos are `commercial: false`; all USGS / NWS / NOAA / EPA federal data is
+  `commercial: true`; state-agency data is usually `Public Records` + `commercial: true` but verify
+  the state's open-records statute
+- Attribution requirement (text to render, link target)
+- Redistribution restrictions (some agencies forbid republishing raw rows; in those cases the
+  adapter must store the data internally but never expose unaggregated rows via the public API)
 
 ### 1.2 Watershed geometry & topology
 
@@ -126,34 +141,44 @@ whether an API key is required).
 
 ### 1.3 Per-source check matrix
 
-For every row in §1.1, produce a check line:
+For every row in §1.1, produce a check line that includes the **license + commercial-use**
+assessment per ADR-008:
 
 ```
-✓ usgs           — 14 gauges in bbox (NWIS site list verified)
-✓ snotel         — 6 SNOTEL stations in HUC8 / HUC10
-✓ nws            — closest forecast office: BYZ (Billings); gridpoint 102,87
-✓ mtbs           — 3 perimeters intersecting bbox 1984-2023
-✓ inaturalist    — ~2,400 research-grade observations in bbox (last 5y)
-✓ wqp            — 412 monitoring stations in bbox
+✓ usgs           — 14 gauges in bbox (NWIS site list verified) — Public Domain, commercial:true
+✓ snotel         — 6 SNOTEL stations in HUC8 / HUC10           — Public Domain, commercial:true
+✓ nws            — forecast office BYZ (Billings); gridpoint 102,87 — Public Domain, commercial:true
+✓ mtbs           — 3 perimeters intersecting bbox 1984-2023    — Public Domain, commercial:true
+✓ inaturalist    — ~2,400 research-grade observations in bbox  — CC-BY-NC (mixed), commercial:false
+                   (B2B paid surfaces must filter to commercial:true sources only — RiverSignal
+                    reports should not embed iNat photos unless we add CC-BY-only filtering)
+✓ wqp            — 412 monitoring stations in bbox             — Public Domain, commercial:true
 ⚠ fishing        — state is MT (not OR); existing adapter is ODFW-only → NEW adapter required
                    (target source: MT FWP fishing reports + stocking schedule)
+                   — anticipated license: Public Records, commercial:true
 ⚠ state_geology  — state is MT; no MBMG adapter exists → NEW adapter required
                    (target source: Montana Bureau of Mines and Geology web services)
+                   — license depends on dataset; verify per-feed before authoring
 ✗ deq_303d       — Montana DEQ 303(d) list is PDF-only, no structured feed
                    → manual JSON import + scheduled re-check
+                   — license: Public Records (statute permits republishing)
 ✗ curated_hatch_chart — entomologist input required; auto-seed from nearest existing watershed
                        (mckenzie hatch chart) with `needs_entomologist_review=true`
+                       — license: this project's hand-curated content, commercial:true
 ```
+
+The license + commercial column lands in the §1.4 gap-report table as a column, and in the
+§2.2 new-adapter checklist as step 5.
 
 ### 1.4 Gap report + recommendations
 
 A markdown table at the end of the inventory listing every `⚠` or `✗` from §1.3 with:
 
-| Gap | Recommended fill | Cost / effort | Blocker for v1? |
-|---|---|---|---|
-| MT FWP stocking | New adapter (~1d) following `fishing.py` pattern | dev time | no — auto-draft v0 with empty schedule |
-| MBMG geology | New adapter; check ArcGIS REST service availability | dev time + API discovery | no — DeepTrail can ship with macrostrat-only for v1 |
-| MT DEQ 303(d) | Manual JSON import; quarterly recheck | curator | no — RiverSignal view degrades gracefully |
+| Gap | Recommended fill | Cost / effort | License + commercial | Blocker for v1? |
+|---|---|---|---|---|
+| MT FWP stocking | New adapter (~1d) following `fishing.py` pattern | dev time | Public Records, commercial:true | no — auto-draft v0 with empty schedule |
+| MBMG geology | New adapter; check ArcGIS REST service availability | dev time + API discovery | varies — verify per dataset | no — DeepTrail can ship with macrostrat-only for v1 |
+| MT DEQ 303(d) | Manual JSON import; quarterly recheck | curator | Public Records, commercial:true | no — RiverSignal view degrades gracefully |
 
 **Stop conditions for Step 1:** if the agent finds a required-for-v1 source that requires an
 unobtainable API key, halt and report. Otherwise: proceed to Step 2 with all `⚠` items listed as
@@ -182,6 +207,27 @@ Bbox must be the refined value from §1.2, not the user-supplied `BBOX_HINT`.
 
 ### 2.2 New state-agency adapters (only when §1.3 flagged `NEW adapter required`)
 
+**ADR-008 requirement.** Every new adapter MUST declare a license + commercial-use flag, per
+`docs/helix/02-design/adr/ADR-008-source-license-tagging.md`. The ADR specifies a
+`SOURCE_META` dict, which **is not implemented in the codebase yet** as of this runbook's
+verification date — until it lands, declare the license in two places:
+
+1. The §1.3 inventory check line for the source
+2. The adapter file's module docstring (top of the new `.py`), in this form:
+
+   ```python
+   """<Adapter name> — <one-line purpose>.
+
+   Source: <upstream-url>
+   License: <CC0 | Public Domain | CC BY 4.0 | CC BY-NC | Public Records | ...>
+   commercial: <true|false>  # whether OK for B2B paid surfaces
+   Attribution: "<exact text and link target the UI must render>"
+   """
+   ```
+
+When ADR-008's `SOURCE_META` runtime structure lands, the docstring metadata moves into it. Until
+then, the docstring is the canonical source of truth.
+
 For each new adapter:
 
 1. **Adapter file** — either a new `pipeline/ingest/<name>.py` (one adapter per file is the most
@@ -199,12 +245,15 @@ For each new adapter:
 4. Log to `ingestion_jobs` via `self.create_job()` / `self.complete_job()` — the freshness
    endpoint depends on this. `create_job()` uses `self.site_id` from the constructor, so the
    adapter receives a site via `pipeline/cli.py`'s per-site loop — no extra wiring needed.
-5. Add the new source to `app/routers/data_status.py:SOURCE_REFRESH_HOURS` with the appropriate
+5. **License + commercial-use declaration (ADR-008).** Module docstring per the template above.
+   Once ADR-008's `SOURCE_META` runtime dict lands, add an entry there too — until then, the
+   docstring is canonical.
+6. Add the new source to `app/routers/data_status.py:SOURCE_REFRESH_HOURS` with the appropriate
    cadence (daily/weekly/monthly).
-6. Add the human label to `frontend/src/hooks/useFreshness.ts:SOURCE_LABELS`.
-7. Register the adapter in `pipeline/cli.py`'s `adapters` dict inside the `ingest()` function so
+7. Add the human label to `frontend/src/hooks/useFreshness.ts:SOURCE_LABELS`.
+8. Register the adapter in `pipeline/cli.py`'s `adapters` dict inside the `ingest()` function so
    `python -m pipeline.cli ingest <source> -w all` works.
-8. **Watershed-scoping caveat.** Existing state adapters hard-code which watersheds they cover
+9. **Watershed-scoping caveat.** Existing state adapters hard-code which watersheds they cover
    inside the adapter body. Examples:
    - `pipeline/ingest/washington.py`: `if site.watershed not in ("skagit",): skip`
    - `pipeline/ingest/utah.py`:       `if site.watershed not in ("green_river",): skip`
@@ -213,9 +262,9 @@ For each new adapter:
    the existing adapter's scoping tuple** to include the new watershed slug — otherwise the
    `python -m pipeline.cli ingest <state> -w <new_watershed>` invocation silently does nothing
    for the new watershed.
-9. Write a unit test in `tests/test_ingest_<source>.py` with a recorded HTTP fixture (use the
-   `httpx` recorder pattern from existing adapter tests if present, otherwise vcrpy or a static
-   JSON fixture).
+10. Write a unit test in `tests/test_ingest_<source>.py` with a recorded HTTP fixture (use the
+    `httpx` recorder pattern from existing adapter tests if present, otherwise vcrpy or a static
+    JSON fixture).
 
 Each adapter ships as its own commit.
 
