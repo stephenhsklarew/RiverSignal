@@ -74,7 +74,9 @@ def ingest(source: str, watershed: str, from_date):
     from pipeline.ingest.recreation import RecreationAdapter
     from pipeline.ingest.usgs import USGSAdapter
     from pipeline.ingest.utah import UtahDataAdapter
+    from pipeline.ingest.virginia import VirginiaDataAdapter
     from pipeline.ingest.washington import WashingtonDataAdapter
+    from pipeline.ingest.west_virginia import WestVirginiaDataAdapter
     from pipeline.ingest.wqp_bugs import WQPBugsAdapter
 
     adapters = {
@@ -103,7 +105,9 @@ def ingest(source: str, watershed: str, from_date):
         "recreation": RecreationAdapter,
         "wqp_bugs": WQPBugsAdapter,
         "utah": UtahDataAdapter,
+        "virginia": VirginiaDataAdapter,
         "washington": WashingtonDataAdapter,
+        "west_virginia": WestVirginiaDataAdapter,
     }
 
     watersheds = list(WATERSHEDS.keys()) if watershed == "all" else [watershed]

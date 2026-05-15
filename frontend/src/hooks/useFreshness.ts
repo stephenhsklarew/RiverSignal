@@ -42,6 +42,8 @@ const SOURCE_LABELS: Record<string, string> = {
   deq_303d: 'EPA 303(d)',
   washington: 'Washington state',
   utah: 'Utah state',
+  virginia: 'Virginia state',
+  west_virginia: 'West Virginia state',
   wbd: 'USGS WBD',
   nhdplus: 'NHDPlus',
   nwi: 'National Wetlands Inventory',

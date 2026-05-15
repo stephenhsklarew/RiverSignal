@@ -26,6 +26,8 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "wqp": 168,
     "washington": 168,
     "utah": 168,
+    "virginia": 168,           # VA DWR stocking + regulations
+    "west_virginia": 168,      # WV DNR stocking + regulations
     # Monthly ingestion (1st @ 05:00 PT)
     "biodata": 720,
     "wqp_bugs": 720,
