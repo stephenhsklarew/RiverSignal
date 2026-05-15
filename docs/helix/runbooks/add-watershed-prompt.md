@@ -136,10 +136,12 @@ must not introduce more.
 | `silver.river_reaches` | 3 | Upper/Middle/Lower reach defs with gauge + species + bbox | alembic seed migration |
 | `silver.flow_quality_bands` | 3 | cfs ideal/low/high band per reach | alembic seed migration |
 | `silver.tqs_seasonal_modifiers` | 3 (cross-watershed) | Dry-fly summer / winter steelhead / spring runoff weight nudges | one seed migration, applies to all watersheds |
-| `curated_hatch_chart` | 10 | Aquatic insect emergence windows per species | hand-curated; entomologist-reviewed |
+| `curated_hatch_chart` | 10 | Aquatic insect emergence windows per species | hand-curated; **entomologist-reviewed** |
+| `fly_shops_guides` | 5 (where `'mckenzie' = ANY(watersheds)`) | Fly shop + guide service directory: name, type, city, address, lat/lon, phone, website | manual research per watershed |
+| `mineral_shops` | 2 | Rock & mineral shop directory: name, city, address, lat/lon, phone, website | manual research per watershed |
+| `rockhounding_sites` | 2 (via `watersheds text[]`) | Legal-collecting sites with land owner + collecting-rules + nearest town. Lean conservative — liability risk on bad entries | manual curation from BLM + USFS districts + published rockhound guides |
 | `river_stories` | 3 | LLM-drafted river narrative at 3 reading levels (adult/kids/expert) | `python -m pipeline.generate_river_stories -w mckenzie` |
 | `deep_time_stories` | 29 (cross-watershed) | LLM-drafted geology story per significant location | DeepTrail curator + LLM |
-| `rockhounding_sites` | 1 | Legal collecting sites with PLSS access notes | manual curation from BLM + state guides |
 | `fly_tying_videos` | 47 (cross-watershed) | YouTube tutorial links per fly pattern | manually curated from named channels |
 | `mineral_sites` photos | ~137 | Wikimedia-Commons photos matched per commodity | static lookup table |
 
@@ -219,10 +221,14 @@ must not introduce more.
 | RiverPath | Photo observations | ✓ | inaturalist photos via `gold.species_gallery` |
 | RiverPath | Fish passage | ✓ | `interventions` rows where `intervention_type='fish_passage'` |
 | RiverPath | 14-day forecast | ✓ | `gold.trip_quality_daily` next 14 days |
+| RiverPath | Fly shop directory | ✓ | `fly_shops_guides` (5 McKenzie rows; type='fly_shop' or 'guide') |
+| RiverPath | Guide service directory | ✓ | `fly_shops_guides` (subset where type='guide') |
+| RiverPath | Guide-availability divergence | ✗ | `bronze.guide_availability` empty — scaffolding only, no live guide adapters yet (cross-watershed gap) |
 | DeepTrail | Geology units | ✓ | `geologic_units` (macrostrat + DOGAMI for OR) |
 | DeepTrail | Fossil sites | ✓ | `fossil_occurrences` (23 rows: pbdb + idigbio + gbif) |
-| DeepTrail | Rockhound sites | ⚠ | `rockhounding_sites` has only 1 McKenzie row — under-curated |
+| DeepTrail | Rockhound sites | ⚠ | `rockhounding_sites` has 2 McKenzie rows — light coverage but legally-conservative; expand only with verified BLM/USFS confirmation |
 | DeepTrail | Mineral deposits | ✓ | `mineral_deposits` (137 rows) |
+| DeepTrail | Mineral & rock shop directory | ⚠ | `mineral_shops` has 2 McKenzie rows — light; expand via Google + AFMS club rolls |
 | DeepTrail | Deep Time story | ⚠ | `deep_time_stories` is cross-watershed; specific McKenzie story coverage depends on `location_id` mapping (see RiverSignal `/trail/story` route) |
 
 **"Fully loaded" means most rows in that table are ✓** — a new watershed won't match these counts
@@ -284,12 +290,16 @@ unavailable / manual?*
 | RiverPath | Photo observations | iNaturalist (CC-licensed) | `inaturalist` |
 | RiverPath | Stocking schedule | State hatchery feeds (ODFW, WDFW, UDWR, ID F&G, MT FWP, CDFW, NMDGF, etc.) | `fishing` (Oregon only), `washington`, `utah` — others NEW |
 | RiverPath | Fish passage | USGS / state passage barriers | `fish_barrier` |
+| RiverPath | Fly shop directory | Manually curated business listings (name, address, lat/lon, phone, website) | `fly_shops_guides` table — **manual research per watershed** (Google/Maps + local fly-fishing forums) |
+| RiverPath | Guide service directory | Same table as fly shops (rows have `type='guide'` vs `type='fly_shop'`) | `fly_shops_guides` table — **manual research per watershed** |
+| RiverPath | Guide-availability divergence (TQS why-panel) | Scraped public booking calendars | `bronze.guide_availability` via `pipeline/ingest/guide_availability.py` — empty until per-guide adapters land (currently scaffolding) |
 | RiverPath | Swim safety | USGS temp + flow, NLDAS-derived | derived view |
 | RiverPath | Snowpack | NRCS SNOTEL | `snotel` |
 | RiverPath | Recreation sites | RIDB (USFS, BLM, NPS, USACE, USBR) + state parks | `recreation` |
 | **DeepTrail** | Geology units | Macrostrat, state geology (DOGAMI for OR; WSGS for WY; MBMG for MT; etc.) | `macrostrat`, `dogami` (OR only) — others NEW |
 | DeepTrail | Fossil sites | PBDB, iDigBio, state paleo | `pbdb`, `idigbio`, `biodata` |
-| DeepTrail | Rockhound sites | BLM PLSS, state rockhounding lists, manual curation | `blm_sma` + manual `rockhounding_sites` |
+| DeepTrail | Rockhound sites | BLM PLSS + state rockhounding guides (Falcon, GemTrails) + national-forest district info | `rockhounding_sites` table — **manual curation per watershed**, ~3-10 rows expected |
+| DeepTrail | Mineral & rock shop directory | Manually curated business listings | `mineral_shops` table — **manual research per watershed** |
 | DeepTrail | Mineral deposits | USGS MRDS | `mrds` |
 | DeepTrail | Deep Time stories | All of the above feeding `gold.deep_time_story` | derived |
 
@@ -545,6 +555,43 @@ report (§3.6) if the new watershed touches the WQP adapter. Don't replicate thi
    only UDWR data). Instead: open a P2 follow-on bead — *"Author <STATE> stocking adapter for
    <WATERSHED_SLUG>"* — referencing this prompt's §1.3 gap-report line for the source.
 
+6. **Fly shop + guide directory (`fly_shops_guides`)** — research and seed:
+   - Source list: Google Maps search for *"fly shop near <nearest town to watershed>"*, ODFW
+     guide license registry (or state equivalent), American Fly Fishing Trade Association directory,
+     local Trout Unlimited chapter directory, fly-shop websites' "areas we cover" pages.
+   - Schema: `(name, type, watersheds[], city, state, address, latitude, longitude, phone, website,
+     description)`. `type` is `'fly_shop'` or `'guide'`. `watersheds` is a text[] — a single business
+     can serve multiple watersheds (e.g., The Caddis Fly in Eugene serves McKenzie + Willamette).
+   - Target: 3-10 rows per watershed. Mark `description` with `(needs_owner_verification — v0 auto-curation YYYY-MM-DD)`
+     so a future curator can refresh contact details. Idempotent insert: check by (name, city) before insert.
+   - Commit as: `v0 seed: <WATERSHED_SLUG> fly_shops_guides — needs_review=true`.
+
+7. **Mineral & rock shops (`mineral_shops`)** — same pattern, scoped to DeepTrail:
+   - Source list: Google Maps "rock shop"/"gem & mineral"/"lapidary" near nearest town; American
+     Federation of Mineralogical Societies club directory; state geological society retail member
+     lists.
+   - Schema: `(name, city, address, latitude, longitude, phone, website, description, watersheds[])`.
+   - Target: 1-5 rows per watershed (the table is sparser than fly shops by domain). v0 only —
+     same `(needs_owner_verification)` marker.
+   - Commit as: `v0 seed: <WATERSHED_SLUG> mineral_shops — needs_review=true`.
+
+8. **Rockhounding sites (`rockhounding_sites`)** — high-care: legal-collecting locations carry
+   liability risk if wrong. Required sources for each row:
+   - **Land ownership** confirmed via BLM SMA layer (already in DB via `blm_sma`), USFS district
+     office, or state DNR holdings. Federal wilderness, national parks, and most state parks
+     prohibit collecting — exclude these.
+   - **Collecting rules** from the specific managing district (BLM field office, USFS ranger
+     district): commercial-collection bans, daily limits, casual-collection-only zones.
+   - **Provenance**: cite a published rockhounding guide (Falcon's *Rockhounding Oregon*, etc.)
+     or a state mineral society field-trip log. Don't invent sites from forum posts.
+   - Schema includes `name, rock_type, latitude, longitude, land_owner, collecting_rules,
+     nearest_town, description, watersheds[]`. v0 target: 2-5 rows per watershed; lean conservative.
+   - Commit as: `v0 seed: <WATERSHED_SLUG> rockhounding_sites — needs_curator_review=true; legal-collecting verified <DATE>`.
+
+9. **Expert hatch chart (`curated_hatch_chart`)** — already in step 3 above; mentioned here as a
+   reminder that it lives alongside the other manually-curated tables and shares the same
+   `needs_review` posture. Target: 8-15 species per watershed depending on aquatic-insect diversity.
+
 Each draft seed = one commit, message format:
 `v0 seed: <WATERSHED_SLUG> <artifact> — needs_review=true`.
 
@@ -691,6 +738,12 @@ UNION ALL
 SELECT 'fire_perimeters',     count(*) FROM fire_perimeters  fp JOIN sites s ON s.id = fp.site_id WHERE s.watershed = :ws
 UNION ALL
 SELECT 'curated_hatch_chart', count(*) FROM curated_hatch_chart WHERE watershed = :ws
+UNION ALL
+SELECT 'fly_shops_guides',    count(*) FROM fly_shops_guides   WHERE :ws = ANY(watersheds)
+UNION ALL
+SELECT 'mineral_shops',       count(*) FROM mineral_shops      WHERE :ws = ANY(watersheds)
+UNION ALL
+SELECT 'rockhounding_sites',  count(*) FROM rockhounding_sites WHERE :ws = ANY(watersheds)
 UNION ALL
 SELECT 'river_reaches',       count(*) FROM silver.river_reaches    WHERE watershed = :ws
 UNION ALL
