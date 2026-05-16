@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { Link } from 'react-router-dom'
-import { API_BASE } from '../config'
 import lmLogo from '../assets/liquid-marble-logo.png'
 import './StatusPage.css'
 
-const API = API_BASE
 
 // Static metadata about each pipeline adapter
 const SOURCE_META: Record<string, { description: string; upstream: string; refresh: string; license?: string; commercial?: boolean }> = {
@@ -167,37 +166,36 @@ export default function StatusPage() {
     }
   }, [loading])
 
+  // /data-status drives the whole page. SWR keeps the prior payload
+  // visible while it revalidates in the background (cache survives
+  // navigation, refreshes when user returns to the tab).
+  const { data: dsData, error: dsError } = useSWR<any>('/data-status', { dedupingInterval: 60_000 })
+
   useEffect(() => {
-    fetch(`${API}/data-status`)
-      .then(r => r.json())
-      .then(data => {
-        const syncMap: Record<string, { last_sync: string; failed: number }> = {}
-        for (const p of (data.pipelines || [])) {
-          syncMap[p.source] = { last_sync: p.last_sync, failed: p.failed }
-        }
-
-        setSources(Object.entries(SOURCE_META).map(([key, meta]) => ({
-          source_type: key,
-          description: meta.description,
-          upstream_frequency: meta.upstream,
-          refresh_schedule: meta.refresh,
-          last_sync: syncMap[key]?.last_sync || null,
-          status: syncMap[key] ? (syncMap[key].failed > 0 ? 'warning' : 'healthy') : 'unknown',
-          license: meta.license,
-          commercial: meta.commercial,
-        })))
-
-        setBronzeTables(data.bronze?.tables || {})
-        setSilverTables(data.silver?.tables || {})
-        setGoldTables(data.gold?.tables || {})
-        setCurated(data.curated || [])
-
-        const bt = data.bronze?.tables || {}
-        setTotalRecords(Object.values(bt).reduce((a: number, b: any) => a + (b || 0), 0))
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [])
+    if (dsError) { setLoading(false); return }
+    if (!dsData) return
+    const syncMap: Record<string, { last_sync: string; failed: number }> = {}
+    for (const p of (dsData.pipelines || [])) {
+      syncMap[p.source] = { last_sync: p.last_sync, failed: p.failed }
+    }
+    setSources(Object.entries(SOURCE_META).map(([key, meta]) => ({
+      source_type: key,
+      description: meta.description,
+      upstream_frequency: meta.upstream,
+      refresh_schedule: meta.refresh,
+      last_sync: syncMap[key]?.last_sync || null,
+      status: syncMap[key] ? (syncMap[key].failed > 0 ? 'warning' : 'healthy') : 'unknown',
+      license: meta.license,
+      commercial: meta.commercial,
+    })))
+    setBronzeTables(dsData.bronze?.tables || {})
+    setSilverTables(dsData.silver?.tables || {})
+    setGoldTables(dsData.gold?.tables || {})
+    setCurated(dsData.curated || [])
+    const bt = dsData.bronze?.tables || {}
+    setTotalRecords(Object.values(bt).reduce((a: number, b: any) => a + (b || 0), 0))
+    setLoading(false)
+  }, [dsData, dsError])
 
   const now = new Date()
   function freshness(lastSync: string | null): { label: string; cls: string } {

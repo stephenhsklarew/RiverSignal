@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import useSWR from 'swr'
 import { useNavigate, useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import { useAuth } from '../components/AuthContext'
-import { API_BASE } from '../config'
 import './MyObsMapPage.css'
 
-const API = API_BASE
 
 const WS_CENTERS: Record<string, [number, number]> = {
   mckenzie: [-122.3, 44.1],
@@ -47,25 +46,21 @@ export default function MyObsMapPage() {
   const ws = paramWs || getSelectedWatershed() || 'mckenzie'
   const { isLoggedIn } = useAuth()
 
-  const [obs, setObs] = useState<UserObservation[]>([])
-  const [loading, setLoading] = useState(true)
+  // SWR-backed so map pins render from cache instantly on navigation;
+  // shares the cache key with SavedPage's `/observations/user` fetch.
+  const { data: obsRaw, isLoading } = useSWR<UserObservation[]>(
+    isLoggedIn ? `/observations/user?mine=true&watershed=${ws}` : null,
+    { dedupingInterval: 60_000 },
+  )
+  const obs: UserObservation[] = Array.isArray(obsRaw)
+    ? obsRaw.filter(o => o.latitude != null && o.longitude != null)
+    : []
+  const loading = isLoggedIn ? isLoading : false
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
-
-  useEffect(() => {
-    if (!isLoggedIn) { setObs([]); setLoading(false); return }
-    setLoading(true)
-    fetch(`${API}/observations/user?mine=true&watershed=${ws}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
-        setObs(Array.isArray(data) ? data.filter(o => o.latitude != null && o.longitude != null) : [])
-        setLoading(false)
-      })
-      .catch(() => { setObs([]); setLoading(false) })
-  }, [ws, isLoggedIn])
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return

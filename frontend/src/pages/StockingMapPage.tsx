@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import useSWR from 'swr'
 import { useNavigate, useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
-import { API_BASE } from '../config'
 import './StockingMapPage.css'
 
-const API = API_BASE
 
 const WS_CENTERS: Record<string, [number, number]> = {
   mckenzie: [-122.3, 44.1],
@@ -38,24 +37,20 @@ export default function StockingMapPage() {
   const { watershed: paramWs } = useParams<{ watershed?: string }>()
   const ws = paramWs || getSelectedWatershed() || 'deschutes'
 
-  const [locations, setLocations] = useState<StockingLocation[]>([])
-  const [loading, setLoading] = useState(true)
+  // Stale-while-revalidate so navigating into the stocking map renders
+  // pins from the SWR cache instantly (same key any other page using
+  // /sites/<ws>/fishing/stocking/locations would prime).
+  const { data: locationsRaw, isLoading: locationsLoading } = useSWR<StockingLocation[]>(
+    `/sites/${ws}/fishing/stocking/locations`,
+    { dedupingInterval: 60 * 60 * 1000 },
+  )
+  const locations: StockingLocation[] = Array.isArray(locationsRaw) ? locationsRaw : []
+  const loading = locationsLoading
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
-
-  useEffect(() => {
-    setLoading(true)
-    fetch(`${API}/sites/${ws}/fishing/stocking/locations`)
-      .then(r => r.json())
-      .then(data => {
-        setLocations(Array.isArray(data) ? data : [])
-        setLoading(false)
-      })
-      .catch(() => { setLocations([]); setLoading(false) })
-  }, [ws])
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
