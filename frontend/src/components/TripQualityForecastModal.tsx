@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { API_BASE } from '../config'
+import ForecastModalNudge from './ForecastModalNudge'
 import './TripQualityForecastModal.css'
 
 interface SubScores {
@@ -136,6 +137,7 @@ export default function TripQualityForecastModal({
           <div className="tqs-fc-title">14-day Forecast</div>
           <button className="tqs-fc-close" onClick={onClose} aria-label="Close forecast">✕</button>
         </header>
+        <ForecastModalNudge watershed={watershed} />
         {data && data.days.length > 1 && (
           <div className="tqs-fc-hint" aria-hidden="true">
             Swipe right to see other days →

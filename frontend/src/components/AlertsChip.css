@@ -1,0 +1,28 @@
+.alerts-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 11px;
+  background: #faf8f3;
+  border: 1px solid #d4cdb8;
+  border-radius: 999px;
+  color: #5a4a2a;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  min-height: 32px;
+}
+
+.alerts-chip:active { transform: scale(0.97); }
+
+.alerts-chip.on {
+  background: #e8f1ea;
+  border-color: #2c6e49;
+  color: #1a4a32;
+}
+
+.alerts-chip.paused {
+  background: #f3eedf;
+  border-color: #c4a878;
+  color: #7a5a25;
+}

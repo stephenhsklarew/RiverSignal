@@ -166,3 +166,74 @@
 .digest-day.mixed       .digest-day-score { color: #a68b3a; }
 .digest-day.marginal    .digest-day-score { color: #b5683a; }
 .digest-day.unfavorable .digest-day-score { color: #a13a3a; }
+
+/* ── SMS tab ──────────────────────────────────────────────────────────────── */
+
+.sms-pane { padding: 8px 0 16px; }
+
+.sms-status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: #faf8f3;
+  border: 1px solid #e6e1d4;
+  border-radius: 10px;
+}
+.sms-status-pill {
+  font-size: 0.88rem; font-weight: 500;
+  color: #5a4a2a;
+}
+.sms-pause-btn {
+  background: #fff; border: 1px solid #c4a878;
+  padding: 6px 14px; border-radius: 8px;
+  font-family: inherit; font-size: 0.82rem;
+  color: #7a5a25; cursor: pointer;
+}
+.sms-pause-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sms-sub-list {
+  list-style: none; padding: 0; margin: 0 0 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sms-sub-row {
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #e6e1d4;
+  border-radius: 10px;
+}
+.sms-sub-name {
+  font-size: 0.98rem; font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+.sms-sub-controls {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+}
+.sms-threshold-control {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; color: #666;
+}
+.sms-threshold-control select {
+  font-family: inherit; font-size: 0.85rem;
+  padding: 4px 6px;
+  border-radius: 6px; border: 1px solid #d4cdb8;
+  background: #fff;
+}
+.sms-remove-btn {
+  margin-left: auto;
+  background: none; border: 1px solid #d4cdb8;
+  padding: 5px 10px; border-radius: 6px;
+  color: #a13a3a; font-family: inherit; font-size: 0.78rem;
+  cursor: pointer;
+}
+.sms-add-btn {
+  display: block; width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px dashed #c4a878;
+  border-radius: 10px;
+  color: #2c6e49;
+  font-family: inherit; font-size: 0.9rem;
+  cursor: pointer;
+}

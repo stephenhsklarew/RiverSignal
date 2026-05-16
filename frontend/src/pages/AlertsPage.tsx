@@ -9,12 +9,13 @@ import useSWR, { mutate } from 'swr'
 import { API_BASE } from '../config'
 import { useAuth } from '../components/AuthContext'
 import LoginModal from '../components/LoginModal'
+import AlertsOptInSheet from '../components/AlertsOptInSheet'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import './AlertsPage.css'
 
 const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then(r => r.json())
 
-type Tab = 'watchlist' | 'notifications' | 'digest'
+type Tab = 'watchlist' | 'notifications' | 'digest' | 'sms'
 
 function bandLabel(tqs: number): { label: string; cls: string } {
   if (tqs >= 90) return { label: 'Excellent', cls: 'excellent' }
@@ -40,16 +41,20 @@ export default function AlertsPage() {
           <>
             <h1 className="alerts-title">Alerts</h1>
             <div className="alerts-tabs" role="tablist">
-              {(['notifications', 'watchlist', 'digest'] as Tab[]).map(t => (
+              {(['notifications', 'sms', 'watchlist', 'digest'] as Tab[]).map(t => (
                 <button
                   key={t}
                   role="tab"
                   className={`alerts-tab ${tab === t ? 'on' : ''}`}
                   onClick={() => setTab(t)}
-                >{t === 'notifications' ? 'Notifications' : t === 'watchlist' ? 'Watchlist' : 'Digest'}</button>
+                >{t === 'notifications' ? 'Notifications'
+                  : t === 'sms' ? 'SMS'
+                  : t === 'watchlist' ? 'Watchlist'
+                  : 'Digest'}</button>
               ))}
             </div>
             {tab === 'notifications' && <NotificationsTab />}
+            {tab === 'sms' && <SmsTab />}
             {tab === 'watchlist' && <WatchlistTab />}
             {tab === 'digest' && <DigestTab />}
           </>
@@ -237,6 +242,139 @@ function WatchRow({ watch, onRefresh }: { watch: Watch; onRefresh: () => void })
         <button className="watch-remove" disabled={busy} onClick={remove}>Remove</button>
       </div>
     </li>
+  )
+}
+
+// ── SMS tab ─────────────────────────────────────────────────────────────────
+
+interface SmsSubscriptionsResp {
+  phone_verified: boolean
+  sms_paused: boolean
+  subscriptions: Array<{
+    watershed: string
+    threshold: number
+    muted_until: string | null
+    created_at: string
+  }>
+}
+
+const WATERSHED_DISPLAY: Record<string, string> = {
+  mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius',
+  klamath: 'Klamath',   johnday: 'John Day',    skagit: 'Skagit',
+  green_river: 'Green River',
+}
+
+function SmsTab() {
+  const url = `${API_BASE}/sms/subscriptions`
+  const { data, isLoading, mutate: refresh } = useSWR<SmsSubscriptionsResp>(url, fetcher)
+  const [showSheet, setShowSheet] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  if (isLoading) return <div className="alerts-empty">Loading…</div>
+  if (!data?.phone_verified) {
+    return (
+      <>
+        <div className="alerts-empty">
+          <p>Get a text when your watersheds hit Excellent days. At most 3 per week, STOP anytime.</p>
+          <button className="alerts-cta" onClick={() => setShowSheet(true)}>Set up SMS alerts</button>
+        </div>
+        {showSheet && (
+          <AlertsOptInSheet
+            open={showSheet}
+            onClose={(created) => { setShowSheet(false); if (created) refresh() }}
+          />
+        )}
+      </>
+    )
+  }
+
+  async function togglePause() {
+    setBusy(true)
+    try {
+      await fetch(`${API_BASE}/sms/${data!.sms_paused ? 'resume' : 'pause'}`, {
+        method: 'POST', credentials: 'include',
+      })
+      refresh()
+    } finally { setBusy(false) }
+  }
+
+  async function removeSub(watershed: string) {
+    setBusy(true)
+    try {
+      await fetch(`${API_BASE}/sms/subscriptions/${watershed}`, {
+        method: 'DELETE', credentials: 'include',
+      })
+      refresh()
+    } finally { setBusy(false) }
+  }
+
+  async function setThreshold(watershed: string, threshold: number) {
+    setBusy(true)
+    try {
+      await fetch(`${API_BASE}/sms/subscriptions`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ watersheds: [watershed], threshold }),
+      })
+      refresh()
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="sms-pane">
+      <div className="sms-status-row">
+        <span className="sms-status-pill">
+          {data.sms_paused ? '⏸ Paused' : '🔔 Active'}
+        </span>
+        <button className="sms-pause-btn" disabled={busy} onClick={togglePause}>
+          {data.sms_paused ? 'Resume' : 'Pause all alerts'}
+        </button>
+      </div>
+
+      {data.subscriptions.length === 0 ? (
+        <div className="alerts-empty">
+          No watersheds yet.
+          <button className="alerts-cta" onClick={() => setShowSheet(true)}>Add a watershed</button>
+        </div>
+      ) : (
+        <ul className="sms-sub-list">
+          {data.subscriptions.map(sub => (
+            <li key={sub.watershed} className="sms-sub-row">
+              <div className="sms-sub-name">{WATERSHED_DISPLAY[sub.watershed] || sub.watershed}</div>
+              <div className="sms-sub-controls">
+                <label className="sms-threshold-control">
+                  Bar:
+                  <select
+                    value={sub.threshold}
+                    disabled={busy}
+                    onChange={e => setThreshold(sub.watershed, parseInt(e.target.value, 10))}
+                  >
+                    <option value={80}>Excellent only (≥80)</option>
+                    <option value={70}>Good or better (≥70)</option>
+                  </select>
+                </label>
+                <button
+                  className="sms-remove-btn"
+                  disabled={busy}
+                  onClick={() => removeSub(sub.watershed)}
+                >Remove</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button className="sms-add-btn" onClick={() => setShowSheet(true)}>
+        + Add another watershed
+      </button>
+
+      {showSheet && (
+        <AlertsOptInSheet
+          open={showSheet}
+          onClose={(created) => { setShowSheet(false); if (created) refresh() }}
+        />
+      )}
+    </div>
   )
 }
 
