@@ -168,6 +168,35 @@ test.describe(`Watershed ${WS} — RiverSignal /riversignal`, () => {
       'page is waiting on a site with NULL boundary or a 404 on /watersheds.'
     ).toBeFalsy();
   });
+
+  test('Species tab on /riversignal/<ws> returns non-zero gallery rows', async ({ request }) => {
+    const r = await request.get(`${API}/sites/${WS}/species?limit=200`);
+    expect(r.ok()).toBeTruthy();
+    const rows = await r.json();
+    expect(rows.length,
+      `/sites/${WS}/species returned 0 rows. Either the iNaturalist adapter ` +
+      `hasn't run for this watershed yet, or gold.species_gallery wasn't ` +
+      `refreshed after iNat ingest, or its WHERE filter is too strict (the ` +
+      `historic photo_license requirement was relaxed in qq17l8m9n0o1 — make ` +
+      `sure no other strict predicate was reintroduced).`
+    ).toBeGreaterThan(0);
+  });
+
+  test('Rocks tab on /riversignal/<ws> returns at least one of fossils or minerals', async ({ request }) => {
+    const [fr, mr] = await Promise.all([
+      request.get(`${API}/fossils/by-watershed/${WS}`),
+      request.get(`${API}/minerals/by-watershed/${WS}`),
+    ]);
+    const f = (await fr.json()).fossils || [];
+    const m = (await mr.json()).minerals || [];
+    expect(f.length + m.length,
+      `Rocks tab is empty (${f.length} fossils + ${m.length} minerals). ` +
+      `If this is a newly-onboarded watershed: pbdb / idigbio / mrds live in ` +
+      `pipeline_monthly which runs on the 1st of each month — trigger it ` +
+      `manually via 'gcloud run jobs execute riversignal-pipeline-monthly ` +
+      `--region us-west1 --wait' (runbook §2.6.5).`
+    ).toBeGreaterThan(0);
+  });
 });
 
 test.describe(`Watershed ${WS} — DeepTrail /trail`, () => {
