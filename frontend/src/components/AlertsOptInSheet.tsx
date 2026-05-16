@@ -64,7 +64,6 @@ export default function AlertsOptInSheet({ open, onClose, preselectWatershed }: 
     fetcher,
   )
 
-  const initialStep: Step = subs?.phone_verified ? 'watersheds' : 'phone'
   const [step, setStep] = useState<Step>('phone')
 
   const [phoneDisplay, setPhoneDisplay] = useState('')
