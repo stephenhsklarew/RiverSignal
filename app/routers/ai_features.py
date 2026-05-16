@@ -239,13 +239,24 @@ def catch_probability(watershed: str):
         "temp_trend": 0.0,
     }
 
+    # Canonicalise common names with multiple spellings for the SAME
+    # species. Without this, "Musky" (from curated reach) and "Muskellunge"
+    # (from iNat) appear as two rows. Keep small — only alias names that
+    # refer to the same scientific species, not life-history variants
+    # (steelhead vs rainbow trout are biologically the same but anglers
+    # treat them as different targets, so they stay separate).
+    CANONICAL_NAMES = {
+        "musky": "Muskellunge",
+        "muskellunge": "Muskellunge",
+    }
+
     scores = []
-    # De-duplicate by Title-cased display name — that's what the user sees,
-    # so identical display strings must collapse regardless of whether one
-    # source attached a scientific_name and the other didn't.
-    # Hybrid entries (containing "×" or " x ") are dropped — they're not
-    # sport-targets in user mental model and visually look like dupes of
-    # the parent species.
+    # De-duplicate by Title-cased display name (after canonical aliasing) —
+    # that's what the user sees, so identical display strings must collapse
+    # regardless of whether one source attached a scientific_name and the
+    # other didn't. Hybrid entries (containing "×" or " x ") are dropped —
+    # they're not sport-targets in user mental model and visually look
+    # like dupes of the parent species.
     seen: set[str] = set()
     for sp in species:
         name = sp[0]
@@ -256,8 +267,11 @@ def catch_probability(watershed: str):
         if "×" in n_clean or " x " in f" {n_clean.lower()} ":
             continue  # skip hybrid species
         # Title-case for display; "northern bluegill" → "Northern Bluegill".
-        # str.title() handles the unicode "×" / hyphens correctly.
+        # str.title() handles the unicode "×" / hyphens correctly. Apply
+        # canonical-name aliasing AFTER title-casing so the dedup key
+        # collapses Musky/Muskellunge etc.
         display = n_clean.title()
+        display = CANONICAL_NAMES.get(display.lower(), display)
         dedup_key = display.lower()
         if dedup_key in seen:
             continue
