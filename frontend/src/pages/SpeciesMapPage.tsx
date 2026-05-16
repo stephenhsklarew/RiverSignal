@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import useSWR from 'swr'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader from '../components/WatershedHeader'
 import { getSelectedWatershed } from '../components/WatershedHeader'
 import { useSaved } from '../components/SavedContext'
-import { API_BASE } from '../config'
 import './SpeciesMapPage.css'
 
-const API = API_BASE
 
 const CATEGORIES = [
   { key: 'Actinopterygii', label: 'Fish' },
@@ -112,51 +111,45 @@ export default function SpeciesMapPage() {
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
 
-  // Fetch curated species list (only when ?filter is set).
+  // SWR-backed reads. Curated species list keys conditional on filterLocked
+  // (null key → SWR skips the fetch). Observations + fly recs share cache
+  // with HatchPage / RiverNowPage.
+  const curatedKey = filterLocked
+    ? (filter === 'fish_present' ? `/sites/${ws}/fishing/species` : `/sites/${ws}/species-spotter`)
+    : null
+  const { data: curatedData, isLoading: curatedSwrLoading } = useSWR<any>(curatedKey, { dedupingInterval: 60 * 60 * 1000 })
   useEffect(() => {
     if (!filterLocked) { setCuratedNames(null); setCuratedLoading(false); return }
-    setCuratedLoading(true)
-    const url = filter === 'fish_present'
-      ? `${API}/sites/${ws}/fishing/species`
-      : `${API}/sites/${ws}/species-spotter`
-    fetch(url)
-      .then(r => r.json())
-      .then(data => {
-        // /fishing/species returns an array of rows.
-        // /species-spotter returns { species: [...] }.
-        const rows: any[] = filter === 'eating_now' ? (data.species || []) : (Array.isArray(data) ? data : [])
-        const names = new Set<string>()
-        for (const r of rows) {
-          for (const key of ['common_name', 'scientific_name', 'taxon_name', 'species']) {
-            const v = r[key]
-            if (typeof v === 'string' && v.trim()) names.add(v.trim().toLowerCase())
-          }
-        }
-        setCuratedNames(names)
-        setCuratedLoading(false)
-      })
-      .catch(() => { setCuratedNames(new Set()); setCuratedLoading(false) })
-  }, [ws, filter, filterLocked])
+    setCuratedLoading(curatedSwrLoading)
+    if (curatedData == null) return
+    const rows: any[] = filter === 'eating_now' ? (curatedData.species || []) : (Array.isArray(curatedData) ? curatedData : [])
+    const names = new Set<string>()
+    for (const r of rows) {
+      for (const key of ['common_name', 'scientific_name', 'taxon_name', 'species']) {
+        const v = r[key]
+        if (typeof v === 'string' && v.trim()) names.add(v.trim().toLowerCase())
+      }
+    }
+    setCuratedNames(names)
+    setCuratedLoading(false)
+  }, [filterLocked, filter, curatedData, curatedSwrLoading])
 
-  // Fetch observations + fly recs.
+  const obsLimit = filterLocked ? 2000 : 500
+  const { data: obsData, isLoading: obsSwrLoading } = useSWR<any>(
+    `/sites/${ws}/observations/search?q=${category}&limit=${obsLimit}`,
+    { dedupingInterval: 30 * 60 * 1000 },
+  )
+  const { data: flyRecsData } = useSWR<any>(
+    `/sites/${ws}/fishing/fly-recommendations`,
+    { dedupingInterval: 60 * 60 * 1000 },
+  )
   useEffect(() => {
-    setObsLoading(true)
-    // Higher limit when filter is on so post-filter we still have plenty of pins.
-    const limit = filterLocked ? 2000 : 500
-    fetch(`${API}/sites/${ws}/observations/search?q=${category}&limit=${limit}`)
-      .then(r => r.json())
-      .then(data => {
-        setFeatures(data.features || [])
-        setObsLoading(false)
-      })
-      .catch(() => { setFeatures([]); setObsLoading(false) })
-
-    // Fly recommendations for insect popups.
-    fetch(`${API}/sites/${ws}/fishing/fly-recommendations`)
-      .then(r => r.json())
-      .then(setFlyRecs)
-      .catch(() => setFlyRecs([]))
-  }, [ws, category, filterLocked])
+    setObsLoading(obsSwrLoading)
+    setFeatures(obsData?.features || [])
+  }, [obsData, obsSwrLoading])
+  useEffect(() => {
+    setFlyRecs(Array.isArray(flyRecsData) ? flyRecsData : [])
+  }, [flyRecsData])
 
   // Apply curated-name filter to the observation features when filter is on.
   const visibleFeatures = !filterLocked || !curatedNames
