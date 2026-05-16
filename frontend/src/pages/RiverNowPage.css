@@ -362,6 +362,41 @@
 .rnow-catch-pct.excellent { color: #2e7d32; }
 .rnow-catch-pct.good { color: #1565c0; }
 .rnow-catch-pct.fair { color: #e65100; }
+
+/* Pagination — top 3 species at a time, prev/next through the rest */
+.rnow-catch-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f0ede6;
+}
+.rnow-catch-pager-btn {
+  background: #fff;
+  border: 1px solid #d4cdb8;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2c6e49;
+  cursor: pointer;
+  min-height: 32px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.rnow-catch-pager-btn:hover:not(:disabled) {
+  background: #f0f7f2;
+  border-color: #2c6e49;
+}
+.rnow-catch-pager-btn:disabled {
+  color: #b0a890;
+  cursor: not-allowed;
+  border-color: #ebe8df;
+}
+.rnow-catch-pager-label {
+  font-size: 11px;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
 .rnow-catch-pct.poor { color: #c62828; }
 
 /* ── Species Spotter ── */

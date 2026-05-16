@@ -525,23 +525,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           <div data-card="catch_probability">
           {/* ── Catch Probability ── */}
           {catchProb && (
-            <div className="rnow-catch-prob">
-              <div className="rnow-catch-header">
-                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How likely you are to catch each species today. We combine current water temperature versus what each species prefers, the season, what bugs are hatching, recent stocking, and whether there are cold-water hiding spots nearby." sources={['usgs', ...stateSources.fishing, 'inaturalist']} /></span>
-                <span className={`rnow-catch-score ${catchProb.overall_level}`}>{catchProb.overall_score}</span>
-              </div>
-              <div className="rnow-catch-species">
-                {catchProb.species?.slice(0, 4).map((s: any, i: number) => (
-                  <div key={i} className="rnow-catch-row">
-                    <span className="rnow-catch-name">{s.species}</span>
-                    <div className="rnow-catch-bar-bg">
-                      <div className={`rnow-catch-bar-fill ${s.level}`} style={{ width: `${s.score}%` }}></div>
-                    </div>
-                    <span className={`rnow-catch-pct ${s.level}`}>{s.score}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <CatchProbabilityCard data={catchProb} stateSources={stateSources} />
           )}
 
           </div>
@@ -1213,6 +1197,75 @@ function DeepTimeCard({ geology, fossils, watershed }: { geology: any[]; fossils
       <a href={trailUrl} target="_blank" rel="noopener noreferrer" className="rnow-card-action deeptime-link">
         Explore in DeepTrail ↗
       </a>
+    </div>
+  )
+}
+
+// ── Catch Probability ──
+// Shows all game species sorted by score desc, top 3 at a time, with
+// prev/next pagination through the rest. Game-species filter happens
+// server-side via pipeline.predictions.catch_forecast.is_game_species.
+function CatchProbabilityCard({
+  data,
+  stateSources,
+}: {
+  data: any
+  stateSources: { fishing: string[] }
+}) {
+  const PER_PAGE = 3
+  const [page, setPage] = useState(0)
+  const all = (data.species || []) as any[]
+  const totalPages = Math.max(1, Math.ceil(all.length / PER_PAGE))
+  const safePage = Math.min(page, totalPages - 1)
+  const start = safePage * PER_PAGE
+  const visible = all.slice(start, start + PER_PAGE)
+
+  return (
+    <div className="rnow-catch-prob">
+      <div className="rnow-catch-header">
+        <span className="rnow-catch-title">
+          🎣 Catch Probability{' '}
+          <InfoTooltip
+            text="How likely you are to catch each species today. We combine current water temperature versus what each species prefers, the season, what bugs are hatching, recent stocking, and whether there are cold-water hiding spots nearby. Listed are all game species documented on this watershed, sorted highest-probability first."
+            sources={['usgs', ...stateSources.fishing, 'inaturalist']}
+          />
+        </span>
+        <span className={`rnow-catch-score ${data.overall_level}`}>{data.overall_score}</span>
+      </div>
+
+      <div className="rnow-catch-species">
+        {visible.map((s: any, i: number) => (
+          <div key={`${start + i}-${s.species}`} className="rnow-catch-row">
+            <span className="rnow-catch-name">{s.species}</span>
+            <div className="rnow-catch-bar-bg">
+              <div className={`rnow-catch-bar-fill ${s.level}`} style={{ width: `${s.score}%` }} />
+            </div>
+            <span className={`rnow-catch-pct ${s.level}`}>{s.score}%</span>
+          </div>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="rnow-catch-pager">
+          <button
+            type="button"
+            className="rnow-catch-pager-btn"
+            disabled={safePage === 0}
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            aria-label="Previous species"
+          >← Prev</button>
+          <span className="rnow-catch-pager-label">
+            {start + 1}–{Math.min(start + PER_PAGE, all.length)} of {all.length}
+          </span>
+          <button
+            type="button"
+            className="rnow-catch-pager-btn"
+            disabled={safePage >= totalPages - 1}
+            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            aria-label="Next species"
+          >Next →</button>
+        </div>
+      )}
     </div>
   )
 }

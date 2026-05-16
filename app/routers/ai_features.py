@@ -181,15 +181,21 @@ def river_replay(watershed: str, days_ago: int = Query(30, ge=7, le=365)):
 # ═══════════════════════════════════════════════
 @router.get("/sites/{watershed}/catch-probability")
 def catch_probability(watershed: str):
-    """Calculate catch probability per species based on conditions, season, and hatch."""
-    month = datetime.now().month
+    """Catch probability for every game species on this watershed,
+    sorted by score desc. Game-species filter uses
+    pipeline.predictions.catch_forecast.SPECIES_MODELS as the canonical
+    source — anything that doesn't match a specific (non-fallback) model
+    is excluded (suckers, dace, chubs, etc.). UI shows top 3 and pages
+    through the rest."""
+    from pipeline.predictions.catch_forecast import _species_score, is_game_species
+
+    now = datetime.now()
+    month = now.month
 
     with engine.connect() as conn:
-        # Current conditions — pick the most recent month that actually has
-        # non-null water temp / flow values. The matview includes a row per
-        # (watershed, year, month) even when sparsely populated, so taking
-        # LIMIT 1 alone can return a row with NULL aggregates if the latest
-        # month hasn't been ingested for that watershed yet.
+        # Current conditions — pick the most recent month with non-null
+        # water temp / flow (the matview has empty rows for sparsely
+        # populated months and a naive LIMIT 1 catches those).
         cond = conn.execute(text("""
             SELECT avg_water_temp_c, avg_discharge_cfs FROM gold.fishing_conditions
             WHERE watershed = :ws
@@ -197,20 +203,20 @@ def catch_probability(watershed: str):
             ORDER BY obs_year DESC, obs_month DESC LIMIT 1
         """), {"ws": watershed}).fetchone()
 
-        # Species by reach
+        # Pull every distinct species — no LIMIT. The game-species filter
+        # below will drop non-targets (suckers, dace, etc.). Ordering by
+        # common_name keeps tie-broken score sort deterministic.
         species = conn.execute(text("""
             SELECT DISTINCT common_name, scientific_name, use_type FROM gold.species_by_reach
             WHERE watershed = :ws AND common_name IS NOT NULL
-            LIMIT 10
+            ORDER BY common_name
         """), {"ws": watershed}).fetchall()
 
-        # Hatch activity
         hatch_count = conn.execute(text("""
             SELECT count(*) FROM gold.hatch_fly_recommendations
             WHERE watershed = :ws AND obs_month = :m
         """), {"ws": watershed, "m": month}).scalar() or 0
 
-        # Thermal refuges
         refuge_count = conn.execute(text("""
             SELECT count(*) FROM gold.cold_water_refuges
             WHERE watershed = :ws AND thermal_classification = 'cold_water_refuge'
@@ -219,62 +225,47 @@ def catch_probability(watershed: str):
     water_temp = float(cond[0]) if cond and cond[0] else None
     flow = float(cond[1]) if cond and cond[1] else None
 
-    # Preferred temp ranges by species type
-    PREF_TEMPS = {
-        'chinook': (7, 14), 'steelhead': (8, 15), 'rainbow': (10, 18),
-        'bull trout': (4, 12), 'kokanee': (8, 15), 'brown trout': (10, 18),
-        'brook trout': (7, 16), 'cutthroat': (8, 16), 'bass': (18, 27),
+    # Shape into the dict _species_score expects. We don't have
+    # temp_trend or days_since_stocking on this endpoint; pass safe
+    # defaults so those factors are neutral, not penalised.
+    conditions = {
+        "water_temp": water_temp,
+        "flow_cfs": flow if flow is not None else 1000.0,
+        "month": month,
+        "day_of_year": now.timetuple().tm_yday,
+        "hatch_activity": hatch_count,
+        "days_since_stocking": 999,
+        "cold_refuges": refuge_count,
+        "temp_trend": 0.0,
     }
 
     scores = []
+    # De-duplicate by lowercased common_name so we don't score the same
+    # species twice when it appears across multiple UNION sources.
+    seen: set[str] = set()
     for sp in species:
-        name = (sp[0] or '').lower()
-        score = 50  # base
+        name = sp[0]
+        if not name or not is_game_species(name):
+            continue
+        key = name.lower().strip()
+        if key in seen:
+            continue
+        seen.add(key)
 
-        # Temperature match
-        if water_temp:
-            for key, (lo, hi) in PREF_TEMPS.items():
-                if key in name:
-                    if lo <= water_temp <= hi:
-                        score += 25
-                    elif abs(water_temp - (lo + hi) / 2) < 5:
-                        score += 10
-                    else:
-                        score -= 15
-                    break
-
-        # Seasonal boost (spawning = more catchable for some, less for others)
-        use = (sp[2] or '').lower()
-        if 'spawning' in use:
-            score += 15
-        elif 'rearing' in use:
-            score += 5
-
-        # Hatch activity boost
-        if hatch_count > 3:
-            score += 10
-        elif hatch_count > 0:
-            score += 5
-
-        # Refuge availability
-        if refuge_count > 0 and water_temp and water_temp > 16:
-            score += 5  # fish congregate at refuges
-
-        score = max(5, min(98, score))
-        level = "excellent" if score >= 80 else "good" if score >= 60 else "fair" if score >= 40 else "poor"
-
+        result = _species_score(name, conditions)
         scores.append({
-            "species": sp[0] or sp[1],
-            "score": score,
-            "level": level,
+            "species": name,
+            "scientific_name": sp[1],
+            "score": result["score"],
+            "level": result["level"],
             "use_type": sp[2],
-            "factors": [],
+            "factors": result["factors"],
         })
 
-    # Sort by score
-    scores.sort(key=lambda x: x["score"], reverse=True)
+    # Sort by score desc, stable on name for tie-breaking.
+    scores.sort(key=lambda x: (-x["score"], x["species"].lower()))
 
-    # Overall score = weighted average of top 3
+    # Overall score = average of top 3 (weighted by position).
     top3 = scores[:3]
     overall = round(sum(s["score"] for s in top3) / len(top3)) if top3 else 50
 
@@ -286,7 +277,8 @@ def catch_probability(watershed: str):
         "flow_cfs": flow,
         "hatch_activity": hatch_count,
         "cold_refuges": refuge_count,
-        "species": scores[:8],
+        # Return all game species; the UI pages through them 3 at a time.
+        "species": scores,
     }
 
 
