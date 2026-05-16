@@ -113,7 +113,16 @@ resource "google_cloud_run_v2_service" "api" {
         }
         initial_delay_seconds = 10
         period_seconds        = 15
-        failure_threshold     = 5
+        # Cold-start budget = 10 + (failure_threshold * period_seconds).
+        # Bumped from 5 -> 20 (~85s -> ~310s) on 2026-05-15 after Cloud Run
+        # killed three consecutive newly-scaled instances during
+        # /path/now/shenandoah traffic — the FastAPI import chain
+        # (geopandas, sqlalchemy, GDAL, vite SPA mount) was exceeding the
+        # 85s budget on cold starts. Tracked in
+        # bead RiverSignal-7ea2ac57 (Cloud Run /health probe budget vs
+        # FastAPI cold-start time — the real fix is making cold-start
+        # finish faster; this is the short-term band-aid).
+        failure_threshold     = 20
         timeout_seconds       = 10
       }
 
