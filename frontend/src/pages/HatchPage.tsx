@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
-import { API_BASE } from '../config'
 import './HatchPage.css'
 
-const API = API_BASE
 const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const HOUR = 60 * 60 * 1000
 
 const STAGE_ICONS: Record<string, string> = { nymph: '🐛', emerger: '🪶', adult: '🪰' }
 
@@ -16,14 +16,16 @@ export default function HatchPage() {
     return () => { document.title = 'River Signal' }
   }, [])
   const ws = useWatershed('/path/hatch') || 'deschutes'
-  const [hatch, setHatch] = useState<any>(null)
-  const [flies, setFlies] = useState<any[]>([])
 
-  useEffect(() => {
-    setHatch(null); setFlies([])
-    fetch(`${API}/sites/${ws}/fishing/hatch-confidence`).then(r => r.json()).then(setHatch)
-    fetch(`${API}/sites/${ws}/fishing/fly-recommendations`).then(r => r.json()).then(setFlies)
-  }, [ws])
+  // SWR-backed (stale-while-revalidate, cache survives navigation), so
+  // the hatch panel renders instantly from the same cache RiverNowPage
+  // primes on /path/now/<ws> — both pages share the
+  // `/sites/<ws>/fishing/hatch-confidence` key. Previously this used
+  // fetch+useState which cleared on every navigation and made the page
+  // feel sluggish vs. /path/now. dedupingInterval=1h matches the value
+  // RiverNowPage uses for the same endpoint.
+  const { data: hatch } = useSWR<any>(`/sites/${ws}/fishing/hatch-confidence`, { dedupingInterval: HOUR })
+  const { data: flies = [] } = useSWR<any[]>(`/sites/${ws}/fishing/fly-recommendations`, { dedupingInterval: HOUR })
 
   const currentMonth = hatch?.current_month || new Date().getMonth() + 1
   const nextMonth = (currentMonth % 12) + 1
