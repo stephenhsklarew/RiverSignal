@@ -10,6 +10,7 @@ import { tempF } from '../utils/temp'
 import PhotoObservation from '../components/PhotoObservation'
 import InfoTooltip from '../components/InfoTooltip'
 import TripQualityCard from '../components/TripQualityCard'
+import TappablePhoto from '../components/TappablePhoto'
 import TripFeedbackPrompt, { type FeedbackTarget } from '../components/TripFeedbackPrompt'
 import { useAuth } from '../components/AuthContext'
 const dtMark = '/favicon-deeptrail.svg'
@@ -555,7 +556,24 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <div className="rnow-spotter-grid">
                 {spotter.species.slice(0, 6).map((s: any, i: number) => (
                   <div key={i} className="rnow-spotter-card">
-                    {s.photo_url && <img src={s.photo_url} alt={s.common_name} className="rnow-spotter-img" loading="lazy" title={s.observer ? `📷 ${s.observer}` : undefined} />}
+                    {s.photo_url && (
+                      <TappablePhoto
+                        src={s.photo_url}
+                        alt={s.common_name}
+                        className="rnow-spotter-img"
+                        loading="lazy"
+                        title={s.observer ? `📷 ${s.observer}` : undefined}
+                        watershed={watershed}
+                        meta={{
+                          url: s.photo_url,
+                          title: s.common_name,
+                          subtitle: s.group,
+                          observer: s.observer,
+                          source: 'iNaturalist',
+                          caption: s.note,
+                        }}
+                      />
+                    )}
                     <div className="rnow-spotter-name">{s.common_name}</div>
                     <div className="rnow-spotter-prob">{s.probability}% likely</div>
                     <div className="rnow-spotter-group">{s.group}</div>
@@ -594,7 +612,21 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   <div className="rnow-card-species">
                     {fishActive.map((s: any, i: number) => (
                       <div key={i} className="rnow-mini-species">
-                        {s.photo_url && <img src={s.photo_url} alt="" className="rnow-mini-img" />}
+                        {s.photo_url && (
+                          <TappablePhoto
+                            src={s.photo_url}
+                            alt={s.common_name || s.taxon_name}
+                            className="rnow-mini-img"
+                            watershed={watershed}
+                            meta={{
+                              url: s.photo_url,
+                              title: s.common_name || s.taxon_name,
+                              subtitle: s.taxon_name !== s.common_name ? s.taxon_name : undefined,
+                              observer: s.observer,
+                              source: 'iNaturalist',
+                            }}
+                          />
+                        )}
                         <span>{s.common_name || s.taxon_name}</span>
                       </div>
                     ))}
@@ -616,7 +648,21 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   <div className="rnow-card-species">
                     {topInsects.map((ins: any, i: number) => (
                       <div key={i} className="rnow-mini-species">
-                        {ins.photo_url && <img src={ins.photo_url} alt="" className="rnow-mini-img" />}
+                        {ins.photo_url && (
+                          <TappablePhoto
+                            src={ins.photo_url}
+                            alt={ins.common_name || ins.taxon_name}
+                            className="rnow-mini-img"
+                            watershed={watershed}
+                            meta={{
+                              url: ins.photo_url,
+                              title: ins.common_name || ins.taxon_name,
+                              subtitle: ins.taxon_name !== ins.common_name ? ins.taxon_name : undefined,
+                              observer: ins.observer,
+                              source: 'iNaturalist',
+                            }}
+                          />
+                        )}
                         <span>{ins.common_name || ins.taxon_name}</span>
                         <span className={`rnow-conf confidence-${ins.confidence}`}>{ins.confidence}</span>
                       </div>
@@ -673,7 +719,21 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
                   <div key={i} className="rnow-fish-card">
                     {s.photo_url ? (
-                      <img src={s.photo_url} alt={s.common_name || s.species} className="rnow-fish-photo" loading="lazy" />
+                      <TappablePhoto
+                        src={s.photo_url}
+                        alt={s.common_name || s.species}
+                        className="rnow-fish-photo"
+                        loading="lazy"
+                        watershed={watershed}
+                        meta={{
+                          url: s.photo_url,
+                          title: s.common_name || s.species,
+                          subtitle: s.species && s.species !== s.common_name ? s.species : undefined,
+                          observer: s.observer,
+                          source: 'iNaturalist',
+                          caption: [s.stream, s.use_type].filter(Boolean).join(' · ') || undefined,
+                        }}
+                      />
                     ) : (
                       <div className="rnow-fish-photo-placeholder">🐟</div>
                     )}
@@ -759,7 +819,22 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                   <div className="rnow-tm-species">
                     {selected.top_species.map((s: any, i: number) => (
                       <div key={i} className="rnow-tm-species-item">
-                        {s.photo && <img src={s.photo} alt="" className="rnow-tm-species-img" loading="lazy" />}
+                        {s.photo && (
+                          <TappablePhoto
+                            src={s.photo}
+                            alt={s.common || s.taxon}
+                            className="rnow-tm-species-img"
+                            loading="lazy"
+                            watershed={watershed}
+                            meta={{
+                              url: s.photo,
+                              title: s.common || s.taxon,
+                              subtitle: s.taxon !== s.common ? s.taxon : undefined,
+                              source: 'iNaturalist',
+                              caption: `${s.count.toLocaleString()} observations in ${selected.year}`,
+                            }}
+                          />
+                        )}
                         <div>
                           <div className="rnow-tm-species-name">{s.common || s.taxon}</div>
                           <div className="rnow-tm-species-count">{s.count} obs</div>
@@ -934,7 +1009,23 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
               <div className="rnow-alive-grid">
                 {whatsAlive.map((s: any, i: number) => (
                   <div key={i} className="rnow-alive-item">
-                    {s.photo_url && <img src={s.photo_url} alt={s.common_name} className="rnow-alive-img" title={s.observer ? `📷 ${s.observer}` : undefined} />}
+                    {s.photo_url && (
+                      <TappablePhoto
+                        src={s.photo_url}
+                        alt={s.common_name}
+                        className="rnow-alive-img"
+                        title={s.observer ? `📷 ${s.observer}` : undefined}
+                        watershed={watershed}
+                        meta={{
+                          url: s.photo_url,
+                          title: s.common_name || s.taxon_name,
+                          subtitle: s.taxon_name !== s.common_name ? s.taxon_name : undefined,
+                          observer: s.observer,
+                          source: 'iNaturalist',
+                          observedAt: s.observed_at,
+                        }}
+                      />
+                    )}
                     <div className="rnow-alive-name">{s.common_name || s.taxon_name}</div>
                     {s.observer && <div className="rnow-photo-credit">📷 {s.observer}</div>}
                   </div>

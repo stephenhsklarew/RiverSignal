@@ -60,6 +60,7 @@ const SpeciesMapPage = lazy(() => import('./pages/SpeciesMapPage'))
 const ExploreMapPage = lazy(() => import('./pages/ExploreMapPage'))
 const MyObsMapPage = lazy(() => import('./pages/MyObsMapPage'))
 const StockingMapPage = lazy(() => import('./pages/StockingMapPage'))
+const PhotoDetailPage = lazy(() => import('./pages/PhotoDetailPage'))
 
 // Bottom nav
 const BottomNav = lazy(() => import('./components/BottomNav'))
@@ -148,6 +149,7 @@ createRoot(document.getElementById('root')!).render(
             {/* RiverPath — mobile tab screens (FEAT-014) */}
             <Route path="/path/now" element={<RiverNowPage />} />
             <Route path="/path/now/:watershed" element={<RiverNowPage />} />
+            <Route path="/path/now/:watershed/photo" element={<PhotoDetailPage />} />
             <Route path="/path/explore" element={<ExplorePage />} />
             <Route path="/path/explore/:watershed" element={<ExplorePage />} />
             <Route path="/path/hatch" element={<HatchPage />} />

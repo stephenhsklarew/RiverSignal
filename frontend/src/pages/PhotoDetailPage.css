@@ -1,0 +1,96 @@
+.photo-detail {
+  font-family: 'Outfit', sans-serif;
+  padding: 12px 12px 96px;
+  max-width: 720px;
+  margin: 0 auto;
+  background: #faf8f3;
+  min-height: calc(100vh - 56px);
+}
+
+.photo-detail-back {
+  display: inline-block;
+  margin: 4px 0 14px;
+  color: #2c6e49;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.photo-detail-back:hover { text-decoration: underline; }
+
+.photo-detail-figure {
+  margin: 0 0 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-detail-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 72vh;
+  object-fit: contain;
+}
+
+.photo-detail-meta {
+  padding: 4px 4px 12px;
+}
+
+.photo-detail-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: #1a1a1a;
+}
+
+.photo-detail-subtitle {
+  font-size: 0.92rem;
+  font-style: italic;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.photo-detail-caption {
+  font-size: 0.94rem;
+  color: #444;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.photo-detail-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 8px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid #e6e1d4;
+  font-size: 0.88rem;
+}
+.photo-detail-dl dt {
+  color: #888;
+  font-weight: 500;
+}
+.photo-detail-dl dd {
+  margin: 0;
+  color: #1a1a1a;
+}
+
+/* Make TappablePhoto images visibly interactive */
+.tappable-photo {
+  cursor: pointer;
+  transition: transform 0.12s, opacity 0.12s;
+}
+.tappable-photo:hover {
+  opacity: 0.92;
+}
+.tappable-photo:active {
+  transform: scale(0.985);
+}
+.tappable-photo:focus-visible {
+  outline: 2px solid #2c6e49;
+  outline-offset: 2px;
+}
