@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
 import PhotoObservation from '../components/PhotoObservation'
-import { API_BASE } from '../config'
 import './ExplorePage.css'
 
-const API = API_BASE
 
 const FILTERS = [
   { key: 'campground', label: 'Camping', icon: '⛺' },
@@ -45,7 +44,6 @@ export default function ExplorePage() {
   const navigate = useNavigate()
   const ws = useWatershed('/path/explore') || 'deschutes'
   const [sites, setSites] = useState<RecSite[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
   const [userLoc, setUserLoc] = useState<{ lat: number; lon: number } | null>(null)
@@ -59,42 +57,41 @@ export default function ExplorePage() {
     )
   }, [])
 
-  // Fetch recreation sites + fly shops
+  // SWR-backed reads — cache survives navigation between /path/explore
+  // and /path/now/<ws> (RiverNowPage uses the same /sites/<ws>/recreation key).
+  const { data: recDataRaw, isLoading: recLoading } = useSWR<any[]>(
+    `/sites/${ws}/recreation`,
+    { dedupingInterval: 6 * 60 * 60 * 1000 },
+  )
+  const { data: shopDataRaw, isLoading: shopLoading } = useSWR<any[]>(
+    `/sites/${ws}/fly-shops`,
+    { dedupingInterval: 24 * 60 * 60 * 1000 },
+  )
+  const loading = recLoading || shopLoading
+
+  // Derive `sites` from the SWR data; runs once when either dataset arrives
+  // or when user geolocation lands.
   useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      fetch(`${API}/sites/${ws}/recreation`).then(r => r.json()).catch(() => []),
-      fetch(`${API}/sites/${ws}/fly-shops`).then(r => r.json()).catch(() => []),
-    ]).then(([recData, shopData]) => {
-      // Convert fly shops to RecSite format
-      const shops: RecSite[] = (shopData || []).map((s: any, i: number) => ({
-        id: 90000 + i,
-        name: s.name,
-        rec_type: s.type === 'both' ? 'fly_shop' : s.type,
-        latitude: s.latitude,
-        longitude: s.longitude,
-        amenities: {
-          phone: s.phone,
-          website: s.website,
-          address: s.address,
-          description: s.description,
-        },
-        watershed: ws,
-      }))
-
-      const all = [...(recData || []), ...shops]
-
-      // Calculate distance if we have user location
-      if (userLoc) {
-        all.forEach(s => {
-          s.distance_km = haversine(userLoc.lat, userLoc.lon, s.latitude, s.longitude)
-        })
-        all.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999))
-      }
-      setSites(all)
-      setLoading(false)
-    })
-  }, [ws, userLoc])
+    const recData = Array.isArray(recDataRaw) ? recDataRaw : []
+    const shopData = Array.isArray(shopDataRaw) ? shopDataRaw : []
+    const shops: RecSite[] = shopData.map((s: any, i: number) => ({
+      id: 90000 + i,
+      name: s.name,
+      rec_type: s.type === 'both' ? 'fly_shop' : s.type,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      amenities: { phone: s.phone, website: s.website, address: s.address, description: s.description },
+      watershed: ws,
+    }))
+    const all = [...recData, ...shops]
+    if (userLoc) {
+      all.forEach(s => {
+        s.distance_km = haversine(userLoc.lat, userLoc.lon, s.latitude, s.longitude)
+      })
+      all.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999))
+    }
+    setSites(all)
+  }, [recDataRaw, shopDataRaw, userLoc, ws])
 
   const toggleFilter = (key: string) => {
     setActiveFilters(prev => {

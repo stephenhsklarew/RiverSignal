@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import useSWR from 'swr'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { cToF, tempF } from '../utils/temp'
 import { getSelectedWatershed } from '../components/WatershedHeader'
-import { API_BASE } from '../config'
 import './FishRefugePage.css'
 
-const API = API_BASE
 
 const THERMAL_COLORS: Record<string, string> = {
   cold_water_refuge: '#2563eb', cool_water: '#0d9488', warm_water: '#d97706', thermal_stress: '#dc2626',
@@ -53,19 +52,30 @@ export default function FishRefugePage() {
   const ws = paramWs || getSelectedWatershed() || 'deschutes'
   const scrollSection = searchParams.get('section')
 
-  const [species, setSpecies] = useState<any[]>([])
-  const [refuges, setRefuges] = useState<any[]>([])
-  const [conditions, setConditions] = useState<any>(null)
-  const [reachSpecies, setReachSpecies] = useState<any[]>([])
+  // SWR-backed reads share cache with RiverNowPage (same keys); navigation
+  // between /path/now/<ws> and /path/fish/<ws> renders instantly.
+  const { data: speciesRaw } = useSWR<any[]>(
+    `/sites/${ws}/species?taxonomic_group=Actinopterygii&limit=20`,
+    { dedupingInterval: 60 * 60 * 1000 },
+  )
+  const { data: refugesRaw } = useSWR<any[]>(
+    `/sites/${ws}/cold-water-refuges`,
+    { dedupingInterval: 6 * 60 * 60 * 1000 },
+  )
+  const { data: conditionsList } = useSWR<any[]>(
+    `/sites/${ws}/fishing/conditions`,
+    { dedupingInterval: 30 * 60 * 1000 },
+  )
+  const { data: reachSpeciesRaw } = useSWR<any[]>(
+    `/sites/${ws}/fishing/species`,
+    { dedupingInterval: 60 * 60 * 1000 },
+  )
+  const species = Array.isArray(speciesRaw) ? speciesRaw : []
+  const refuges = Array.isArray(refugesRaw) ? refugesRaw : []
+  const conditions = Array.isArray(conditionsList) ? conditionsList[0] : null
+  const reachSpecies = Array.isArray(reachSpeciesRaw) ? reachSpeciesRaw.slice(0, 10) : []
 
   const refugeRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    fetch(`${API}/sites/${ws}/species?taxonomic_group=Actinopterygii&limit=20`).then(r => r.json()).then(setSpecies)
-    fetch(`${API}/sites/${ws}/cold-water-refuges`).then(r => r.json()).then(setRefuges)
-    fetch(`${API}/sites/${ws}/fishing/conditions`).then(r => r.json()).then(d => setConditions(d?.[0]))
-    fetch(`${API}/sites/${ws}/fishing/species`).then(r => r.json()).then(d => setReachSpecies(d?.slice(0, 10) || []))
-  }, [ws])
 
   // Auto-scroll to refuges section if requested
   useEffect(() => {

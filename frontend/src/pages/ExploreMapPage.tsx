@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import useSWR from 'swr'
 import { useNavigate, useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader from '../components/WatershedHeader'
 import { getSelectedWatershed } from '../components/WatershedHeader'
 import { useSaved } from '../components/SavedContext'
-import { API_BASE } from '../config'
 import './ExploreMapPage.css'
 
-const API = API_BASE
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -67,32 +66,36 @@ export default function ExploreMapPage() {
 
   const [sites, setSites] = useState<RecSite[]>([])
   const [filter, setFilter] = useState('all')
-  const [loading, setLoading] = useState(true)
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
 
-  // Fetch sites + fly shops
+  // SWR-backed — shares cache keys with ExplorePage (list view) so
+  // toggling map ↔ list is instant.
+  const { data: recDataRaw, isLoading: recLoading } = useSWR<any[]>(
+    `/sites/${ws}/recreation`,
+    { dedupingInterval: 6 * 60 * 60 * 1000 },
+  )
+  const { data: shopDataRaw, isLoading: shopLoading } = useSWR<any[]>(
+    `/sites/${ws}/fly-shops`,
+    { dedupingInterval: 24 * 60 * 60 * 1000 },
+  )
+  const loading = recLoading || shopLoading
   useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      fetch(`${API}/sites/${ws}/recreation`).then(r => r.json()).catch(() => []),
-      fetch(`${API}/sites/${ws}/fly-shops`).then(r => r.json()).catch(() => []),
-    ]).then(([recData, shopData]) => {
-      const shops: RecSite[] = (shopData || []).map((s: any, i: number) => ({
-        id: 90000 + i,
-        name: s.name,
-        rec_type: s.type === 'both' ? 'fly_shop' : s.type,
-        latitude: s.latitude,
-        longitude: s.longitude,
-        amenities: { phone: s.phone, website: s.website, description: s.description },
-      }))
-      setSites([...(Array.isArray(recData) ? recData : []), ...shops])
-      setLoading(false)
-    })
-  }, [ws])
+    const recData = Array.isArray(recDataRaw) ? recDataRaw : []
+    const shopData = Array.isArray(shopDataRaw) ? shopDataRaw : []
+    const shops: RecSite[] = shopData.map((s: any, i: number) => ({
+      id: 90000 + i,
+      name: s.name,
+      rec_type: s.type === 'both' ? 'fly_shop' : s.type,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      amenities: { phone: s.phone, website: s.website, description: s.description },
+    }))
+    setSites([...recData, ...shops])
+  }, [recDataRaw, shopDataRaw])
 
   // Init map
   useEffect(() => {
