@@ -18,12 +18,19 @@ import { useAuth } from './AuthContext'
 import InfoTooltip from './InfoTooltip'
 import LoginModal from './LoginModal'
 import TripQualityForecastModal from './TripQualityForecastModal'
+import AlertsChip from './AlertsChip'
 import './TripQualityCard.css'
 
 // Canonical source IDs that match app/routers/data_status.py freshness keys.
-// 'fishing' is the project-wide identifier for ODFW (rendered as "ODFW fishing").
-// 'nws' = daily weather observations roll-up; 'nws_forecast' = 7-day forecast.
-const TQS_SOURCES = ['usgs', 'snotel', 'nws', 'nws_forecast', 'mtbs', 'fishing', 'prism']
+// The fishing source varies by state — Oregon watersheds use 'fishing' (ODFW),
+// Washington uses 'washington', Utah uses 'utah', etc.
+const TQS_BASE_SOURCES = ['usgs', 'snotel', 'nws', 'nws_forecast', 'mtbs', 'prism']
+const WS_FISHING_SOURCE: Record<string, string[]> = {
+  skagit: ['washington'],
+  green_river: ['utah'],
+  shenandoah: ['virginia', 'west_virginia'],
+}
+const DEFAULT_FISHING_SOURCE = ['fishing']
 const TQS_TOOLTIP =
   'A 0–100 score blending six factors into one number for this stretch of river: ' +
   'catch outlook, water temperature, flow, weather, hatch alignment with the season, ' +
@@ -148,6 +155,9 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
     : (reachLabels[rollupData.best_reach_id] || rollupData.best_reach_id)
   const confidence = showing.confidence
 
+  const fishingSources = WS_FISHING_SOURCE[watershed] || DEFAULT_FISHING_SOURCE
+  const tqsSources = [...TQS_BASE_SOURCES, ...fishingSources]
+
   const bannerCls = closed ? 'unfavorable' : band.cls
   const bannerAction = closed ? 'Reach closed today' : band.label
 
@@ -168,7 +178,7 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <InfoTooltip text={TQS_TOOLTIP} sources={TQS_SOURCES} />
+            <InfoTooltip text={TQS_TOOLTIP} sources={tqsSources} />
           </span>
         </div>
         <div className="tqs-banner-body">
@@ -199,6 +209,10 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
           </button>
         </div>
       </div>
+      <div className="tqs-actions-row">
+        <AlertsChip watershed={watershed} />
+      </div>
+
       {showForecast && (
         <TripQualityForecastModal
           watershed={watershed}

@@ -173,12 +173,12 @@ function RiverCard({ site, photo, tagline, onNavigate, onAsk }: {
 // Watershed → state-specific source identifiers for tooltips.
 // 'fishing' is the ODFW (Oregon) adapter; 'washington' and 'utah' are the
 // state-bundle adapters that include stocking + parks + access points.
-const WS_STATE_SOURCES: Record<string, { stocking: string[]; access: string[] }> = {
-  skagit:      { stocking: ['washington'],         access: ['recreation', 'washington'] },
-  green_river: { stocking: ['utah'],               access: ['recreation', 'utah'] },
-  shenandoah:  { stocking: ['virginia', 'west_virginia'], access: ['recreation', 'virginia', 'west_virginia'] },
+const WS_STATE_SOURCES: Record<string, { fishing: string[]; stocking: string[]; access: string[]; attribution: string }> = {
+  skagit:      { fishing: ['washington'],                    stocking: ['washington'],                    access: ['recreation', 'washington'],                    attribution: 'WDFW' },
+  green_river: { fishing: ['utah'],                         stocking: ['utah'],                         access: ['recreation', 'utah'],                         attribution: 'UDWR' },
+  shenandoah:  { fishing: ['virginia', 'west_virginia'],    stocking: ['virginia', 'west_virginia'],    access: ['recreation', 'virginia', 'west_virginia'],    attribution: 'VDGIF / WVDNR' },
 }
-const DEFAULT_STATE_SOURCES = { stocking: ['fishing'], access: ['recreation'] }
+const DEFAULT_STATE_SOURCES = { fishing: ['fishing'], stocking: ['fishing'], access: ['recreation'], attribution: 'ODFW' }
 
 function RiverNowDetail({ watershed }: { watershed: string }) {
   const navigate = useNavigate()
@@ -526,7 +526,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           {catchProb && (
             <div className="rnow-catch-prob">
               <div className="rnow-catch-header">
-                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How likely you are to catch each species today. We combine current water temperature versus what each species prefers, the season, what bugs are hatching, recent stocking, and whether there are cold-water hiding spots nearby." sources={['usgs', 'fishing', 'inaturalist']} /></span>
+                <span className="rnow-catch-title">🎣 Catch Probability <InfoTooltip text="How likely you are to catch each species today. We combine current water temperature versus what each species prefers, the season, what bugs are hatching, recent stocking, and whether there are cold-water hiding spots nearby." sources={['usgs', ...stateSources.fishing, 'inaturalist']} /></span>
                 <span className={`rnow-catch-score ${catchProb.overall_level}`}>{catchProb.overall_score}</span>
               </div>
               <div className="rnow-catch-species">
@@ -975,7 +975,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
           {/* ── Data Attribution ── */}
           <div className="rnow-attribution">
-            Data: USGS · NOAA/NWS · USDA SNOTEL · ODFW · EPA · iNaturalist (CC BY-NC) · USFS · OSMB · Macrostrat · PBDB
+            Data: USGS · NOAA/NWS · USDA SNOTEL · {stateSources.attribution} · EPA · iNaturalist (CC BY-NC) · USFS · Macrostrat · PBDB
           </div>
         </>
       )}
