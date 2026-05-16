@@ -96,9 +96,11 @@ def upgrade() -> None:
         sa.Column('cost_cents', sa.Numeric(8, 4), nullable=True),
         sa.Column('success',    sa.Boolean, nullable=False),
     )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_sms_send_log_day ON sms_send_log ((sent_at::date))"
-    )
+    # No expression index on (sent_at::date) — that requires IMMUTABLE and
+    # timestamptz->date is STABLE (depends on session TIMEZONE). The
+    # dispatcher's daily/monthly cap queries seq-scan this table, which is
+    # fine because row counts are tiny (≤500/day). Add a plain index on
+    # sent_at later if row counts grow.
 
 
 def downgrade() -> None:
