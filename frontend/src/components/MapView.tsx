@@ -56,11 +56,19 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
+    // Initial view fits the continental United States so every onboarded
+    // watershed bbox is visible at first paint — including East Coast
+    // ones like shenandoah. Previously centered on the Pacific Northwest
+    // ([-116, 43] zoom 4.5), which left anything east of the Rockies
+    // off-screen.
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      center: [-116.0, 43.0],
-      zoom: 4.5,
+      bounds: [
+        [-125.0, 24.5],  // SW: California / Florida latitude
+        [-66.5, 49.5],   // NE: Maine / Canadian border
+      ],
+      fitBoundsOptions: { padding: 40 },
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
