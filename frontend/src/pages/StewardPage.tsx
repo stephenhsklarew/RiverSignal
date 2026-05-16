@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import useSWR from 'swr'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
-import { API_BASE } from '../config'
 import './StewardPage.css'
 
-const API = API_BASE
 
 const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   mckenzie: { name: 'McKenzie Watershed Council', url: 'https://www.mckenziewc.org/' },
@@ -30,16 +29,11 @@ export default function StewardPage() {
     return () => { document.title = 'River Signal' }
   }, [])
   const ws = useWatershed('/path/steward') || 'mckenzie'
-  const [data, setData] = useState<any>(null)
-  const [story, setStory] = useState<any>(null)
-  const [impact, setImpact] = useState<any>(null)
-
-  useEffect(() => {
-    setData(null); setStory(null); setImpact(null)
-    fetch(`${API}/sites/${ws}/stewardship`).then(r => r.json()).then(setData)
-    fetch(`${API}/sites/${ws}/story`).then(r => r.json()).then(setStory)
-    fetch(`${API}/sites/${ws}/restoration-impact`).then(r => r.json()).then(setImpact).catch(() => {})
-  }, [ws])
+  // SWR-backed — story key shared with RiverNowPage. Stewardship + impact
+  // are 6-hour-stable per watershed.
+  const { data } = useSWR<any>(`/sites/${ws}/stewardship`, { dedupingInterval: 6 * 60 * 60 * 1000 })
+  const { data: story } = useSWR<any>(`/sites/${ws}/story`, { dedupingInterval: 24 * 60 * 60 * 1000 })
+  const { data: impact } = useSWR<any>(`/sites/${ws}/restoration-impact`, { dedupingInterval: 6 * 60 * 60 * 1000 })
 
   const timeline = story?.timeline || []
   const council = COUNCIL_LINKS[ws]

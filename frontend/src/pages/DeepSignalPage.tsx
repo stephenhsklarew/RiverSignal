@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
 import { useParams, Link } from 'react-router-dom'
 import logo from '../assets/riversignal-logo.svg'
 import MapView from '../components/MapView'
 import '../App.css'
-import { API_BASE } from '../config'
 import './DeepSignalPage.css'
 
 const WATERSHEDS = ['klamath', 'mckenzie', 'deschutes', 'metolius', 'johnday', 'skagit']
@@ -26,21 +26,20 @@ interface Fossil {
 export default function DeepSignalPage() {
   const { watershed: urlWatershed } = useParams()
   const [selected, setSelected] = useState(urlWatershed || 'johnday')
-  const [geoUnits, setGeoUnits] = useState<GeoUnit[]>([])
-  const [fossils, setFossils] = useState<Fossil[]>([])
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      fetch(`${API_BASE}/geology/watershed-link/${selected}`).then(r => r.json()),
-      fetch(`${API_BASE}/fossils/near/44.66/-120.0?radius_km=100`).then(r => r.json()),
-    ]).then(([link, fossilData]) => {
-      setGeoUnits(link.geologic_units || [])
-      setFossils(fossilData.fossils || [])
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [selected])
+  // SWR-backed reads. Geology + fossils data is essentially static
+  // (rock units don't change weekly) — 6-hour dedupe is plenty.
+  const { data: link, isLoading: linkLoading } = useSWR<any>(
+    `/geology/watershed-link/${selected}`,
+    { dedupingInterval: 6 * 60 * 60 * 1000 },
+  )
+  const { data: fossilData, isLoading: fossilLoading } = useSWR<any>(
+    `/fossils/near/44.66/-120.0?radius_km=100`,
+    { dedupingInterval: 24 * 60 * 60 * 1000 },
+  )
+  const geoUnits: GeoUnit[] = link?.geologic_units || []
+  const fossils: Fossil[] = fossilData?.fossils || []
+  const loading = linkLoading || fossilLoading
 
   const rockTypeCounts: Record<string, number> = {}
   const periodCounts: Record<string, number> = {}
