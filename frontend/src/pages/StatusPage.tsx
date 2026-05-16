@@ -33,6 +33,11 @@ const SOURCE_META: Record<string, { description: string; upstream: string; refre
   mrds: { description: 'USGS mineral deposit locations — commodity, status', upstream: 'Rarely', refresh: 'Annually', license: 'Public Domain', commercial: true },
   recreation: { description: 'USFS campgrounds/trailheads + OSMB boat ramps', upstream: 'Seasonally', refresh: 'Monthly', license: 'Public Domain', commercial: true },
   washington: { description: 'Washington state data — WDFW SalmonScape, stocking, WA DNR geology, SRFB restoration, WA parks, water access', upstream: 'Varies', refresh: 'Monthly', license: 'Public Domain', commercial: true },
+  utah: { description: 'Utah state data — UDWR fish stocking, special-regulation streams (Green River basin)', upstream: 'Varies', refresh: 'Weekly', license: 'Public Records (Utah GRAMA)', commercial: true },
+  virginia: { description: 'Virginia state data — VA DWR weekly trout stocking, fishing regulations, VGS (DGMR) geology, VA DCR state parks', upstream: 'Weekly', refresh: 'Weekly', license: 'Public Records (VA Code §2.2-3700)', commercial: true },
+  west_virginia: { description: 'West Virginia state data — WV DNR stocked-trout-streams registry, regulations, WVGES geology, WV state parks', upstream: 'Varies', refresh: 'Weekly', license: 'Public Records (WV Code §29B-1)', commercial: true },
+  nws: { description: 'National Weather Service observations (daily roll-ups per watershed gridpoint)', upstream: 'Daily', refresh: 'Daily', license: 'Public Domain', commercial: true },
+  nws_forecast: { description: 'NWS 7-day weather forecast captured daily per watershed', upstream: 'Hourly', refresh: 'Daily', license: 'Public Domain', commercial: true },
 }
 
 const BRONZE_DESCRIPTIONS: Record<string, string> = {

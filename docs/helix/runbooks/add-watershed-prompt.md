@@ -632,6 +632,7 @@ Expected hits at minimum (as of 2026-05-15):
 | `frontend/src/pages/DeepTrailPage.tsx` | local `WATERSHEDS` (DeepTrail landing-page picker — separate from DeepTrailContext) |
 | `frontend/src/components/DeepTrailContext.tsx` | `WATERSHEDS` (drives /trail and /trail/explore — picker, location selection, per-watershed data fetches) |
 | `frontend/src/components/AlertsOptInSheet.tsx` | local `WATERSHEDS` (SMS-alerts opt-in checkboxes) |
+| `frontend/src/pages/StatusPage.tsx` | `SOURCE_META` — drives the `/status` page's source-card grid AND the top-of-page `Total Sources` count. If a new state adapter (`utah`, `virginia`, `west_virginia`, …) is missing here, /status silently undercounts. Missed during Shenandoah's session-1 wiring; caught when user noticed /status showed 45 sources instead of the expected 50. |
 | `frontend/src/pages/SpeciesMapPage.tsx` | per-watershed centroid map |
 | `frontend/src/pages/ExploreMapPage.tsx` | per-watershed centroid map |
 | `frontend/src/pages/MyObsMapPage.tsx` | per-watershed centroid map |
