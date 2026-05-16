@@ -131,13 +131,29 @@ class INaturalistAdapter(IngestionAdapter):
         except (ValueError, AttributeError):
             observed_dt = datetime.now(timezone.utc)
 
-        # Photo URL (first photo, if CC licensed)
+        # Photo URL + license. Prefer the first photo that has a license_code
+        # set (so we can attribute it on the UI); fall back to the first photo
+        # if none have a license. Previously we only inspected photos[0] —
+        # which meant any observation whose primary photo lacked a license
+        # (common on iNat: users upload without picking one) lost license
+        # metadata even when later photos had it. That dropped ~30% of
+        # photo_license coverage on prod, which broke the
+        # gold.species_gallery filter (now relaxed in qq17l8m9n0o1 — but
+        # the underlying coverage gap is still worth closing).
         photos = obs.get("photos", [])
         photo_url = None
         photo_license = None
         if photos:
-            photo_url = photos[0].get("url", "").replace("square", "medium")
-            photo_license = photos[0].get("license_code")
+            # Pick the first photo with a license_code, falling back to the
+            # first photo regardless.
+            licensed = next((p for p in photos if p.get("license_code")), photos[0])
+            photo_url = (licensed.get("url") or "").replace("square", "medium")
+            photo_license = licensed.get("license_code")
+            # If the chosen photo has no license but the observation does,
+            # use the observation-level CC license as a sensible default
+            # (iNat's API exposes it at the obs level — `obs.license_code`).
+            if not photo_license:
+                photo_license = obs.get("license_code")
 
         return {
             "site_id": str(self.site_id),
