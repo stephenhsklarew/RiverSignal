@@ -47,7 +47,12 @@ export default function RiverNowPage() {
     return <RiverNowDefault />
   }
 
-  return <RiverNowDetail watershed={watershed} />
+  // key={watershed} forces a full remount on watershed change so no
+  // section ever flashes the previous watershed's data while the new
+  // one's SWR fetches resolve. Without this, internal useState values
+  // (compareData, riverStory, expanded panels, pagination indices)
+  // would persist across watersheds.
+  return <RiverNowDetail watershed={watershed} key={watershed} />
 }
 
 // ════════════════════════════════════════════
