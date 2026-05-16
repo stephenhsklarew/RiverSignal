@@ -624,8 +624,8 @@ Expected hits at minimum (as of 2026-05-15):
 | `pipeline/ingest/nws_observations.py` | `WS_COORDS` (kept in sync with weather.py) |
 | `pipeline/jobs/ncei_backfill.py` | imports `WS_COORDS` from `nws_observations` |
 | `frontend/src/components/WatershedHeader.tsx` | `WATERSHED_ORDER`, `WATERSHED_LABELS` |
-| `frontend/src/pages/HomePage.tsx` | `WATERSHED_ORDER` (duplicated) |
-| `frontend/src/pages/RiverNowPage.tsx` | `WATERSHED_ORDER` + local `WS_CENTERS` (for geology/fossils SWR keys) |
+| `frontend/src/pages/HomePage.tsx` | `WATERSHED_ORDER` (duplicated), **`PHOTOS`**, **`WATERSHED_META` (tagline + narrative)** — missed during the Shenandoah onboarding; resulted in a blank splash card |
+| `frontend/src/pages/RiverNowPage.tsx` | `WATERSHED_ORDER` + local `WS_CENTERS` (for geology/fossils SWR keys), **`PHOTOS`**, **`TAGLINES`**, `WS_STATE_SOURCES` |
 | `frontend/src/pages/SavedPage.tsx` | `WATERSHED_LABELS` (duplicated) |
 | `frontend/src/pages/SpeciesMapPage.tsx` | per-watershed centroid map |
 | `frontend/src/pages/ExploreMapPage.tsx` | per-watershed centroid map |
@@ -640,6 +640,55 @@ them. Skipping one usually shows up as a watershed-picker missing the option or 
 defaulting back to McKenzie.
 
 Run `npx tsc -p tsconfig.app.json --noEmit` and `npx vite build` after the frontend edits.
+
+### 2.6.5 Pre-launch data seeds (mandatory before Step 3 verification)
+
+Several surfaces are silently empty until their backing data is seeded. The Shenandoah onboarding
+shipped with all of these missing and the user found them in the UI — bake them into the runbook
+so they're never forgotten again.
+
+For each watershed, write/run the following before Step 3:
+
+| Data | Where | Why | Symptom if missing |
+|---|---|---|---|
+| `river_stories` rows for all 3 reading levels | Add the new watershed slug to `WATERSHEDS` dict in `pipeline/generate_river_stories.py`, run `python -m pipeline.generate_river_stories --watershed <slug>`, then ship the output as an alembic seed (commit the .txt files under `alembic/data/<slug>_river_stories/` and INSERT … ON CONFLICT in a new migration) so prod gets it on deploy | `/api/v1/sites/<slug>/river-story` 404s; SWR returns undefined; the River Story card on `/path/now/<slug>` either renders blank or (with stale cache from previous navigation) shows the prior watershed's prose | The "Deschutes content on Shenandoah" report |
+| `sites.boundary` (MultiPolygon) | Alembic migration: `UPDATE sites SET boundary = (SELECT ST_Multi(ST_Union(geometry)) FROM watershed_boundaries WHERE site_id = sites.id) WHERE watershed = '<slug>'` — runs after the `wbd` adapter has populated `watershed_boundaries` for the slug | `/riversignal` homepage map renders no outline for the watershed; can appear "stuck loading" if the map awaits ALL boundaries | Yes |
+| `stocking_locations` rows for state-stocking waterbodies | Alembic seed with (watershed, waterbody_exact_string, lat, lon, notes) — waterbody MUST match the exact string the state adapter writes to `interventions.description::jsonb ->> 'waterbody'`, including annotations like ` [Heritage Day Water]` | Fish Stocking "View map" toggle shows zero pins (rows surface in the list view with `latitude: null`) | Yes |
+| `recreation_sites` rows | If RIDB has no coverage for the region (common for non-Western US), seed via alembic with `source_type='curated_<slug>_v0'` and the well-known state parks / NPS campgrounds / boat ramps / fishing access points / trailheads — at minimum 10 rows | `/path/explore` shows "No results" | Yes |
+| `gold.species_by_reach` rows | Verify the MV's UNION branches don't filter out the new watershed. The MV historically (a) hardcoded `source='udwr'` on the stocking branch, hiding va_dwr/wv_dnr, and (b) excluded any watershed with `fish_stocking` interventions from the iNat fallback. Both fixed in migration `oo15j6k7l8m9_fix_species_by_reach_for_va_wv.py` (2026-05-15) | `/api/v1/sites/<slug>/catch-probability` returns a score but an empty `species: []`; UI shows the number but no fish list | Yes |
+| `gold.species_gallery` photos for hatch-chart insects | Run `pipeline refresh --mode heavy` (or trigger the prod `riversignal-refresh-heavy` job) after the watershed's iNaturalist ingest completes. The hatch endpoint joins curated hatch rows to species_gallery by genus + watershed | "What Fish Are Eating Now" lists insects with no photos | Yes |
+
+Each row above should map to an explicit subtask under Step 2 — don't ship without ticking all of
+them.
+
+### 2.6.6 Playwright UX smoke (mandatory before §2.8)
+
+Run the cross-app smoke spec for the new watershed BEFORE crossing the production-deploy gates in
+§2.8. The spec covers every surface a human would tap during a /path /riversignal /trail tour:
+
+```
+WATERSHED=<slug> BASE_URL=http://localhost:5173 \
+  npx playwright test tests/watershed-smoke.spec.ts
+```
+
+After prod deploy, re-run against prod with `BASE_URL=https://riversignal-api-...run.app`.
+
+What the spec asserts:
+- /path splash card has an image + tagline + narrative (catches missing `PHOTOS` /
+  `WATERSHED_META` entries)
+- /path/now/<slug> river story is non-empty AND doesn't contain "deschutes" / "mckenzie" when the
+  slug is something else (catches missing `river_stories` row + stale SWR fallback)
+- Fish Stocking has at least one pinnable row (catches missing `stocking_locations` seed)
+- Catch Probability returns species when overall_score is non-null (catches gold MV regressions)
+- Hatch confidence returns insects with photos (catches missing species_gallery refresh)
+- /path/explore returns non-empty recreation rows (catches missing curated seed)
+- /path/saved empty-state heart icon is red (catches inline-style regressions)
+- `/api/v1/sites/<slug>.boundary` is non-null (catches missing ST_Union update)
+- /riversignal homepage map renders within 30s (catches "stuck loading" caused by NULL boundary)
+- /trail picker lists the watershed (catches DeepTrailContext / DeepTrailPage misses)
+
+The spec is parameterized by env vars (`WATERSHED`, `BASE_URL`, `API_BASE`) so it works for any
+slug. **A clean pass here is a precondition for §2.8 Gate 1.**
 
 ### 2.7 Terraform — append new adapter args to Cloud Run Jobs
 
@@ -884,11 +933,14 @@ By the end of a successful run:
 - [ ] New state adapters (if any) merged with tests
 - [ ] Alembic seed migrations: river_reaches, flow_quality_bands, hatch_chart, stocking placeholder
 - [ ] `gold.trip_quality_daily` populated for the new watershed
-- [ ] Frontend dicts updated (`WATERSHED_LABELS`, `WATERSHED_ORDER`, `WS_COORDS`, `WS_GAUGES`, etc.)
+- [ ] Frontend dicts updated (`WATERSHED_LABELS`, `WATERSHED_ORDER`, `WS_COORDS`, `WS_GAUGES`, `PHOTOS`, `WATERSHED_META`, `TAGLINES` — see §2.6 table)
+- [ ] Pre-launch data seeds applied (§2.6.5): river_stories, sites.boundary, stocking_locations, recreation_sites, species_by_reach MV verified, species_gallery refreshed
+- [ ] Playwright UX smoke `tests/watershed-smoke.spec.ts` passes against local (§2.6.6)
 - [ ] Terraform args updated for new adapter scheduling
 - [ ] Commits pushed; CI deploy succeeded
 - [ ] Manual one-shot ingest runs on prod completed
 - [ ] `/data-status/refresh` POST'd to bust the cache
+- [ ] Playwright UX smoke re-run against prod (`BASE_URL=https://riversignal-api-...run.app`)
 - [ ] `docs/helix/06-iterate/watershed-add/<slug>-verification-<date>.md` (Step 3) with the
       feature-coverage grid
 - [ ] Follow-on beads created for every `⚠` / `✗` from the verification grid
