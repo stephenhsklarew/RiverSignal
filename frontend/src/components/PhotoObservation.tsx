@@ -269,6 +269,9 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
   const { save: saveToSaved } = useSaved()
 
   const handleSubmit = useCallback(async () => {
+    // RiverPath: species is required. DeepTrail: species OR category is OK
+    // (user might just tag "Agate" or "Thunderegg" without an exact name).
+    if (app !== 'deeptrail' && !speciesName) return
     if (!speciesName && !category) return
     setSubmitting(true)
 
@@ -514,7 +517,12 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
 
                 {/* Species / name search */}
                 <div className="photo-field" style={{ position: 'relative' }}>
-                  <label>{app === 'deeptrail' ? 'What did you find?' : 'Species name'}</label>
+                  <label>
+                    {app === 'deeptrail' ? 'What did you find?' : 'Species name'}
+                    {app !== 'deeptrail' && (
+                      <span aria-label="required" style={{ color: 'var(--alert, #c4432b)', marginLeft: 4 }}>*</span>
+                    )}
+                  </label>
                   <input
                     type="text"
                     value={speciesName}
@@ -522,7 +530,15 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
                     onFocus={() => typeaheadResults.length > 0 && setShowTypeahead(true)}
                     onBlur={() => setTimeout(() => setShowTypeahead(false), 200)}
                     placeholder={app === 'deeptrail' ? 'Obsidian, Thunderegg, Agate...' : 'Rainbow Trout, Mayfly...'}
+                    required={app !== 'deeptrail'}
+                    aria-required={app !== 'deeptrail'}
+                    style={app !== 'deeptrail' && !speciesName ? { borderColor: 'var(--alert, #c4432b)' } : undefined}
                   />
+                  {app !== 'deeptrail' && !speciesName && (
+                    <div style={{ fontSize: 11, color: 'var(--alert, #c4432b)', marginTop: 4 }}>
+                      Species name is required
+                    </div>
+                  )}
                   {showTypeahead && (
                     <div className="photo-typeahead">
                       {typeaheadResults.map((r, i) => (
@@ -598,7 +614,7 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
                 <button
                   className="photo-submit"
                   onClick={handleSubmit}
-                  disabled={submitting || (!speciesName && !category)}
+                  disabled={submitting || (app !== 'deeptrail' && !speciesName) || (!speciesName && !category)}
                 >
                   {submitting ? 'Saving...' : 'Save Observation'}
                 </button>

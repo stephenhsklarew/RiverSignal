@@ -259,19 +259,35 @@ def create_user_observation(body: ObservationCreate, request: Request):
                     "UPDATE user_observations SET user_id = :uid WHERE id = :oid"
                 ), {"uid": user_id, "oid": obs_id})
 
-            # Find the site_id for this watershed
+            # Resolve the watershed strictly from the observation's lat/long:
+            # whichever watershed's bbox contains the point wins, regardless
+            # of what the client sent in body.watershed. Falls back to
+            # nearest-centroid only if the point sits outside every bbox
+            # (e.g. ocean / inter-watershed gap). After picking, fix-up
+            # body.watershed so the user_observations row gets the correct
+            # value too (the INSERT above ran with body.watershed; we update
+            # it in-place below).
             site_id = None
-            if body.watershed:
-                site_row = conn.execute(text(
-                    "SELECT id FROM sites WHERE watershed = :ws"
-                ), {"ws": body.watershed}).fetchone()
-                if site_row:
-                    site_id = site_row[0]
+            resolved_watershed = body.watershed
+            bbox_row = conn.execute(text("""
+                SELECT id, watershed FROM sites
+                 WHERE bbox IS NOT NULL
+                   AND (bbox->>'west')::float  <= :lon
+                   AND (bbox->>'east')::float  >= :lon
+                   AND (bbox->>'south')::float <= :lat
+                   AND (bbox->>'north')::float >= :lat
+                 LIMIT 1
+            """), {"lat": body.latitude, "lon": body.longitude}).fetchone()
+            if bbox_row:
+                site_id = bbox_row[0]
+                resolved_watershed = bbox_row[1]
 
             if not site_id:
-                # Find nearest site
+                # Point sits outside every watershed bbox — pick nearest
+                # by centroid as a last resort.
                 site_row = conn.execute(text("""
-                    SELECT id FROM sites
+                    SELECT id, watershed FROM sites
+                    WHERE bbox IS NOT NULL
                     ORDER BY ST_Distance(
                         ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
                         ST_SetSRID(ST_MakePoint(
@@ -283,6 +299,14 @@ def create_user_observation(body: ObservationCreate, request: Request):
                 """), {"lat": body.latitude, "lon": body.longitude}).fetchone()
                 if site_row:
                     site_id = site_row[0]
+                    resolved_watershed = site_row[1]
+
+            # Persist the resolved watershed on the user_observations row
+            # even if the client lied about which one it was filed under.
+            if resolved_watershed and resolved_watershed != body.watershed:
+                conn.execute(text(
+                    "UPDATE user_observations SET watershed = :ws WHERE id = :oid"
+                ), {"ws": resolved_watershed, "oid": obs_id})
 
             if site_id:
                 iconic = CATEGORY_TO_ICONIC.get((body.category or "").lower(), "Unknown")
