@@ -240,10 +240,12 @@ def catch_probability(watershed: str):
     }
 
     scores = []
-    # De-duplicate by scientific name when present, falling back to a
-    # whitespace-normalised lowercased common name. Hybrid entries
-    # (containing "×" or " x ") are dropped — they're not sport-targets
-    # in user mental model and visually look like dupes of the parent.
+    # De-duplicate by Title-cased display name — that's what the user sees,
+    # so identical display strings must collapse regardless of whether one
+    # source attached a scientific_name and the other didn't.
+    # Hybrid entries (containing "×" or " x ") are dropped — they're not
+    # sport-targets in user mental model and visually look like dupes of
+    # the parent species.
     seen: set[str] = set()
     for sp in species:
         name = sp[0]
@@ -253,15 +255,15 @@ def catch_probability(watershed: str):
         n_clean = " ".join(name.split())  # collapse internal whitespace
         if "×" in n_clean or " x " in f" {n_clean.lower()} ":
             continue  # skip hybrid species
-        dedup_key = (sci or "").strip().lower() or n_clean.lower()
+        # Title-case for display; "northern bluegill" → "Northern Bluegill".
+        # str.title() handles the unicode "×" / hyphens correctly.
+        display = n_clean.title()
+        dedup_key = display.lower()
         if dedup_key in seen:
             continue
         seen.add(dedup_key)
 
         result = _species_score(name, conditions)
-        # Title-case for display; "northern bluegill" → "Northern Bluegill".
-        # Python's str.title() handles the unicode "×" / hyphens correctly.
-        display = n_clean.title()
         scores.append({
             "species": display,
             "scientific_name": sci,
