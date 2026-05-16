@@ -25,6 +25,7 @@ WATERSHEDS = {
     'johnday': 'John Day River',
     'skagit': 'Skagit River',
     'green_river': 'Green River',
+    'shenandoah': 'Shenandoah River',
 }
 
 READING_LEVELS = ['adult', 'kids', 'expert']

@@ -16,6 +16,7 @@ const PHOTOS: Record<string, string> = {
   johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop', // Painted Hills, John Day Fossil Beds National Monument OR by Dan Meyers
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
+  shenandoah: 'https://images.unsplash.com/photo-1572125675722-238a4f1f8ea7?w=900&h=600&fit=crop', // Blue Ridge / Shenandoah valley overlook
 }
 
 interface WatershedData {
@@ -57,6 +58,10 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
   green_river: {
     tagline: 'Flaming Gorge to Canyonlands — ancient fish in a desert canyon',
     narrative: 'The Green River flows 730 miles from Wyoming\'s Wind River Range through Flaming Gorge, Dinosaur National Monument, Desolation Canyon, and into Canyonlands where it meets the Colorado. It is home to four endangered native fish — Colorado pikeminnow, razorback sucker, bonytail chub, and humpback chub — and the world-famous Green River Formation, where 50-million-year-old fossil fish are preserved in exquisite detail. Below Flaming Gorge Dam, tailwater trout fishing rivals the best in the West.',
+  },
+  shenandoah: {
+    tagline: 'Blue Ridge headwaters, limestone springs, and smallmouth main stem',
+    narrative: 'From Blue Ridge headwaters in Virginia to the Potomac confluence at Harpers Ferry, West Virginia, the Shenandoah threads two forks through karst valleys fed by cold limestone springs. The North Fork and South Fork meet at Front Royal and run 55 miles north as one of the East Coast\'s premier smallmouth bass fisheries. Cold-water tributaries like Mossy Creek, Smith Creek, and Passage Creek host special-regulation wild trout — the storied Blue Ridge / Massanutten / Allegheny country that George Washington surveyed.',
   },
 }
 

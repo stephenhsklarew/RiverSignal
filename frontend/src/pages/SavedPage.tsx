@@ -98,7 +98,7 @@ export default function SavedPage() {
 
       {isEmpty ? (
         <div className="saved-empty-state">
-          <div className="saved-empty-icon">♥</div>
+          <div className="saved-empty-icon" style={{ color: 'var(--alert, #c4432b)' }}>♥</div>
           <div className="saved-empty-text">
             No saved items for {WATERSHED_LABELS[headerWs] || headerWs}.<br />
             Tap the heart icon on any reach, species, fly, or recreation site to save it here.
