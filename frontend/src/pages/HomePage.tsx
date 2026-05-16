@@ -16,7 +16,7 @@ const PHOTOS: Record<string, string> = {
   johnday: 'https://images.unsplash.com/photo-1559867243-edf5915deaa7?w=900&h=600&fit=crop', // Painted Hills, John Day Fossil Beds National Monument OR by Dan Meyers
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
-  shenandoah: 'https://images.unsplash.com/photo-1572125675722-238a4f1f8ea7?w=900&h=600&fit=crop', // Blue Ridge / Shenandoah valley overlook
+  shenandoah: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // Blue Ridge / Shenandoah valley overlook
 }
 
 interface WatershedData {

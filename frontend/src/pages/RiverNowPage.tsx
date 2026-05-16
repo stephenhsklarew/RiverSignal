@@ -63,7 +63,7 @@ const PHOTOS: Record<string, string> = {
   klamath: 'https://images.unsplash.com/photo-1566126157268-bd7167924841?w=900&h=600&fit=crop',
   mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop',
   metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop',
-  shenandoah: 'https://images.unsplash.com/photo-1572125675722-238a4f1f8ea7?w=900&h=600&fit=crop',
+  shenandoah: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {

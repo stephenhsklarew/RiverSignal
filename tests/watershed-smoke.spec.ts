@@ -27,18 +27,25 @@ const SETTLE_MS = 4000;
 
 test.describe(`Watershed ${WS} — RiverPath /path`, () => {
 
-  test('splash card on /path renders an image, tagline, and narrative', async ({ page }) => {
+  test('splash card on /path renders an image, tagline, and narrative', async ({ page, request }) => {
     await page.goto(`${BASE}/path`);
     await page.waitForTimeout(SETTLE_MS);
 
     // Bug observed for new watersheds: missing entry in HomePage WATERSHED_META
-    // + PHOTOS dicts → blank card or broken image.
+    // + PHOTOS dicts → blank card or broken image. Or stale Unsplash photo ID
+    // that returns 404 (caught the Shenandoah splash card on 2026-05-15).
     const card = page.locator(`[data-watershed="${WS}"]`).first();
     if (await card.count()) {
       const img = card.locator('img').first();
       await expect(img).toBeVisible();
       const src = await img.getAttribute('src');
       expect(src, 'card image src must be a real URL').toMatch(/^https?:\/\//);
+
+      // Verify the image URL actually returns 200 — Unsplash deletes photos.
+      const imgResp = await request.head(src!);
+      expect(imgResp.status(),
+        `card image ${src} returned ${imgResp.status()} — pick a different stable URL`
+      ).toBe(200);
 
       // Card narrative must include the watershed's display name (not a default).
       const text = await card.textContent();

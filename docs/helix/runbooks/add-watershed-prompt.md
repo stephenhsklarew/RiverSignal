@@ -627,6 +627,11 @@ Expected hits at minimum (as of 2026-05-15):
 | `frontend/src/pages/HomePage.tsx` | `WATERSHED_ORDER` (duplicated), **`PHOTOS`**, **`WATERSHED_META` (tagline + narrative)** — missed during the Shenandoah onboarding; resulted in a blank splash card |
 | `frontend/src/pages/RiverNowPage.tsx` | `WATERSHED_ORDER` + local `WS_CENTERS` (for geology/fossils SWR keys), **`PHOTOS`**, **`TAGLINES`**, `WS_STATE_SOURCES` |
 | `frontend/src/pages/SavedPage.tsx` | `WATERSHED_LABELS` (duplicated) |
+| `frontend/src/pages/ReportsPage.tsx` | local `WATERSHEDS` (report watershed selector) |
+| `frontend/src/pages/StewardPage.tsx` | `COUNCIL_LINKS` (per-watershed stewardship org name + URL) |
+| `frontend/src/pages/DeepTrailPage.tsx` | local `WATERSHEDS` (DeepTrail landing-page picker — separate from DeepTrailContext) |
+| `frontend/src/components/DeepTrailContext.tsx` | `WATERSHEDS` (drives /trail and /trail/explore — picker, location selection, per-watershed data fetches) |
+| `frontend/src/components/AlertsOptInSheet.tsx` | local `WATERSHEDS` (SMS-alerts opt-in checkboxes) |
 | `frontend/src/pages/SpeciesMapPage.tsx` | per-watershed centroid map |
 | `frontend/src/pages/ExploreMapPage.tsx` | per-watershed centroid map |
 | `frontend/src/pages/MyObsMapPage.tsx` | per-watershed centroid map |
@@ -640,6 +645,18 @@ them. Skipping one usually shows up as a watershed-picker missing the option or 
 defaulting back to McKenzie.
 
 Run `npx tsc -p tsconfig.app.json --noEmit` and `npx vite build` after the frontend edits.
+
+**Verify every photo URL returns 200 before committing.** Unsplash photo IDs change over
+time and several have been deleted. For each new entry in `PHOTOS`, `WATERSHED_META`, or any
+DeepTrail `photo:` field, run:
+
+```
+curl -s -o /dev/null -w "%{http_code}\n" "<URL>"
+```
+
+A 404 from Unsplash silently renders as a broken `<img>` (no fallback) — caught
+the Shenandoah splash card with a missing photo on 2026-05-15. The playwright smoke spec in
+§2.6.6 includes an image-load assertion to prevent this in the future.
 
 ### 2.6.5 Pre-launch data seeds (mandatory before Step 3 verification)
 
