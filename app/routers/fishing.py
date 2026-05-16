@@ -427,14 +427,22 @@ def hatch_confidence(watershed: str, month: int = None):
 
         insects = []
 
-        # 1. Curated hatch chart entries active this month and next
+        # 1. Curated hatch chart entries active this month and next.
+        # Photo lookup: prefer same-watershed iNat observations, but fall
+        # back to ANY watershed's matching genus so newly-onboarded
+        # watersheds (whose gold.species_gallery may not yet have insect
+        # rows) still show photos. Same fallback pattern used by
+        # /sites/<ws>/fishing/species.
         try:
             curated = conn.execute(text("""
                 SELECT c.common_name, c.scientific_name, c.insect_order,
                        c.start_month, c.end_month, c.peak_months, c.fly_patterns,
-                       (SELECT g.photo_url FROM gold.species_gallery g
-                        WHERE g.taxon_name ILIKE '%' || split_part(c.scientific_name, ' ', 1) || '%'
-                          AND g.watershed = c.watershed LIMIT 1) as photo_url
+                       (SELECT g.photo_url
+                          FROM gold.species_gallery g
+                         WHERE g.taxon_name ILIKE '%' || split_part(c.scientific_name, ' ', 1) || '%'
+                           AND g.photo_url IS NOT NULL
+                         ORDER BY CASE WHEN g.watershed = c.watershed THEN 0 ELSE 1 END
+                         LIMIT 1) as photo_url
                 FROM curated_hatch_chart c
                 WHERE c.watershed = :ws
                   AND (c.start_month <= :m1 AND c.end_month >= :m1
