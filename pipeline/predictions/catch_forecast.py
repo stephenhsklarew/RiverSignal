@@ -91,19 +91,46 @@ def _species_score(species_name: str, conditions: dict) -> dict:
     flow = conditions["flow_cfs"]
     month = conditions["month"]
 
-    # Species-specific thermal preferences and seasonal patterns
-    # Derived from fisheries literature and ODFW/WDFW data
+    # Species-specific thermal preferences and seasonal patterns.
+    # Derived from fisheries literature (Bjornn & Reiser 1991, Hokanson 1977,
+    # Whitledge et al. 2006, USGS species profiles, USFWS striped bass stock
+    # assessment).
+    #
+    # Order matters: substring matching uses first-match-wins, so any
+    # multi-word/specific key MUST appear before its single-word collision
+    # (e.g. "smallmouth bass" before "bass"). Salmonids first (no
+    # collisions), then specific warmwater species, then generic fallbacks.
     SPECIES_MODELS = {
-        "chinook": {"temp_opt": (8, 14), "peak_months": [5, 6, 9, 10], "flow_pref": "moderate", "stocking_boost": True},
-        "steelhead": {"temp_opt": (8, 15), "peak_months": [1, 2, 3, 11, 12], "flow_pref": "high", "stocking_boost": False},
-        "rainbow": {"temp_opt": (10, 18), "peak_months": [4, 5, 6, 9, 10], "flow_pref": "moderate", "stocking_boost": True},
-        "bull trout": {"temp_opt": (4, 12), "peak_months": [6, 7, 8, 9], "flow_pref": "low", "stocking_boost": False},
-        "kokanee": {"temp_opt": (8, 15), "peak_months": [8, 9, 10], "flow_pref": "moderate", "stocking_boost": True},
-        "brown trout": {"temp_opt": (10, 18), "peak_months": [3, 4, 5, 10, 11], "flow_pref": "moderate", "stocking_boost": True},
-        "brook trout": {"temp_opt": (7, 16), "peak_months": [5, 6, 9, 10], "flow_pref": "low", "stocking_boost": True},
-        "cutthroat": {"temp_opt": (8, 16), "peak_months": [5, 6, 7, 8], "flow_pref": "moderate", "stocking_boost": False},
-        "bass": {"temp_opt": (18, 27), "peak_months": [6, 7, 8], "flow_pref": "low", "stocking_boost": False},
-        "coho": {"temp_opt": (8, 15), "peak_months": [9, 10, 11], "flow_pref": "moderate", "stocking_boost": True},
+        # Salmonids
+        "chinook":     {"temp_opt": (8, 14),  "peak_months": [5, 6, 9, 10],         "flow_pref": "moderate", "stocking_boost": True},
+        "steelhead":   {"temp_opt": (8, 15),  "peak_months": [1, 2, 3, 11, 12],     "flow_pref": "high",     "stocking_boost": False},
+        "rainbow":     {"temp_opt": (10, 18), "peak_months": [4, 5, 6, 9, 10],      "flow_pref": "moderate", "stocking_boost": True},
+        "bull trout":  {"temp_opt": (4, 12),  "peak_months": [6, 7, 8, 9],          "flow_pref": "low",      "stocking_boost": False},
+        "kokanee":     {"temp_opt": (8, 15),  "peak_months": [8, 9, 10],            "flow_pref": "moderate", "stocking_boost": True},
+        "brown trout": {"temp_opt": (10, 18), "peak_months": [3, 4, 5, 10, 11],     "flow_pref": "moderate", "stocking_boost": True},
+        "brook trout": {"temp_opt": (7, 16),  "peak_months": [5, 6, 9, 10],         "flow_pref": "low",      "stocking_boost": True},
+        "cutthroat":   {"temp_opt": (8, 16),  "peak_months": [5, 6, 7, 8],          "flow_pref": "moderate", "stocking_boost": False},
+        "coho":        {"temp_opt": (8, 15),  "peak_months": [9, 10, 11],           "flow_pref": "moderate", "stocking_boost": True},
+
+        # Specific basses (MUST precede the generic "bass" fallback)
+        "smallmouth bass": {"temp_opt": (18, 24), "peak_months": [5, 6, 7, 8, 9],         "flow_pref": "moderate", "stocking_boost": False},
+        "largemouth bass": {"temp_opt": (20, 27), "peak_months": [6, 7, 8],               "flow_pref": "low",      "stocking_boost": False},
+        "striped bass":    {"temp_opt": (12, 22), "peak_months": [4, 5, 6, 9, 10, 11],    "flow_pref": "high",     "stocking_boost": False},
+        "white bass":      {"temp_opt": (16, 24), "peak_months": [4, 5, 6],               "flow_pref": "moderate", "stocking_boost": False},
+
+        # Other warmwater game fish
+        "muskellunge":     {"temp_opt": (16, 22), "peak_months": [5, 6, 9, 10],           "flow_pref": "moderate", "stocking_boost": True},
+        "musky":           {"temp_opt": (16, 22), "peak_months": [5, 6, 9, 10],           "flow_pref": "moderate", "stocking_boost": True},
+        "walleye":         {"temp_opt": (15, 22), "peak_months": [4, 5, 6, 9, 10],        "flow_pref": "moderate", "stocking_boost": True},
+        "flathead catfish":{"temp_opt": (24, 30), "peak_months": [6, 7, 8],               "flow_pref": "low",      "stocking_boost": False},
+        "channel catfish": {"temp_opt": (24, 29), "peak_months": [6, 7, 8, 9],            "flow_pref": "low",      "stocking_boost": True},
+        "pickerel":        {"temp_opt": (15, 22), "peak_months": [3, 4, 5, 10, 11],       "flow_pref": "low",      "stocking_boost": False},
+        "bluegill":        {"temp_opt": (20, 28), "peak_months": [5, 6, 7, 8],            "flow_pref": "low",      "stocking_boost": True},
+        "pumpkinseed":     {"temp_opt": (20, 28), "peak_months": [5, 6, 7, 8],            "flow_pref": "low",      "stocking_boost": True},
+        "sunfish":         {"temp_opt": (20, 28), "peak_months": [5, 6, 7, 8],            "flow_pref": "low",      "stocking_boost": True},
+
+        # Generic fallback (matches anything containing "bass" not caught above)
+        "bass":        {"temp_opt": (18, 27), "peak_months": [6, 7, 8],                  "flow_pref": "low",      "stocking_boost": False},
     }
 
     # Find matching species model
