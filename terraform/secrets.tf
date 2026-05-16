@@ -14,6 +14,12 @@ locals {
     "apple-private-key",
     "auth-secret-key",
     "usgs-api-key",
+    "telnyx-api-key",
+    "telnyx-verify-profile-id",
+    "telnyx-messaging-profile-id",
+    "telnyx-from-number",
+    "telnyx-public-key",
+    "sms-encryption-key",
   ]
 }
 

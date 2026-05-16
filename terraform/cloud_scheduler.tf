@@ -95,6 +95,25 @@ resource "google_cloud_scheduler_job" "tqs_daily_refresh" {
   depends_on = [google_project_service.apis]
 }
 
+resource "google_cloud_scheduler_job" "sms_dispatcher" {
+  name        = "${var.app_name}-sms-dispatcher"
+  region      = var.region
+  schedule    = "0 9 * * *"
+  time_zone   = "America/Los_Angeles"
+  description = "Daily 9 AM PT: send SMS alerts for upcoming Excellent/Good+ days"
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.sms_dispatcher.name}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.scheduler.email
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
 resource "google_cloud_scheduler_job" "refresh_heavy" {
   name        = "${var.app_name}-refresh-heavy"
   region      = var.region

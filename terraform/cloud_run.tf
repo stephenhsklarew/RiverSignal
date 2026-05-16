@@ -88,6 +88,12 @@ resource "google_cloud_run_v2_service" "api" {
           APPLE_PRIVATE_KEY    = "apple-private-key"
           AUTH_SECRET_KEY      = "auth-secret-key"
           USGS_API_KEY         = "usgs-api-key"
+          TELNYX_API_KEY              = "telnyx-api-key"
+          TELNYX_VERIFY_PROFILE_ID    = "telnyx-verify-profile-id"
+          TELNYX_MESSAGING_PROFILE_ID = "telnyx-messaging-profile-id"
+          TELNYX_FROM_NUMBER          = "telnyx-from-number"
+          TELNYX_PUBLIC_KEY           = "telnyx-public-key"
+          SMS_ENCRYPTION_KEY          = "sms-encryption-key"
         }
 
         content {
@@ -130,7 +136,12 @@ resource "google_cloud_run_v2_service" "api" {
         http_get {
           path = "/health"
         }
-        period_seconds = 30
+        period_seconds    = 30
+        # Default timeout_seconds is 1s on Cloud Run; under DB-connection
+        # contention or MV-refresh load that's too tight and the API
+        # gets reaped mid-flight. Give /health 5s of slack.
+        timeout_seconds   = 5
+        failure_threshold = 6
       }
     }
 

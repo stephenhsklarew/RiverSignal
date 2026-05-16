@@ -360,6 +360,79 @@ resource "google_cloud_run_v2_job" "tqs_daily_refresh" {
   depends_on = [google_project_service.apis]
 }
 
+resource "google_cloud_run_v2_job" "sms_dispatcher" {
+  name     = "${var.app_name}-sms-dispatcher"
+  location = var.region
+
+  template {
+    task_count  = 1
+    parallelism = 1
+
+    template {
+      max_retries = 0
+      timeout     = "900s"
+
+      service_account = google_service_account.pipeline.email
+
+      vpc_access {
+        connector = google_vpc_access_connector.connector.id
+        egress    = "PRIVATE_RANGES_ONLY"
+      }
+
+      containers {
+        image   = local.image
+        command = ["python", "-m", "pipeline.sms.dispatcher"]
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+
+        env {
+          name  = "DATABASE_URL"
+          value = local.db_url
+        }
+
+        dynamic "env" {
+          for_each = {
+            TELNYX_API_KEY              = "telnyx-api-key"
+            TELNYX_VERIFY_PROFILE_ID    = "telnyx-verify-profile-id"
+            TELNYX_MESSAGING_PROFILE_ID = "telnyx-messaging-profile-id"
+            TELNYX_FROM_NUMBER          = "telnyx-from-number"
+            TELNYX_PUBLIC_KEY           = "telnyx-public-key"
+            SMS_ENCRYPTION_KEY          = "sms-encryption-key"
+          }
+          content {
+            name = env.key
+            value_source {
+              secret_key_ref {
+                secret  = env.value
+                version = "latest"
+              }
+            }
+          }
+        }
+
+        volume_mounts {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [local.db_connection_name]
+        }
+      }
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
 resource "google_cloud_run_v2_job" "refresh_heavy" {
   name     = "${var.app_name}-refresh-heavy"
   location = var.region
