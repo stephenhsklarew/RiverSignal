@@ -254,9 +254,15 @@ def catch_probability(watershed: str):
     # De-duplicate by Title-cased display name (after canonical aliasing) —
     # that's what the user sees, so identical display strings must collapse
     # regardless of whether one source attached a scientific_name and the
-    # other didn't. Hybrid entries (containing "×" or " x ") are dropped —
-    # they're not sport-targets in user mental model and visually look
-    # like dupes of the parent species.
+    # other didn't. Filter rules in order:
+    #   - skip rows whose common_name OR scientific_name contains '×' or
+    #     ' x ' (hybrids — visually duplicate parent species)
+    #   - skip vague genus-level catch-alls ("Sunfish" alone, "Sunfishes"
+    #     plural, "Common Sunfishes") — they're not sport-targets and
+    #     visually duplicate species-level entries
+    #   - apply canonical-name aliasing (Musky → Muskellunge etc.) so the
+    #     dedup key collapses common nicknames
+    VAGUE_GENUS_NAMES = {"sunfish", "sunfishes", "common sunfishes", "true sunfishes"}
     seen: set[str] = set()
     for sp in species:
         name = sp[0]
@@ -264,8 +270,16 @@ def catch_probability(watershed: str):
         if not name or not is_game_species(name):
             continue
         n_clean = " ".join(name.split())  # collapse internal whitespace
-        if "×" in n_clean or " x " in f" {n_clean.lower()} ":
-            continue  # skip hybrid species
+        sci_clean = (sci or "").strip()
+        # Hybrid check now covers BOTH common_name and scientific_name
+        # ("Greengill Sunfish" has no × in common but scientific is
+        # "Lepomis macrochirus × cyanellus").
+        combined = f" {n_clean.lower()} {sci_clean.lower()} "
+        if "×" in n_clean or "×" in sci_clean or " x " in combined:
+            continue
+        # Drop vague genus-level entries that look like dupes of species.
+        if n_clean.lower() in VAGUE_GENUS_NAMES:
+            continue
         # Title-case for display; "northern bluegill" → "Northern Bluegill".
         # str.title() handles the unicode "×" / hyphens correctly. Apply
         # canonical-name aliasing AFTER title-casing so the dedup key

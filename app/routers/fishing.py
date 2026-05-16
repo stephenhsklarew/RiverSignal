@@ -67,7 +67,8 @@ def fishing_species(watershed: str):
             if sn and sn not in photo_map:
                 photo_map[sn] = c[2]
 
-        # ODFW-to-iNaturalist name aliases
+        # Aliases mapping state-agency shorthands and ODFW run-codes onto
+        # iNaturalist common names that the photo gallery actually keys on.
         aliases = {
             "spring chinook": "chinook salmon",
             "fall chinook": "chinook salmon",
@@ -77,6 +78,12 @@ def fishing_species(watershed: str):
             "coho": "coho salmon",
             "sockeye": "sockeye salmon",
             "chum": "chum salmon",
+            # UDWR uppercase stocking shorthands (Green River basin):
+            # come through species_by_reach as 'RAINBOW' / 'KOKANEE'.
+            "rainbow": "rainbow trout",
+            "kokanee": "kokanee salmon",
+            "tiger trout": "tiger trout",
+            "splake": "splake",
         }
 
         def find_photo(common_name: str, scientific_name: str) -> str | None:
@@ -98,19 +105,52 @@ def fishing_species(watershed: str):
                         return url
             return None
 
-    return [
-        {
+    # Build the Fish Present list:
+    #   - Title-case common_name (was returning 'channel catfish' lowercase
+    #     when the underlying row had that form; Catch Probability already
+    #     does this on its side — match the behaviour here).
+    #   - Dedupe by (Title-cased common_name) so the same species doesn't
+    #     appear twice when species_by_reach has two rows differing only by
+    #     stream_name (e.g. Brown Trout in North Fork and South Fork). Pick
+    #     the first occurrence; preserves ORDER BY stream_name.
+    #   - Drop hybrid rows ('×' in either name) and vague genus catch-alls
+    #     ('Sunfish' alone, 'Common Sunfishes' plural) for the same reasons
+    #     Catch Probability does.
+    VAGUE_GENUS_NAMES = {
+        "sunfish", "sunfishes", "common sunfishes", "true sunfishes",
+        "sucker", "suckers",   # multiple sucker species; bare 'sucker' is non-actionable
+        "minnow", "minnows", "dace",  # likewise vague at the bare-genus level
+    }
+    seen: set[str] = set()
+    out: list[dict] = []
+    for r in rows:
+        common = (r[2] or "").strip()
+        sci = (r[1] or "").strip()
+        if not common:
+            continue
+        # Filter hybrids by either field
+        combined = f" {common.lower()} {sci.lower()} "
+        if "×" in common or "×" in sci or " x " in combined:
+            continue
+        # Filter vague generics
+        if common.lower() in VAGUE_GENUS_NAMES:
+            continue
+        display = " ".join(common.split()).title()
+        key = display.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({
             "stream": r[0],
             "scientific_name": r[1],
-            "common_name": r[2],
+            "common_name": display,
             "use_type": r[3],
             "origin": r[4],
             "observation_count": r[5],
             "last_observed": str(r[6]) if r[6] else None,
-            "photo_url": find_photo(r[2], r[1]),
-        }
-        for r in rows
-    ]
+            "photo_url": find_photo(display, r[1]),
+        })
+    return out
 
 
 @router.get("/sites/{watershed}/fishing/harvest")
