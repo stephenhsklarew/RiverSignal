@@ -81,11 +81,16 @@ const Loading = () => (
 
 function ConditionalBottomNav() {
   const { pathname } = useLocation()
-  // DeepTrail bottom nav on /trail/story|explore|collect|learn|saved routes
-  const isTrailTabRoute = /^\/trail\/(story|explore|collect|learn|saved)/.test(pathname)
+  // DeepTrail bottom nav on /trail/<tab>/<location> routes. Require a
+  // non-empty segment after the tab so the /trail or /trail/<tab>
+  // splash views stay clean.
+  const isTrailTabRoute = /^\/trail\/(story|explore|collect|learn|saved)\/[^/]+/.test(pathname)
   if (isTrailTabRoute) return <DeepTrailBottomNav />
-  // RiverPath bottom nav on /path/* routes
-  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking|where|alerts)/.test(pathname)
+  // RiverPath bottom nav on /path/<tab>/<watershed> routes. The bare
+  // /path splash and /path/now (watershed-picker default) both show
+  // every watershed's card and have their own nav — they shouldn't
+  // also display the per-watershed bottom toolbar.
+  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking|where|alerts)\/[^/]+/.test(pathname)
   if (isTabRoute) return <BottomNav />
   return null
 }
