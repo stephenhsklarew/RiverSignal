@@ -12,6 +12,7 @@ const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   metolius: { name: 'Deschutes River Conservancy', url: 'https://www.deschutesriver.org/' },
   klamath: { name: 'Klamath Watershed Partnership', url: 'https://www.klamathpartnership.org/' },
   johnday: { name: 'Grant Soil & Water Conservation District', url: 'https://grantswcd.org/' },
+  shenandoah: { name: 'Friends of the Shenandoah River', url: 'https://www.fosr.org/' },
 }
 
 const CATEGORY_ICONS: Record<string, string> = {

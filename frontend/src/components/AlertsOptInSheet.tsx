@@ -21,6 +21,7 @@ const WATERSHEDS = [
   { id: 'metolius',    name: 'Metolius' },
   { id: 'klamath',     name: 'Klamath' },
   { id: 'johnday',     name: 'John Day' },
+  { id: 'shenandoah',  name: 'Shenandoah' },
   { id: 'skagit',      name: 'Skagit' },
   { id: 'green_river', name: 'Green River' },
 ]
