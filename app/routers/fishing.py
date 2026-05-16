@@ -51,6 +51,22 @@ def fishing_species(watershed: str):
             if tn and tn not in photo_map:
                 photo_map[tn] = g[2]
 
+        # Fill remaining gaps from the curated Wikimedia lookup. iNat photos
+        # win when present (real observations); curated kicks in only for
+        # species iNat has never documented inside our watershed bboxes
+        # (musky on Shenandoah, fallfish, razorback sucker, etc.).
+        curated = conn.execute(text("""
+            SELECT species_key, scientific_name, photo_url
+            FROM gold.curated_species_photos
+        """)).fetchall()
+        for c in curated:
+            key = (c[0] or "").lower()
+            sn = (c[1] or "").lower()
+            if key and key not in photo_map:
+                photo_map[key] = c[2]
+            if sn and sn not in photo_map:
+                photo_map[sn] = c[2]
+
         # ODFW-to-iNaturalist name aliases
         aliases = {
             "spring chinook": "chinook salmon",
