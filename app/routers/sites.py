@@ -104,13 +104,21 @@ def cold_water_refuges(watershed: str):
 
 @router.get("/sites")
 def list_sites():
-    """List all configured watersheds/sites."""
+    """List all configured watersheds/sites.
+
+    Only returns the index-level fields needed by `/riversignal`'s map
+    (id, name, watershed, bbox). Per-site counts used to be inlined here
+    via three correlated COUNT(*) subqueries (observations,
+    time_series, interventions), but with shenandoah's 434k iNat rows +
+    the unindexable `COALESCE(data_payload->>'visibility','public')`
+    filter, each request was timing out at 30s — and the `/riversignal`
+    MapPage never reads those count fields anyway. Callers who want
+    per-site rollups should use `/sites/{watershed}` which reads the
+    pre-aggregated `gold.watershed_scorecard` MV instead.
+    """
     with engine.connect() as conn:
         rows = conn.execute(text("""
-            SELECT s.id, s.name, s.watershed, s.bbox,
-                   (SELECT count(*) FROM observations o WHERE o.site_id = s.id AND COALESCE(o.data_payload->>'visibility','public') != 'private') as observations,
-                   (SELECT count(*) FROM time_series t WHERE t.site_id = s.id) as time_series,
-                   (SELECT count(*) FROM interventions i WHERE i.site_id = s.id) as interventions
+            SELECT s.id, s.name, s.watershed, s.bbox
             FROM sites s ORDER BY s.name
         """)).fetchall()
 
@@ -120,9 +128,6 @@ def list_sites():
             "name": r[1],
             "watershed": r[2],
             "bbox": r[3],
-            "observations": r[4],
-            "time_series": r[5],
-            "interventions": r[6],
         }
         for r in rows
     ]
