@@ -173,6 +173,12 @@ class VirginiaDataAdapter(IngestionAdapter):
             return 0
         rows = re.findall(r'<tr[^>]*>(.*?)</tr>', m.group(1), re.DOTALL | re.IGNORECASE)
 
+        # Dedup against existing rows by (date, waterbody, species). One
+        # intervention per species, matching the UDWR pattern that
+        # `gold.species_by_reach` and the photo-lookup endpoints expect.
+        # Previously stored species as a JSON array, which the MV's
+        # `description::jsonb ->> 'species'` then returned as the literal
+        # string `["Brook Trout","Tiger Trout"]` and propagated to the UI.
         existing = self.session.execute(
             text(
                 "SELECT description FROM interventions "
@@ -181,11 +187,17 @@ class VirginiaDataAdapter(IngestionAdapter):
             ),
             {"sid": self.site_id},
         ).scalars().all()
-        seen: set[tuple[str, str]] = set()
+        seen: set[tuple[str, str, str]] = set()
         for d in existing:
             try:
                 j = json.loads(d)
-                seen.add((j.get("stocking_date", ""), j.get("waterbody", "").lower()))
+                sp = j.get("species") or ""
+                # Tolerate any legacy array-shape rows during the transition.
+                if isinstance(sp, list):
+                    for s in sp:
+                        seen.add((j.get("stocking_date", ""), j.get("waterbody", "").lower(), (s or "").lower()))
+                else:
+                    seen.add((j.get("stocking_date", ""), j.get("waterbody", "").lower(), str(sp).lower()))
             except Exception:
                 continue
 
@@ -206,6 +218,11 @@ class VirginiaDataAdapter(IngestionAdapter):
             if not species_list:
                 txt = re.sub(r'<[^>]+>', '', species_cell).strip()
                 species_list = [s.strip() for s in re.split(r'[,;]| and ', txt) if s.strip()]
+            # Drop empties; if still none, skip the row (a stocking with no
+            # species attribution is uninteresting downstream).
+            species_list = [s for s in species_list if s]
+            if not species_list:
+                continue
 
             if not _is_shenandoah_water(waterbody, county):
                 continue
@@ -221,28 +238,29 @@ class VirginiaDataAdapter(IngestionAdapter):
                 continue
             date_iso = started_at.date().isoformat()
 
-            key = (date_iso, waterbody.lower())
-            if key in seen:
-                continue
-            seen.add(key)
+            for species in species_list:
+                key = (date_iso, waterbody.lower(), species.lower())
+                if key in seen:
+                    continue
+                seen.add(key)
 
-            desc = json.dumps({
-                "source": "va_dwr",
-                "waterbody": waterbody,
-                "county": county,
-                "category": category,
-                "species": species_list,
-                "stocking_date": date_iso,
-            }, ensure_ascii=False)
+                desc = json.dumps({
+                    "source": "va_dwr",
+                    "waterbody": waterbody,
+                    "county": county,
+                    "category": category,
+                    "species": species,       # scalar — one row per species
+                    "stocking_date": date_iso,
+                }, ensure_ascii=False)
 
-            self.session.execute(
-                text(
-                    "INSERT INTO interventions (id, site_id, type, description, started_at, created_at) "
-                    "VALUES (gen_random_uuid(), :sid, 'fish_stocking', :desc, :sa, now())"
-                ),
-                {"sid": self.site_id, "desc": desc, "sa": started_at},
-            )
-            inserted += 1
+                self.session.execute(
+                    text(
+                        "INSERT INTO interventions (id, site_id, type, description, started_at, created_at) "
+                        "VALUES (gen_random_uuid(), :sid, 'fish_stocking', :desc, :sa, now())"
+                    ),
+                    {"sid": self.site_id, "desc": desc, "sa": started_at},
+                )
+                inserted += 1
 
         return inserted
 
