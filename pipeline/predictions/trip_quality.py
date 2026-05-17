@@ -285,29 +285,51 @@ def _load_flow_band(conn, reach_id: str):
     return row
 
 
-def _latest_discharge_cfs(conn, station_id: str, target_date: date) -> float | None:
-    """Latest USGS discharge reading for a station near target_date.
+def _load_recent_discharge_by_station(conn, station_ids: list[str],
+                                       window_days: int = 14) -> dict[str, dict[date, float]]:
+    """Bulk-load USGS discharge readings for many stations in one query.
 
-    Returns None if no reading is available in the ±14d / +1d window —
-    the caller then falls back to mid-of-ideal as a static proxy.
-    USGS daily-value ingest stores discharge under parameter='discharge'
-    (see PARAM_CODES in pipeline/ingest/usgs.py).
+    Returns {station_id: {date: cfs_value}} for the last `window_days` days.
+    The TQS refresh loop calls this once at the top instead of doing a
+    separate SELECT per (reach × day) combo — saves thousands of round-trips
+    when refreshing a 90-day window across all reaches.
     """
-    if not station_id:
-        return None
-    # Use CAST(...) instead of ::-cast so the :d bind parameter doesn't
-    # collide with PostgreSQL's :: cast operator at parse time.
-    row = conn.execute(text("""
-        SELECT value FROM time_series
-        WHERE station_id = :station
+    if not station_ids:
+        return {}
+    rows = conn.execute(text("""
+        SELECT station_id, timestamp::date AS day, value
+        FROM time_series
+        WHERE station_id = ANY(:stations)
           AND parameter = 'discharge'
           AND value IS NOT NULL
-          AND timestamp >= CAST(:d AS timestamp) - INTERVAL '14 days'
-          AND timestamp <= CAST(:d AS timestamp) + INTERVAL '1 day'
-        ORDER BY timestamp DESC
-        LIMIT 1
-    """), {"station": station_id, "d": target_date}).fetchone()
-    return float(row[0]) if row else None
+          AND timestamp >= now() - make_interval(days => :win)
+        ORDER BY station_id, timestamp DESC
+    """), {"stations": list(station_ids), "win": window_days}).fetchall()
+    out: dict[str, dict[date, float]] = {}
+    for r in rows:
+        sid, d, v = r[0], r[1], float(r[2])
+        out.setdefault(sid, {})[d] = v
+    return out
+
+
+def _proxy_cfs_from_history(
+    history: dict[str, dict[date, float]],
+    station_id: str | None,
+    target_date: date,
+) -> float | None:
+    """Pick the most-recent in-window reading for `station_id` at-or-before
+    `target_date`. Falls through to None when no such reading exists."""
+    if not station_id:
+        return None
+    by_day = history.get(station_id)
+    if not by_day:
+        return None
+    # Most recent reading at or before target_date.
+    candidates = [(d, v) for d, v in by_day.items() if d <= target_date]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda kv: kv[0], reverse=True)
+    return candidates[0][1]
 
 
 def _load_hatch_windows(conn, watershed: str) -> list[tuple[int, int]]:
@@ -452,6 +474,12 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
         flow_bands = {r[0]: _load_flow_band(conn, r[0]) for r in reaches}
         hatch_by_ws: dict[str, list[tuple[int, int]]] = {}
 
+        # Bulk-load recent USGS discharge for all reach gauges in one query
+        # so the per-(reach × day) loop below can look up in memory instead
+        # of round-tripping to Postgres thousands of times.
+        gauge_ids = sorted({r[5] for r in reaches if r[5]})
+        discharge_history = _load_recent_discharge_by_station(conn, gauge_ids, window_days=14)
+
         d = start_date
         while d <= end_date:
             horizon = max(0, (d - today).days)
@@ -478,12 +506,12 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                 band = flow_bands.get(rid)
                 proxy_cfs: float | None = None
                 if band:
-                    # Try live USGS discharge first; fall back to mid-of-ideal
-                    # when no recent reading is available for this gauge.
+                    # Try live USGS discharge from the prefetched history;
+                    # fall back to mid-of-ideal when no recent reading is
+                    # available for this gauge.
                     # r[5] is primary_usgs_site_id from _load_reaches().
                     usgs_site = r[5]
-                    if usgs_site:
-                        proxy_cfs = _latest_discharge_cfs(conn, usgs_site, d)
+                    proxy_cfs = _proxy_cfs_from_history(discharge_history, usgs_site, d)
                     if proxy_cfs is None:
                         proxy_cfs = (band[1] + band[2]) / 2.0
                     fl = flow_score(proxy_cfs, *band)
