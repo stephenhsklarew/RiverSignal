@@ -44,8 +44,8 @@ export default function AlertsChip({ watershed }: { watershed: string }) {
   }
 
   const label = subscribed
-    ? (paused ? '🔔 Paused' : '🔔 Alerts on')
-    : '🔔 Get alerts'
+    ? (paused ? 'Paused' : 'Following')
+    : 'Follow'
 
   return (
     <>
@@ -53,8 +53,12 @@ export default function AlertsChip({ watershed }: { watershed: string }) {
         type="button"
         className={`alerts-chip ${subscribed ? 'on' : ''} ${paused ? 'paused' : ''}`}
         onClick={onClick}
-        aria-label={subscribed ? 'Manage SMS alerts' : 'Turn on SMS alerts'}
+        aria-label={subscribed ? 'Manage SMS alerts' : 'Follow this watershed for SMS alerts'}
       >
+        <svg className="alerts-chip-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3.5a5.5 5.5 0 0 0-5.5 5.5v3.2L4.9 15a.9.9 0 0 0 .8 1.4h12.6a.9.9 0 0 0 .8-1.4l-1.6-2.8V9A5.5 5.5 0 0 0 12 3.5Z" strokeLinejoin="round" />
+          <path d="M9.7 18.5a2.5 2.5 0 0 0 4.6 0" strokeLinecap="round" />
+        </svg>
         {label}
       </button>
       {showSheet && (

@@ -734,7 +734,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                     <div className="rnow-fish-info">
                       <div className="rnow-fish-name">{s.common_name || s.species}</div>
                       <div className="rnow-fish-stream">{s.stream}</div>
-                      <div className="rnow-fish-use">{s.use_type}</div>
+                      {s.use_type && <div className="rnow-fish-use">{s.use_type}</div>}
                       {s.observer && <div className="rnow-photo-credit">📷 {s.observer}</div>}
                     </div>
                   </div>

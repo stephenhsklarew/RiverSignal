@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=393, initial-scale=1, viewport-fit=cover" />
+<title>Bottom toolbar — Option A: Pill indicator (4 tabs)</title>
+<style>
+  :root {
+    --bg: #fdfcf8;
+    --surface: #ffffff;
+    --text: #1a1612;
+    --text-muted: #9e9b96;
+    --border: #e8e6e1;
+    --accent: #1a6b4a;
+    --accent-tint: #1a6b4a18;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, 'SF Pro Text', 'Outfit', sans-serif;
+    background: #d8d4cd; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 8px 80px;
+  }
+  h1 { font-size: 15px; color: #444; margin: 0 0 8px; font-weight: 500; }
+  .desc { font-size: 13px; color: #666; max-width: 360px; text-align: center; line-height: 1.5; margin: 0 0 24px; }
+
+  /* iPhone 16 frame, 393pt logical */
+  .phone {
+    width: 393px; height: 760px; background: var(--bg);
+    border-radius: 44px; border: 8px solid #111;
+    overflow: hidden; position: relative;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+  }
+  .notch {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 28px; background: #111; border-radius: 16px; z-index: 50;
+  }
+
+  /* Top header (consistent height demo) */
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 48px 16px 14px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .logo { font-weight: 700; font-size: 17px; color: var(--accent); letter-spacing: -0.01em; }
+  .picker { flex: 1; font-size: 15px; color: var(--text); }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #c8a36b, #8a6e3f);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+
+  /* Body filler */
+  .body { padding: 16px; color: #555; font-size: 14px; }
+  .body p { margin: 0 0 12px; }
+
+  /* ── Bottom nav — Option A: Pill indicator ── */
+  .nav {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 72px; background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; align-items: stretch; padding: 8px 12px 16px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; text-decoration: none; color: var(--text-muted); font-size: 11px; font-weight: 500;
+    border-radius: 14px; padding: 6px 0; transition: background 0.15s, color 0.15s;
+  }
+  .tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .tab .label { font-size: 11px; letter-spacing: 0.01em; }
+
+  .tab.active {
+    background: var(--accent-tint);
+    color: var(--accent);
+  }
+  .tab.active svg { stroke-width: 2; }
+
+  /* Badge */
+  .icon-wrap { position: relative; display: inline-flex; }
+  .badge {
+    position: absolute; top: -4px; right: -8px; background: var(--accent); color: #fff;
+    font-size: 9px; font-weight: 700; min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+  <h1>Option A — Pill indicator (4 tabs, no overflow)</h1>
+  <p class="desc">Four equal tabs, all icons sized identically at 24px. Active state uses a tinted pill background that visually wraps icon + label. Steward + Alerts move to the avatar menu (top-right).</p>
+
+  <div class="phone">
+    <div class="notch"></div>
+
+    <div class="topbar">
+      <span class="logo">RiverPath</span>
+      <span class="picker">Shenandoah River ▾</span>
+      <span class="avatar">SS</span>
+    </div>
+
+    <div class="body">
+      <p style="font-size:13px; color: #888; text-align:center; margin-top: 240px;">River Now content scrolls here…</p>
+    </div>
+
+    <nav class="nav" role="tablist">
+      <a class="tab active" aria-current="page">
+        <!-- River Now: wave -->
+        <svg viewBox="0 0 24 24"><path d="M2 12c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0M2 17c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0"/></svg>
+        <span class="label">River Now</span>
+      </a>
+      <a class="tab">
+        <!-- Explore: compass -->
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-4 2-2 4 4-2z" stroke-linejoin="round"/></svg>
+        <span class="label">Explore</span>
+      </a>
+      <a class="tab">
+        <!-- Hatch: bug -->
+        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="4" ry="6"/><path d="M12 7V4M9 5l-2-2M15 5l2-2M8 10l-3-1M16 10l3-1M8 16l-3 1M16 16l3 1"/></svg>
+        <span class="label">Hatch</span>
+      </a>
+      <a class="tab">
+        <!-- Saved: heart -->
+        <span class="icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" stroke-linejoin="round"/></svg>
+          <span class="badge">3</span>
+        </span>
+        <span class="label">Saved</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

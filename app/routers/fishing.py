@@ -140,6 +140,22 @@ def fishing_species(watershed: str):
         "small mouth bass": "Smallmouth Bass",
         "large mouth bass": "Largemouth Bass",
     }
+    # use_type pill normalisation. Values arriving here come straight from
+    # state-agency data (ODFW fish_habitat camelCase, hardcoded 'rearing'
+    # from stocking interventions, etc.). Translate to user-facing text;
+    # explicit None means "don't show a pill at all" for noise values.
+    USE_TYPE_PILL: dict[str, str | None] = {
+        "ResidentMultipleUses":    "Annual Resident",
+        "Rearing":                 "Rearing",
+        "rearing":                 "Rearing",
+        "ForageMigrateOverwinter": None,
+        "Unknown":                 None,
+        "Presence":                None,
+    }
+    def _normalise_use_type(raw: str | None) -> str | None:
+        if raw is None:
+            return None
+        return USE_TYPE_PILL.get(raw, raw)
     seen: set[str] = set()
     out: list[dict] = []
     for r in rows:
@@ -167,7 +183,7 @@ def fishing_species(watershed: str):
             "stream": r[0],
             "scientific_name": r[1],
             "common_name": display,
-            "use_type": r[3],
+            "use_type": _normalise_use_type(r[3]),
             "origin": r[4],
             "observation_count": r[5],
             "last_observed": str(r[6]) if r[6] else None,

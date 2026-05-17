@@ -1,5 +1,5 @@
 .alerts-chip {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 11px;
   background: #faf8f3;
   border: 1px solid #d4cdb8;
@@ -11,6 +11,16 @@
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   min-height: 32px;
+}
+
+.alerts-chip-icon {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  display: block;
+  flex-shrink: 0;
 }
 
 .alerts-chip:active { transform: scale(0.97); }

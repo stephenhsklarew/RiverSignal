@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=393, initial-scale=1, viewport-fit=cover" />
+<title>Bottom toolbar — Option B: 4 + More with underline indicator</title>
+<style>
+  :root {
+    --bg: #fdfcf8;
+    --surface: #ffffff;
+    --text: #1a1612;
+    --text-muted: #9e9b96;
+    --border: #e8e6e1;
+    --accent: #1a6b4a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, 'SF Pro Text', 'Outfit', sans-serif;
+    background: #d8d4cd; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 8px 80px;
+  }
+  h1 { font-size: 15px; color: #444; margin: 0 0 8px; font-weight: 500; }
+  .desc { font-size: 13px; color: #666; max-width: 360px; text-align: center; line-height: 1.5; margin: 0 0 24px; }
+
+  .phone {
+    width: 393px; height: 760px; background: var(--bg);
+    border-radius: 44px; border: 8px solid #111;
+    overflow: hidden; position: relative;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+  }
+  .notch {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 28px; background: #111; border-radius: 16px; z-index: 50;
+  }
+
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 48px 16px 14px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .logo { font-weight: 700; font-size: 17px; color: var(--accent); letter-spacing: -0.01em; }
+  .picker { flex: 1; font-size: 15px; color: var(--text); }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #c8a36b, #8a6e3f);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+
+  /* ── Bottom nav — Option B: 5 slots, underline indicator ── */
+  .nav {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 68px; background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; align-items: stretch; padding: 4px 4px 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    gap: 3px; text-decoration: none; color: var(--text-muted); font-size: 10px; font-weight: 500;
+    padding: 8px 0 0; position: relative; min-width: 0;
+  }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .tab .label {
+    font-size: 10px; letter-spacing: 0.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+
+  .tab.active { color: var(--accent); }
+  .tab.active svg { stroke-width: 2; }
+  .tab.active::after {
+    content: ''; position: absolute; left: 28%; right: 28%; bottom: 0;
+    height: 3px; background: var(--accent); border-radius: 2px 2px 0 0;
+  }
+
+  .icon-wrap { position: relative; display: inline-flex; }
+  .badge {
+    position: absolute; top: -4px; right: -8px; background: var(--accent); color: #fff;
+    font-size: 9px; font-weight: 700; min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* More sheet preview */
+  .more-sheet {
+    position: absolute; left: 0; right: 0; bottom: 68px;
+    background: var(--surface); border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
+    padding: 16px 16px 24px;
+    transform: translateY(0); transition: transform 0.2s;
+  }
+  .more-sheet .more-head {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 12px;
+  }
+  .more-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 8px;
+    border-radius: 10px; color: var(--text); font-size: 15px;
+  }
+  .more-row:hover { background: #f6f3eb; }
+  .more-row svg { width: 22px; height: 22px; stroke: var(--text-muted); fill: none; stroke-width: 1.6; }
+</style>
+</head>
+<body>
+  <h1>Option B — Four primary + More sheet, underline indicator</h1>
+  <p class="desc">River Now / Explore / Hatch / Saved as primary tabs. Fifth slot is a <strong>More</strong> overflow that opens a sheet containing Steward and other less-frequent items. Underline below the icon makes the selected tab unambiguous without taking visual weight. All icons share 22px viewbox.</p>
+
+  <div class="phone">
+    <div class="notch"></div>
+
+    <div class="topbar">
+      <span class="logo">RiverPath</span>
+      <span class="picker">Shenandoah River ▾</span>
+      <span class="avatar">SS</span>
+    </div>
+
+    <!-- Demo: showing the "More" sheet open to illustrate Steward access -->
+    <div class="more-sheet">
+      <div class="more-head">More</div>
+      <div class="more-row">
+        <svg viewBox="0 0 24 24"><path d="M7 7l5-5 5 5M7 17l5 5 5-5M2 12h20" stroke-linejoin="round"/></svg>
+        Steward — watershed health trends
+      </div>
+      <div class="more-row">
+        <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        Where to fish — best reaches near you
+      </div>
+      <div class="more-row">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
+        Time machine — same day last year
+      </div>
+    </div>
+
+    <nav class="nav" role="tablist">
+      <a class="tab">
+        <svg viewBox="0 0 24 24"><path d="M2 12c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0M2 17c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0"/></svg>
+        <span class="label">River Now</span>
+      </a>
+      <a class="tab">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-4 2-2 4 4-2z" stroke-linejoin="round"/></svg>
+        <span class="label">Explore</span>
+      </a>
+      <a class="tab">
+        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="4" ry="6"/><path d="M12 7V4M9 5l-2-2M15 5l2-2M8 10l-3-1M16 10l3-1M8 16l-3 1M16 16l3 1"/></svg>
+        <span class="label">Hatch</span>
+      </a>
+      <a class="tab">
+        <span class="icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" stroke-linejoin="round"/></svg>
+          <span class="badge">3</span>
+        </span>
+        <span class="label">Saved</span>
+      </a>
+      <a class="tab active">
+        <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
+        <span class="label">More</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

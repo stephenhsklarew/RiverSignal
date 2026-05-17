@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=393, initial-scale=1, viewport-fit=cover" />
+<title>Bottom toolbar — Option C: Featured River Now</title>
+<style>
+  :root {
+    --bg: #fdfcf8;
+    --surface: #ffffff;
+    --text: #1a1612;
+    --text-muted: #9e9b96;
+    --border: #e8e6e1;
+    --accent: #1a6b4a;
+    --accent-dark: #155039;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, 'SF Pro Text', 'Outfit', sans-serif;
+    background: #d8d4cd; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 8px 80px;
+  }
+  h1 { font-size: 15px; color: #444; margin: 0 0 8px; font-weight: 500; }
+  .desc { font-size: 13px; color: #666; max-width: 360px; text-align: center; line-height: 1.5; margin: 0 0 24px; }
+
+  .phone {
+    width: 393px; height: 760px; background: var(--bg);
+    border-radius: 44px; border: 8px solid #111;
+    overflow: hidden; position: relative;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+  }
+  .notch {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 28px; background: #111; border-radius: 16px; z-index: 50;
+  }
+
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 48px 16px 14px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .logo { font-weight: 700; font-size: 17px; color: var(--accent); letter-spacing: -0.01em; }
+  .picker { flex: 1; font-size: 15px; color: var(--text); }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #c8a36b, #8a6e3f);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+
+  /* ── Bottom nav — Option C: Featured center "River Now" + 4 satellites ── */
+  .nav-wrap {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 88px; padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: linear-gradient(to top, var(--surface) 60%, rgba(255,255,255,0));
+    pointer-events: none;
+  }
+  .nav {
+    position: absolute; left: 12px; right: 12px; bottom: 14px;
+    height: 60px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 30px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    pointer-events: auto;
+  }
+  .tab {
+    width: 56px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; text-decoration: none; color: var(--text-muted); font-size: 10px; font-weight: 500;
+  }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+  .tab.active { color: var(--accent); }
+  .tab.active svg { stroke-width: 2; }
+
+  /* Featured center tab */
+  .feature {
+    position: relative;
+    width: 64px; height: 64px; margin-top: -22px;
+    border-radius: 50%; background: var(--accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(26,107,74,0.4);
+    text-decoration: none;
+    flex-direction: column; gap: 0;
+  }
+  .feature svg { width: 26px; height: 26px; stroke: #fff; fill: none; stroke-width: 1.8; }
+  .feature .label {
+    position: absolute; bottom: -14px; font-size: 9px; color: var(--accent); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+
+  .icon-wrap { position: relative; display: inline-flex; }
+  .badge {
+    position: absolute; top: -4px; right: -8px; background: var(--accent); color: #fff;
+    font-size: 9px; font-weight: 700; min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+  <h1>Option C — Featured River Now CTA + floating pill</h1>
+  <p class="desc">Floating pill toolbar with River Now as a circular accent "primary" tab in the center. 2 tabs on each side (Explore + Hatch on left, Saved + More on right). All satellite icons match at 22px; River Now is intentionally larger because it's the most-used entry point. More opens a sheet for Steward etc.</p>
+
+  <div class="phone">
+    <div class="notch"></div>
+
+    <div class="topbar">
+      <span class="logo">RiverPath</span>
+      <span class="picker">Shenandoah River ▾</span>
+      <span class="avatar">SS</span>
+    </div>
+
+    <div class="nav-wrap">
+      <nav class="nav" role="tablist">
+        <a class="tab">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-4 2-2 4 4-2z" stroke-linejoin="round"/></svg>
+          <span class="label">Explore</span>
+        </a>
+        <a class="tab">
+          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="4" ry="6"/><path d="M12 7V4M9 5l-2-2M15 5l2-2M8 10l-3-1M16 10l3-1M8 16l-3 1M16 16l3 1"/></svg>
+          <span class="label">Hatch</span>
+        </a>
+
+        <a class="feature" aria-current="page">
+          <svg viewBox="0 0 24 24"><path d="M2 12c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0M2 17c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0"/></svg>
+          <span class="label">Now</span>
+        </a>
+
+        <a class="tab">
+          <span class="icon-wrap">
+            <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" stroke-linejoin="round"/></svg>
+            <span class="badge">3</span>
+          </span>
+          <span class="label">Saved</span>
+        </a>
+        <a class="tab">
+          <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
+          <span class="label">More</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+</body>
+</html>

@@ -208,9 +208,13 @@ export default function TripQualityCard({ watershed }: { watershed: string }) {
             14-day →
           </button>
         </div>
-      </div>
-      <div className="tqs-actions-row">
-        <AlertsChip watershed={watershed} />
+        <div
+          className="tqs-banner-actions"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <AlertsChip watershed={watershed} />
+        </div>
       </div>
 
       {showForecast && (

@@ -262,7 +262,8 @@
 }
 .tqs-forecast-btn:hover { background: #f0ede5; text-decoration: underline; }
 
-.tqs-actions-row {
-  display: flex; justify-content: flex-end;
-  margin-top: 8px;
+.tqs-banner-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 14px 12px;
 }
