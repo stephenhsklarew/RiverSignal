@@ -7,13 +7,31 @@
  * which writes an audit row in the same transaction.
  */
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
 import { API_BASE } from '../config'
 import './AdminPhotosPage.css'
 
+const WATERSHEDS = [
+  { value: '*',           label: 'Global default (all watersheds)' },
+  { value: 'mckenzie',    label: 'McKenzie' },
+  { value: 'deschutes',   label: 'Deschutes' },
+  { value: 'metolius',    label: 'Metolius' },
+  { value: 'klamath',     label: 'Klamath' },
+  { value: 'johnday',     label: 'John Day' },
+  { value: 'skagit',      label: 'Skagit' },
+  { value: 'green_river', label: 'Green River' },
+  { value: 'shenandoah',  label: 'Shenandoah' },
+]
+
+function wsLabel(value: string): string {
+  const found = WATERSHEDS.find(w => w.value === value)
+  return found ? found.label : value
+}
+
 interface CuratedRow {
   species_key: string
+  watershed: string
   common_name: string
   scientific_name: string | null
   photo_url: string
@@ -32,6 +50,7 @@ interface CuratedDetail {
     action: string
     prev_photo_url: string | null
     new_photo_url: string | null
+    watershed: string
     changed_by_user_id: string | null
     changed_at: string | null
   }>
@@ -54,8 +73,10 @@ const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then(r =
 
 export default function AdminPhotosPage() {
   const { species_key } = useParams<{ species_key: string }>()
+  const [params] = useSearchParams()
+  const watershed = params.get('watershed') || '*'
   return species_key
-    ? <AdminPhotoEditor speciesKey={species_key} />
+    ? <AdminPhotoEditor speciesKey={species_key} watershed={watershed} />
     : <AdminPhotosList />
 }
 
@@ -89,7 +110,15 @@ function AdminPhotosList() {
             className="admin-add-btn"
             onClick={() => {
               const k = prompt('New species_key (lowercase, e.g. "lake trout"):')
-              if (k && k.trim()) navigate(`/admin/photos/${encodeURIComponent(k.trim().toLowerCase())}`)
+              if (!k || !k.trim()) return
+              const wsChoice = prompt(
+                'Scope this photo to which watershed?\n\n' +
+                '*  = global default (applies to all watersheds)\n' +
+                'mckenzie, deschutes, metolius, klamath, johnday, skagit, green_river, shenandoah\n\n' +
+                'Press OK with * for global, or type a slug.', '*')
+              if (!wsChoice) return
+              const ws = wsChoice.trim() || '*'
+              navigate(`/admin/photos/${encodeURIComponent(k.trim().toLowerCase())}?watershed=${encodeURIComponent(ws)}`)
             }}
           >+ Add species</button>
           <RevokeAdminButton />
@@ -115,8 +144,11 @@ function AdminPhotosList() {
 
       <ul className="admin-grid">
         {rows.map(r => (
-          <li key={r.species_key}>
-            <Link to={`/admin/photos/${encodeURIComponent(r.species_key)}`} className="admin-card">
+          <li key={`${r.species_key}|${r.watershed}`}>
+            <Link
+              to={`/admin/photos/${encodeURIComponent(r.species_key)}?watershed=${encodeURIComponent(r.watershed)}`}
+              className="admin-card"
+            >
               <div className="admin-card-thumb">
                 {r.photo_url
                   ? <img src={r.photo_url} alt={r.common_name} loading="lazy" />
@@ -126,6 +158,13 @@ function AdminPhotosList() {
                 <div className="admin-card-key">{r.species_key}</div>
                 <div className="admin-card-name">{r.common_name}</div>
                 {r.scientific_name && <div className="admin-card-sci">{r.scientific_name}</div>}
+                <div className="admin-card-chips">
+                  <span className={`admin-scope-chip ${r.watershed === '*' ? 'global' : 'specific'}`}>
+                    {r.watershed === '*' ? '🌐 Global' : `📍 ${wsLabel(r.watershed)}`}
+                  </span>
+                  {r.source && <span className="admin-source-chip">{r.source}</span>}
+                  {r.license && <span className="admin-license-chip">{r.license}</span>}
+                </div>
                 {r.updated_at && (
                   <div className="admin-card-meta">
                     Updated {new Date(r.updated_at).toLocaleDateString()}
@@ -142,9 +181,9 @@ function AdminPhotosList() {
 
 // ─── Editor view ───────────────────────────────────────────────────
 
-function AdminPhotoEditor({ speciesKey }: { speciesKey: string }) {
+function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; watershed: string }) {
   const navigate = useNavigate()
-  const url = `${API_BASE}/admin/curated-photos/${encodeURIComponent(speciesKey)}`
+  const url = `${API_BASE}/admin/curated-photos/${encodeURIComponent(speciesKey)}?watershed=${encodeURIComponent(watershed)}`
   const { data, mutate, error } = useSWR<CuratedDetail>(url, fetcher)
 
   // Editable fields
@@ -224,6 +263,9 @@ function AdminPhotoEditor({ speciesKey }: { speciesKey: string }) {
   if (error) return <div className="admin-page"><div className="admin-error">Failed to load: {String(error)}</div></div>
   if (!data) return <div className="admin-page"><div className="admin-empty">Loading…</div></div>
 
+  const sp = data.species
+  const sourceLabel = sp.source || (selectedObs ? 'inaturalist' : 'manual')
+
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -231,6 +273,17 @@ function AdminPhotoEditor({ speciesKey }: { speciesKey: string }) {
         <h1>{commonName || speciesKey}</h1>
         <RevokeAdminButton />
       </header>
+
+      <div className="admin-scope-banner">
+        <span className={`admin-scope-chip ${watershed === '*' ? 'global' : 'specific'}`}>
+          {watershed === '*' ? '🌐 Global default — applies to all watersheds' : `📍 ${wsLabel(watershed)} only`}
+        </span>
+        {watershed !== '*' && (
+          <Link to={`/admin/photos/${encodeURIComponent(speciesKey)}?watershed=*`} className="admin-scope-link">
+            View global default →
+          </Link>
+        )}
+      </div>
 
       <section className="admin-current">
         <div className="admin-current-thumb">
@@ -241,6 +294,9 @@ function AdminPhotoEditor({ speciesKey }: { speciesKey: string }) {
         <div className="admin-current-meta">
           <label>species_key
             <input type="text" value={speciesKey} disabled />
+          </label>
+          <label>watershed scope
+            <input type="text" value={watershed === '*' ? '* (global default)' : watershed} disabled />
           </label>
           <label>Common name
             <input type="text" value={commonName} onChange={e => setCommonName(e.target.value)} />
@@ -255,6 +311,14 @@ function AdminPhotoEditor({ speciesKey }: { speciesKey: string }) {
           <label>Photo URL (paste Wikimedia or any URL)
             <input type="url" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} />
           </label>
+          {sp.exists && (
+            <div className="admin-meta-readout">
+              <div><strong>Source:</strong> {sourceLabel}</div>
+              {sp.inat_user_handle && <div><strong>Photographer:</strong> 📷 {sp.inat_user_handle}</div>}
+              {sp.license && <div><strong>License:</strong> <code>{sp.license}</code></div>}
+              {sp.updated_at && <div><strong>Last updated:</strong> {new Date(sp.updated_at).toLocaleString()}</div>}
+            </div>
+          )}
         </div>
       </section>
 

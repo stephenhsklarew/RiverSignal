@@ -52,18 +52,30 @@ def fishing_species(watershed: str):
                 photo_map[tn] = g[2]
 
         # Apply curated Wikimedia entries LAST so they override iNat for
-        # species we've explicitly vetted. The curated set is small (~25
-        # entries) and represents canonical reference photos. iNat can
-        # supply mangled/dead/blurry observation photos that read badly
-        # in a carousel — for the curated species we accept the tradeoff
-        # of losing a real-observation photo in favour of an editorially
-        # chosen image. Species NOT in curated still pick up iNat photos
-        # via the gallery loop above.
-        curated = conn.execute(text("""
+        # species we've explicitly vetted. Precedence within curated:
+        #   global default ('*') < watershed-specific (this ws)
+        # so a curator can specialise a single species for one watershed
+        # without affecting the global default. Species NOT in curated
+        # still pick up iNat photos via the gallery loop above.
+        curated_global = conn.execute(text("""
             SELECT species_key, scientific_name, photo_url
             FROM gold.curated_species_photos
+            WHERE watershed = '*'
         """)).fetchall()
-        for c in curated:
+        for c in curated_global:
+            key = (c[0] or "").lower()
+            sn = (c[1] or "").lower()
+            if key:
+                photo_map[key] = c[2]
+            if sn:
+                photo_map[sn] = c[2]
+
+        curated_specific = conn.execute(text("""
+            SELECT species_key, scientific_name, photo_url
+            FROM gold.curated_species_photos
+            WHERE watershed = :ws
+        """), {"ws": watershed}).fetchall()
+        for c in curated_specific:
             key = (c[0] or "").lower()
             sn = (c[1] or "").lower()
             if key:

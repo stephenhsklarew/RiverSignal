@@ -3,15 +3,20 @@
 All routes here are gated by `get_current_admin` and operate on
 `gold.curated_species_photos` + `audit.curated_species_photos_log`.
 
+Per-watershed scoping (ah33b4c5d6e7): rows are keyed on
+`(species_key, watershed)`. Watershed `'*'` = global default; any other
+value (e.g. `'mckenzie'`) is a per-watershed override. Public lookup
+(in app/routers/fishing.py) prefers watershed-specific over global.
+
 Endpoints
 ---------
-GET    /admin/curated-photos                 list every curated row
-GET    /admin/curated-photos/{species_key}   one row + last 5 audit entries
-PUT    /admin/curated-photos/{species_key}   upsert (creates if missing); writes audit row
-DELETE /admin/curated-photos/{species_key}   delete row; writes audit row
-GET    /admin/curated-photos/{species_key}/history  full audit timeline
-GET    /admin/inat/photos?scientific_name=...       iNat search proxy (1h LRU cache)
-POST   /admin/self/revoke                    self-service admin revocation (OF-6)
+GET    /admin/curated-photos                                       list every row (all scopes)
+GET    /admin/curated-photos/{species_key}?watershed=...           one row + last 5 audit entries
+PUT    /admin/curated-photos/{species_key}?watershed=...           upsert; writes audit row
+DELETE /admin/curated-photos/{species_key}?watershed=...           delete; writes audit row
+GET    /admin/curated-photos/{species_key}/history?watershed=...   full audit timeline (omit ws → all scopes)
+GET    /admin/inat/photos?scientific_name=...                      iNat search proxy (1h LRU cache)
+POST   /admin/self/revoke                                          self-service admin revocation (OF-6)
 """
 from __future__ import annotations
 
@@ -19,7 +24,7 @@ import time
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
@@ -29,31 +34,59 @@ from pipeline.db import engine
 
 router = APIRouter(tags=["admin"])
 
+# DB sentinel for "applies to every watershed". Keep all-watershed rows
+# under one well-known value so the public lookup query in fishing.py
+# can do a single OR-style match without NULL semantics.
+GLOBAL_WATERSHED = '*'
+
+# Allowlist used by the watershed-scope selector; mirrors WATERSHEDS in
+# pipeline/config/watersheds.py. Kept in code so a malformed query string
+# can't insert a row with an arbitrary watershed value.
+VALID_WATERSHEDS = {
+    'mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday',
+    'skagit', 'green_river', 'shenandoah',
+}
+
+
+def _validate_watershed(watershed: str) -> str:
+    """Accept '*' or one of the known watershed slugs; reject anything else."""
+    ws = (watershed or '').strip().lower()
+    if ws == GLOBAL_WATERSHED:
+        return ws
+    if ws in VALID_WATERSHEDS:
+        return ws
+    raise HTTPException(400, f"watershed must be '*' or one of {sorted(VALID_WATERSHEDS)}")
+
 
 # ── Curated photos: list ───────────────────────────────────────────
 
 @router.get("/admin/curated-photos")
 def list_curated_photos(admin: dict = Depends(get_current_admin)):
-    """Return every curated species photo with provenance."""
+    """Every curated row across all scopes. Frontend groups by species_key
+    and renders the watershed scope (global '*' or specific) on each card.
+    """
     with engine.connect() as conn:
         rows = conn.execute(text("""
-            SELECT species_key, common_name, scientific_name, photo_url,
+            SELECT species_key, watershed, common_name, scientific_name, photo_url,
                    inat_user_handle, license, source,
                    updated_by_user_id, updated_at
             FROM gold.curated_species_photos
-            ORDER BY species_key
+            ORDER BY species_key,
+                     CASE WHEN watershed = '*' THEN 0 ELSE 1 END,
+                     watershed
         """)).fetchall()
     return [
         {
             "species_key":      r[0],
-            "common_name":      r[1],
-            "scientific_name":  r[2],
-            "photo_url":        r[3],
-            "inat_user_handle": r[4],
-            "license":          r[5],
-            "source":           r[6],
-            "updated_by_user_id": str(r[7]) if r[7] else None,
-            "updated_at":       r[8].isoformat() if r[8] else None,
+            "watershed":        r[1],
+            "common_name":      r[2],
+            "scientific_name":  r[3],
+            "photo_url":        r[4],
+            "inat_user_handle": r[5],
+            "license":          r[6],
+            "source":           r[7],
+            "updated_by_user_id": str(r[8]) if r[8] else None,
+            "updated_at":       r[9].isoformat() if r[9] else None,
         }
         for r in rows
     ]
@@ -73,36 +106,44 @@ class CuratedPhotoPayload(BaseModel):
 
 
 @router.get("/admin/curated-photos/{species_key}")
-def get_curated_photo(species_key: str, admin: dict = Depends(get_current_admin)):
-    """One row + inline last 5 audit entries (OF-7)."""
+def get_curated_photo(
+    species_key: str,
+    watershed: str = Query(GLOBAL_WATERSHED, description="'*' for global default, or a watershed slug"),
+    admin: dict = Depends(get_current_admin),
+):
+    """One row at the requested scope + inline last 5 audit entries
+    (filtered to the same scope, per OF-7)."""
+    ws = _validate_watershed(watershed)
     with engine.connect() as conn:
         row = conn.execute(text("""
-            SELECT species_key, common_name, scientific_name, photo_url,
+            SELECT species_key, watershed, common_name, scientific_name, photo_url,
                    inat_observation_id, inat_user_handle, license, source,
                    updated_by_user_id, updated_at
             FROM gold.curated_species_photos
-            WHERE species_key = :sk
-        """), {"sk": species_key}).fetchone()
+            WHERE species_key = :sk AND watershed = :ws
+        """), {"sk": species_key, "ws": ws}).fetchone()
         audit_rows = conn.execute(text("""
-            SELECT action, prev_photo_url, new_photo_url, changed_by_user_id, changed_at
+            SELECT action, prev_photo_url, new_photo_url, watershed,
+                   changed_by_user_id, changed_at
             FROM audit.curated_species_photos_log
-            WHERE species_key = :sk
+            WHERE species_key = :sk AND watershed = :ws
             ORDER BY changed_at DESC
             LIMIT 5
-        """), {"sk": species_key}).fetchall()
+        """), {"sk": species_key, "ws": ws}).fetchall()
 
     return {
         "species": {
             "species_key":         row[0] if row else species_key,
-            "common_name":         row[1] if row else None,
-            "scientific_name":     row[2] if row else None,
-            "photo_url":           row[3] if row else None,
-            "inat_observation_id": row[4] if row else None,
-            "inat_user_handle":    row[5] if row else None,
-            "license":             row[6] if row else None,
-            "source":              row[7] if row else None,
-            "updated_by_user_id":  str(row[8]) if (row and row[8]) else None,
-            "updated_at":          row[9].isoformat() if (row and row[9]) else None,
+            "watershed":           row[1] if row else ws,
+            "common_name":         row[2] if row else None,
+            "scientific_name":     row[3] if row else None,
+            "photo_url":           row[4] if row else None,
+            "inat_observation_id": row[5] if row else None,
+            "inat_user_handle":    row[6] if row else None,
+            "license":             row[7] if row else None,
+            "source":              row[8] if row else None,
+            "updated_by_user_id":  str(row[9]) if (row and row[9]) else None,
+            "updated_at":          row[10].isoformat() if (row and row[10]) else None,
             "exists":              row is not None,
         },
         "recent_changes": [
@@ -110,8 +151,9 @@ def get_curated_photo(species_key: str, admin: dict = Depends(get_current_admin)
                 "action":         a[0],
                 "prev_photo_url": a[1],
                 "new_photo_url":  a[2],
-                "changed_by_user_id": str(a[3]) if a[3] else None,
-                "changed_at":     a[4].isoformat() if a[4] else None,
+                "watershed":      a[3],
+                "changed_by_user_id": str(a[4]) if a[4] else None,
+                "changed_at":     a[5].isoformat() if a[5] else None,
             }
             for a in audit_rows
         ],
@@ -122,28 +164,31 @@ def get_curated_photo(species_key: str, admin: dict = Depends(get_current_admin)
 def upsert_curated_photo(
     species_key: str,
     payload: CuratedPhotoPayload,
+    watershed: str = Query(GLOBAL_WATERSHED, description="'*' for global default, or a watershed slug"),
     admin: dict = Depends(get_current_admin),
 ):
-    """Insert or update curated photo. Single transaction with the audit log."""
+    """Insert or update curated photo at the requested scope. Single
+    transaction with the audit log."""
     species_key = species_key.lower().strip()
     if not species_key:
         raise HTTPException(400, "species_key cannot be empty")
+    ws = _validate_watershed(watershed)
 
     with engine.connect() as conn, conn.begin():
         prev = conn.execute(text("""
             SELECT photo_url, common_name, scientific_name
             FROM gold.curated_species_photos
-            WHERE species_key = :sk
-        """), {"sk": species_key}).fetchone()
+            WHERE species_key = :sk AND watershed = :ws
+        """), {"sk": species_key, "ws": ws}).fetchone()
         is_insert = prev is None
 
         conn.execute(text("""
             INSERT INTO gold.curated_species_photos
-                (species_key, common_name, scientific_name, photo_url,
+                (species_key, watershed, common_name, scientific_name, photo_url,
                  inat_observation_id, inat_user_handle, license, source,
                  updated_by_user_id, updated_at)
-            VALUES (:sk, :cn, :sn, :url, :oid, :uh, :lic, :src, :uid, now())
-            ON CONFLICT (species_key) DO UPDATE
+            VALUES (:sk, :ws, :cn, :sn, :url, :oid, :uh, :lic, :src, :uid, now())
+            ON CONFLICT (species_key, watershed) DO UPDATE
               SET common_name         = EXCLUDED.common_name,
                   scientific_name     = EXCLUDED.scientific_name,
                   photo_url           = EXCLUDED.photo_url,
@@ -155,6 +200,7 @@ def upsert_curated_photo(
                   updated_at          = EXCLUDED.updated_at
         """), {
             "sk": species_key,
+            "ws": ws,
             "cn": payload.common_name,
             "sn": payload.scientific_name,
             "url": payload.photo_url,
@@ -167,13 +213,15 @@ def upsert_curated_photo(
 
         conn.execute(text("""
             INSERT INTO audit.curated_species_photos_log
-                (species_key, action, prev_photo_url, new_photo_url,
+                (species_key, watershed, action,
+                 prev_photo_url, new_photo_url,
                  prev_common_name, new_common_name,
                  prev_scientific, new_scientific,
                  changed_by_user_id)
-            VALUES (:sk, :act, :pu, :nu, :pcn, :ncn, :psc, :nsc, :uid)
+            VALUES (:sk, :ws, :act, :pu, :nu, :pcn, :ncn, :psc, :nsc, :uid)
         """), {
             "sk": species_key,
+            "ws": ws,
             "act": "insert" if is_insert else "update",
             "pu": prev[0] if prev else None,
             "nu": payload.photo_url,
@@ -184,68 +232,93 @@ def upsert_curated_photo(
             "uid": admin["id"],
         })
 
-    return {"ok": True, "species_key": species_key, "action": "insert" if is_insert else "update"}
+    return {"ok": True, "species_key": species_key, "watershed": ws,
+            "action": "insert" if is_insert else "update"}
 
 
 @router.delete("/admin/curated-photos/{species_key}")
-def delete_curated_photo(species_key: str, admin: dict = Depends(get_current_admin)):
-    """Delete a curated row. Writes the deletion to the audit log."""
+def delete_curated_photo(
+    species_key: str,
+    watershed: str = Query(GLOBAL_WATERSHED),
+    admin: dict = Depends(get_current_admin),
+):
+    """Delete a curated row at the requested scope. Audit-logged."""
     species_key = species_key.lower().strip()
+    ws = _validate_watershed(watershed)
     with engine.connect() as conn, conn.begin():
         prev = conn.execute(text("""
             SELECT photo_url, common_name, scientific_name
             FROM gold.curated_species_photos
-            WHERE species_key = :sk
-        """), {"sk": species_key}).fetchone()
+            WHERE species_key = :sk AND watershed = :ws
+        """), {"sk": species_key, "ws": ws}).fetchone()
         if not prev:
-            raise HTTPException(404, "species_key not found")
+            raise HTTPException(404, "no row at that (species_key, watershed) scope")
 
         conn.execute(
-            text("DELETE FROM gold.curated_species_photos WHERE species_key = :sk"),
-            {"sk": species_key},
+            text("DELETE FROM gold.curated_species_photos "
+                 "WHERE species_key = :sk AND watershed = :ws"),
+            {"sk": species_key, "ws": ws},
         )
         conn.execute(text("""
             INSERT INTO audit.curated_species_photos_log
-                (species_key, action, prev_photo_url, new_photo_url,
+                (species_key, watershed, action,
+                 prev_photo_url, new_photo_url,
                  prev_common_name, prev_scientific,
                  changed_by_user_id)
-            VALUES (:sk, 'delete', :pu, NULL, :pcn, :psc, :uid)
+            VALUES (:sk, :ws, 'delete', :pu, NULL, :pcn, :psc, :uid)
         """), {
             "sk": species_key,
+            "ws": ws,
             "pu": prev[0],
             "pcn": prev[1],
             "psc": prev[2],
             "uid": admin["id"],
         })
-    return {"ok": True, "species_key": species_key, "action": "delete"}
+    return {"ok": True, "species_key": species_key, "watershed": ws, "action": "delete"}
 
 
 @router.get("/admin/curated-photos/{species_key}/history")
-def curated_photo_history(species_key: str, admin: dict = Depends(get_current_admin)):
-    """Full audit timeline for a species, newest first."""
+def curated_photo_history(
+    species_key: str,
+    watershed: str | None = Query(None, description="Filter to one scope; omit for all scopes"),
+    admin: dict = Depends(get_current_admin),
+):
+    """Full audit timeline for a species, newest first. When `watershed`
+    is provided, filters to that single scope; otherwise returns every
+    scope's edits interleaved."""
+    where = "WHERE species_key = :sk"
+    params: dict = {"sk": species_key}
+    if watershed is not None:
+        ws = _validate_watershed(watershed)
+        where += " AND watershed = :ws"
+        params["ws"] = ws
+
     with engine.connect() as conn:
-        rows = conn.execute(text("""
-            SELECT action, prev_photo_url, new_photo_url,
+        rows = conn.execute(text(f"""
+            SELECT action, watershed,
+                   prev_photo_url, new_photo_url,
                    prev_common_name, new_common_name,
                    prev_scientific, new_scientific,
                    changed_by_user_id, changed_at
             FROM audit.curated_species_photos_log
-            WHERE species_key = :sk
+            {where}
             ORDER BY changed_at DESC
-        """), {"sk": species_key}).fetchall()
+        """), params).fetchall()
     return {
         "species_key": species_key,
+        "watershed":   params.get("ws"),  # None when omitted = "all scopes"
         "events": [
             {
                 "action":               r[0],
-                "prev_photo_url":       r[1],
-                "new_photo_url":        r[2],
-                "prev_common_name":     r[3],
-                "new_common_name":      r[4],
-                "prev_scientific_name": r[5],
-                "new_scientific_name":  r[6],
-                "changed_by_user_id":   str(r[7]) if r[7] else None,
-                "changed_at":           r[8].isoformat() if r[8] else None,
+                "watershed":            r[1],
+                "prev_photo_url":       r[2],
+                "new_photo_url":        r[3],
+                "prev_common_name":     r[4],
+                "new_common_name":      r[5],
+                "prev_scientific_name": r[6],
+                "new_scientific_name":  r[7],
+                "changed_by_user_id":   str(r[8]) if r[8] else None,
+                "changed_at":           r[9].isoformat() if r[9] else None,
             }
             for r in rows
         ],

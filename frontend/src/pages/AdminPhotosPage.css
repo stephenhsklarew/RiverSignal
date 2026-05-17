@@ -242,3 +242,70 @@
   display: inline-block; margin-top: 8px;
   color: #2c6e49; font-size: 0.85rem;
 }
+
+/* Scope chips (list cards + editor banner) */
+.admin-card-chips {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin: 6px 0 4px;
+}
+.admin-scope-chip {
+  font-size: 0.68rem; font-weight: 600;
+  padding: 2px 8px; border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.admin-scope-chip.global {
+  background: #eef2f7; color: #3a4a5a;
+  border: 1px solid #d4dde6;
+}
+.admin-scope-chip.specific {
+  background: #fff7e6; color: #5a4a1a;
+  border: 1px solid #e6d4a0;
+}
+.admin-source-chip {
+  font-size: 0.66rem;
+  background: #f0ede5; color: #555;
+  padding: 2px 7px; border-radius: 999px;
+  border: 1px solid #e0ddd2;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.admin-license-chip {
+  font-size: 0.62rem;
+  background: #e8f1ea; color: #1a4a32;
+  padding: 2px 6px; border-radius: 999px;
+  border: 1px solid #c4d8c8;
+  font-family: ui-monospace, monospace;
+}
+
+/* Scope banner inside editor */
+.admin-scope-banner {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #faf8f3;
+  border: 1px solid #e6e1d4;
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+.admin-scope-banner .admin-scope-chip {
+  font-size: 0.82rem; padding: 4px 10px;
+}
+.admin-scope-link {
+  color: #2c6e49; font-size: 0.82rem;
+  text-decoration: none;
+}
+.admin-scope-link:hover { text-decoration: underline; }
+
+/* Meta readout (source / photographer / license / updated_at) inside editor */
+.admin-meta-readout {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #faf8f3;
+  border-radius: 8px;
+  font-size: 0.82rem; color: #555;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.admin-meta-readout strong { color: #333; font-weight: 600; }
+.admin-meta-readout code {
+  background: #f0ede5; padding: 1px 5px; border-radius: 3px;
+  font-size: 0.78rem;
+}
