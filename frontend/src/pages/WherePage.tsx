@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useSWR from 'swr'
 import { API_BASE } from '../config'
-import { getSelectedWatershed } from '../components/WatershedHeader'
+import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import './WherePage.css'
 
 const FIVE_MIN = 5 * 60 * 1000
@@ -87,18 +87,17 @@ export default function WherePage() {
 
   const filtered = (data?.results || []).filter(r => !onlyStrong || r.watershed_tqs >= 70)
 
+  const ws = getSelectedWatershed() || 'mckenzie'
+
   return (
-    <div className="where-page">
-      <div className="where-header">
-        {(() => {
-          const ws = getSelectedWatershed()
-          return ws
-            ? <Link to={`/path/now/${ws}`} className="where-back">← {ws.replace(/_/g, ' ')}</Link>
-            : <Link to="/path" className="where-back">← Path</Link>
-        })()}
-        <h1 className="where-title">Where should I fish?</h1>
-        <p className="where-sub">Best Go Score within drive distance, today.</p>
-      </div>
+    <>
+      <WatershedHeader watershed={ws} basePath="/path/where" />
+      <div className="where-page">
+        <div className="where-header">
+          <Link to={`/path/now/${ws}`} className="where-back">← {ws.replace(/_/g, ' ')}</Link>
+          <h1 className="where-title">Where should I fish?</h1>
+          <p className="where-sub">Best Go Score within drive distance, today.</p>
+        </div>
 
       <div className="where-controls">
         <label className="where-control">
@@ -181,7 +180,8 @@ export default function WherePage() {
           )
         })}
       </ol>
-    </div>
+      </div>
+    </>
   )
 }
 
