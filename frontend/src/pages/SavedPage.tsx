@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
 import useSWR from 'swr'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useSaved, type SavedItem } from '../components/SavedContext'
 import { useAuth } from '../components/AuthContext'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import { setUserObsCount } from '../components/useUserObsCount'
+import type { PhotoMeta } from '../components/TappablePhoto'
 import './SavedPage.css'
 
 const TYPE_ICONS: Record<SavedItem['type'], string> = {
@@ -57,9 +58,27 @@ export default function SavedPage() {
     document.title = 'River Path'
     return () => { document.title = 'River Signal' }
   }, [])
+  const navigate = useNavigate()
   const { listSaved, unsave } = useSaved()
   const { isLoggedIn } = useAuth()
   const headerWs = getSelectedWatershed() || 'mckenzie'
+
+  function openObservation(obs: UserObservation) {
+    if (!obs.photo_url) return
+    const ws = obs.watershed || headerWs
+    const photo: PhotoMeta = {
+      url: obs.photo_url,
+      title: obs.common_name || obs.species_name || obs.category || 'Observation',
+      subtitle: obs.scientific_name || undefined,
+      observedAt: obs.observed_at || undefined,
+      caption: obs.notes || undefined,
+      observer: 'You',
+      source: obs.visibility === 'private' ? 'Private observation' : 'Your observation',
+    }
+    navigate(`/path/now/${ws}/photo`, {
+      state: { photo, backTo: { path: '/path/saved', label: 'Back to Saved' } },
+    })
+  }
 
   // Fetch user's observations from the API (synced across devices) via
   // SWR — stale-while-revalidate keeps the list snappy on navigation.
@@ -113,36 +132,49 @@ export default function SavedPage() {
                   View all on map
                 </Link>
               </h2>
-              {apiObs.map(obs => (
-                <div key={obs.id} className="saved-item">
-                  {obs.photo_url ? (
-                    <img src={obs.photo_url} alt="" className="saved-item-thumb" />
-                  ) : (
-                    <span className="saved-item-icon">📷</span>
-                  )}
-                  <div className="saved-item-info">
-                    <div className="saved-item-label">
-                      {obs.common_name || obs.species_name || obs.category || 'Observation'}
-                    </div>
-                    {obs.scientific_name && (
-                      <div className="saved-item-sub">{obs.scientific_name}</div>
+              {apiObs.map(obs => {
+                const tappable = !!obs.photo_url
+                const label = obs.common_name || obs.species_name || obs.category || 'Observation'
+                return (
+                  <div
+                    key={obs.id}
+                    className={`saved-item${tappable ? ' saved-item-tappable' : ''}`}
+                    role={tappable ? 'button' : undefined}
+                    tabIndex={tappable ? 0 : undefined}
+                    onClick={tappable ? () => openObservation(obs) : undefined}
+                    onKeyDown={tappable ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openObservation(obs) }
+                    } : undefined}
+                    aria-label={tappable ? `View ${label} in detail` : undefined}
+                  >
+                    {obs.photo_url ? (
+                      <img src={obs.photo_url} alt="" className="saved-item-thumb" />
+                    ) : (
+                      <span className="saved-item-icon">📷</span>
                     )}
-                    <div className="saved-item-meta">
-                      {obs.visibility === 'private' ? 'private' : 'public'}
-                      {obs.observed_at && ` · ${new Date(obs.observed_at).toLocaleDateString()}`}
+                    <div className="saved-item-info">
+                      <div className="saved-item-label">{label}</div>
+                      {obs.scientific_name && (
+                        <div className="saved-item-sub">{obs.scientific_name}</div>
+                      )}
+                      <div className="saved-item-meta">
+                        {obs.visibility === 'private' ? 'private' : 'public'}
+                        {obs.observed_at && ` · ${new Date(obs.observed_at).toLocaleDateString()}`}
+                      </div>
                     </div>
+                    {obs.latitude && obs.longitude && (
+                      <Link
+                        to={`/path/saved/map/${headerWs}`}
+                        className="saved-item-map-link"
+                        aria-label={`View ${obs.common_name || 'observation'} on map`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        📍
+                      </Link>
+                    )}
                   </div>
-                  {obs.latitude && obs.longitude && (
-                    <Link
-                      to={`/path/saved/map/${headerWs}`}
-                      className="saved-item-map-link"
-                      aria-label={`View ${obs.common_name || 'observation'} on map`}
-                    >
-                      📍
-                    </Link>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </section>
           )}
 

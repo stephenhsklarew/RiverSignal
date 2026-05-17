@@ -14,13 +14,17 @@ import './PhotoDetailPage.css'
 
 interface LocationState {
   photo?: PhotoMeta
+  /** Optional override for the back-link target. Defaults to `/path/now/:watershed`. */
+  backTo?: { path: string; label: string }
 }
 
 export default function PhotoDetailPage() {
   const { watershed = '' } = useParams<{ watershed: string }>()
   const location = useLocation()
   const navigate = useNavigate()
-  const photo = (location.state as LocationState | null)?.photo
+  const state = location.state as LocationState | null
+  const photo = state?.photo
+  const backTo = state?.backTo
 
   // No state → user reloaded the page or pasted the URL.
   // Bounce them back to the watershed view.
@@ -33,13 +37,15 @@ export default function PhotoDetailPage() {
   if (!photo) return null
 
   const wsLabel = watershed.replace(/_/g, ' ')
+  const backPath = backTo?.path ?? `/path/now/${watershed}`
+  const backLabel = backTo?.label ?? `Back to ${wsLabel}`
 
   return (
     <>
       <WatershedHeader watershed={watershed} basePath="/path/now" />
       <div className="photo-detail">
-        <Link to={`/path/now/${watershed}`} className="photo-detail-back">
-          ← Back to {wsLabel}
+        <Link to={backPath} className="photo-detail-back">
+          ← {backLabel}
         </Link>
 
         <figure className="photo-detail-figure">

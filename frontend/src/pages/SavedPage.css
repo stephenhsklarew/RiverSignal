@@ -24,6 +24,14 @@
   border-radius: 8px; border: 1px solid var(--border);
   margin-bottom: 6px;
 }
+.saved-item-tappable {
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.05s;
+  -webkit-tap-highlight-color: transparent;
+}
+.saved-item-tappable:hover { border-color: var(--accent, #1a6b4a); }
+.saved-item-tappable:active { transform: scale(0.998); }
+.saved-item-tappable:focus-visible { outline: 2px solid var(--accent, #1a6b4a); outline-offset: 2px; }
 .saved-item-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
 .saved-item-icon { font-size: 20px; width: 40px; text-align: center; flex-shrink: 0; }
 .saved-item-info { flex: 1; min-width: 0; }
