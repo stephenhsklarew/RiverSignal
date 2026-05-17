@@ -46,6 +46,14 @@ interface CuratedDetail {
     inat_observation_id: number | null
     exists: boolean
   }
+  /** Present only when the requested per-watershed row doesn't exist
+   *  yet AND the species's global '*' row does. Used to pre-seed the
+   *  editor so the iNat search button is immediately usable. */
+  global_fallback: {
+    common_name: string | null
+    scientific_name: string | null
+    photo_url: string | null
+  } | null
   recent_changes: Array<{
     action: string
     prev_photo_url: string | null
@@ -225,12 +233,28 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
   const [msg, setMsg] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
 
-  // Seed inputs from server on first load
+  // Seed inputs from server on first load. When the per-watershed row
+  // doesn't exist yet but a global '*' row does, seed from the global
+  // fallback so the iNat search button is immediately usable (and so
+  // the user can save the global photo as the per-watershed default
+  // by just clicking Save).
   useMemo(() => {
-    if (data?.species && commonName === '' && photoUrl === '') {
-      setCommonName(data.species.common_name || speciesKey)
-      setScientificName(data.species.scientific_name || '')
-      setPhotoUrl(data.species.photo_url || '')
+    if (!data?.species) return
+    if (commonName !== '' || photoUrl !== '') return
+    const sp = data.species
+    const fb = data.global_fallback
+    if (sp.exists) {
+      setCommonName(sp.common_name || speciesKey)
+      setScientificName(sp.scientific_name || '')
+      setPhotoUrl(sp.photo_url || '')
+    } else if (fb) {
+      // Pre-seed from global default; iNat search now works immediately.
+      setCommonName(fb.common_name || speciesKey)
+      setScientificName(fb.scientific_name || '')
+      setPhotoUrl(fb.photo_url || '')
+    } else {
+      // First-ever entry for this species (no global, no override).
+      setCommonName(speciesKey)
     }
   }, [data, speciesKey, commonName, photoUrl])
 
@@ -325,6 +349,21 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
           </Link>
         )}
       </div>
+
+      {!data.species.exists && data.global_fallback && (
+        <div className="admin-prefill-hint">
+          Pre-filled from the global default for <code>{speciesKey}</code>.
+          Hit “Search iNat in {wsLabel(watershed)}” to find a locally-relevant
+          photo, or just <strong>Save</strong> to use the global photo as this
+          watershed's override.
+        </div>
+      )}
+      {!data.species.exists && !data.global_fallback && (
+        <div className="admin-prefill-hint">
+          No global default for <code>{speciesKey}</code> yet — enter a binomial
+          (e.g. <code>Salmo trutta</code>) below to enable iNat search.
+        </div>
+      )}
 
       <section className="admin-current">
         <div className="admin-current-thumb">

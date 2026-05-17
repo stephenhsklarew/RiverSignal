@@ -370,3 +370,21 @@
   font-size: 0.78rem; color: #666;
   font-style: italic;
 }
+
+/* Pre-fill hint that shows when opening a new per-watershed scope */
+.admin-prefill-hint {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #fef7e6;
+  border: 1px solid #e6d4a0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #5a4a1a;
+  line-height: 1.45;
+}
+.admin-prefill-hint code {
+  background: #f0ede5;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+}

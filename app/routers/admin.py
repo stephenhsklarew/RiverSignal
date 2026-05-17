@@ -124,7 +124,13 @@ def get_curated_photo(
     admin: dict = Depends(get_current_admin),
 ):
     """One row at the requested scope + inline last 5 audit entries
-    (filtered to the same scope, per OF-7)."""
+    (filtered to the same scope, per OF-7).
+
+    When the requested scope has no row yet, we also return a
+    `global_fallback` payload built from the species's global ('*') row
+    if one exists — the editor uses this to pre-seed common_name and
+    scientific_name so the iNat search button is immediately usable
+    after picking 'Add scope'."""
     ws = _validate_watershed(watershed)
     with engine.connect() as conn:
         row = conn.execute(text("""
@@ -143,6 +149,23 @@ def get_curated_photo(
             LIMIT 5
         """), {"sk": species_key, "ws": ws}).fetchall()
 
+        # If the requested scope doesn't have a row yet and the request
+        # is for a per-watershed scope, look up the species's global
+        # default so the editor can pre-seed.
+        global_fallback = None
+        if row is None and ws != GLOBAL_WATERSHED:
+            g = conn.execute(text("""
+                SELECT common_name, scientific_name, photo_url
+                FROM gold.curated_species_photos
+                WHERE species_key = :sk AND watershed = '*'
+            """), {"sk": species_key}).fetchone()
+            if g:
+                global_fallback = {
+                    "common_name":     g[0],
+                    "scientific_name": g[1],
+                    "photo_url":       g[2],
+                }
+
     return {
         "species": {
             "species_key":         row[0] if row else species_key,
@@ -158,6 +181,7 @@ def get_curated_photo(
             "updated_at":          row[10].isoformat() if (row and row[10]) else None,
             "exists":              row is not None,
         },
+        "global_fallback": global_fallback,
         "recent_changes": [
             {
                 "action":         a[0],
