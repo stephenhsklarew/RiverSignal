@@ -471,6 +471,250 @@ def inat_search(
     return {"candidates": candidates, "cached": False, "watershed": ws}
 
 
+# ── River-story narrative editor + audio regeneration ─────────────
+
+READING_LEVELS = ("kids", "adult", "expert")
+
+
+def _validate_reading_level(lvl: str) -> str:
+    v = (lvl or "").strip().lower()
+    if v not in READING_LEVELS:
+        raise HTTPException(400, f"reading_level must be one of {READING_LEVELS}")
+    return v
+
+
+class RiverStoryPayload(BaseModel):
+    narrative: str = Field(..., min_length=1, max_length=10000)
+
+
+@router.get("/admin/river-stories")
+def list_river_stories(admin: dict = Depends(get_current_admin)):
+    """Every (watershed, reading_level) row + whether a cached audio file
+    exists. Frontend renders one card per row, grouped by watershed."""
+    from app.audio_cache import get_audio_url
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT watershed, reading_level, narrative, generated_at,
+                   updated_by_user_id, updated_at
+            FROM river_stories
+            ORDER BY watershed,
+                     CASE reading_level
+                       WHEN 'kids' THEN 0
+                       WHEN 'adult' THEN 1
+                       WHEN 'expert' THEN 2 ELSE 9 END
+        """)).fetchall()
+    out: list[dict] = []
+    for r in rows:
+        filename = f"{r[0]}_{r[1]}.mp3"
+        audio_url = get_audio_url("river_stories", filename)
+        out.append({
+            "watershed":         r[0],
+            "reading_level":     r[1],
+            "narrative":         r[2],
+            "narrative_length":  len(r[2] or ""),
+            "generated_at":      r[3].isoformat() if r[3] else None,
+            "updated_by_user_id": str(r[4]) if r[4] else None,
+            "updated_at":        r[5].isoformat() if r[5] else None,
+            "audio_url":         audio_url if audio_url and audio_url.startswith("http") else (
+                f"/api/v1/sites/{r[0]}/river-story-audio?reading_level={r[1]}" if audio_url else None
+            ),
+            "has_audio":         audio_url is not None,
+        })
+    return out
+
+
+@router.get("/admin/river-stories/{watershed}/{reading_level}")
+def get_river_story(
+    watershed: str,
+    reading_level: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """One row + inline last 5 audit entries."""
+    ws = _validate_watershed(watershed) if watershed != GLOBAL_WATERSHED else None
+    if ws is None:
+        raise HTTPException(400, "watershed required")
+    lvl = _validate_reading_level(reading_level)
+
+    from app.audio_cache import get_audio_url
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT watershed, reading_level, narrative, generated_at,
+                   updated_by_user_id, updated_at
+            FROM river_stories
+            WHERE watershed = :ws AND reading_level = :lvl
+        """), {"ws": ws, "lvl": lvl}).fetchone()
+        audit_rows = conn.execute(text("""
+            SELECT action, prev_narrative, new_narrative,
+                   prev_audio_path, new_audio_path,
+                   changed_by_user_id, changed_at
+            FROM audit.river_stories_log
+            WHERE watershed = :ws AND reading_level = :lvl
+            ORDER BY changed_at DESC
+            LIMIT 5
+        """), {"ws": ws, "lvl": lvl}).fetchall()
+
+    filename = f"{ws}_{lvl}.mp3"
+    audio_url = get_audio_url("river_stories", filename)
+    audio_serve_url = (
+        audio_url if audio_url and audio_url.startswith("http")
+        else (f"/api/v1/sites/{ws}/river-story-audio?reading_level={lvl}" if audio_url else None)
+    )
+
+    return {
+        "story": {
+            "watershed":        ws,
+            "reading_level":    lvl,
+            "narrative":        row[2] if row else None,
+            "generated_at":     row[3].isoformat() if (row and row[3]) else None,
+            "updated_by_user_id": str(row[4]) if (row and row[4]) else None,
+            "updated_at":       row[5].isoformat() if (row and row[5]) else None,
+            "audio_url":        audio_serve_url,
+            "has_audio":        audio_url is not None,
+            "exists":           row is not None,
+        },
+        "recent_changes": [
+            {
+                "action":         a[0],
+                "prev_narrative": (a[1] or "")[:200] + ("…" if a[1] and len(a[1]) > 200 else ""),
+                "new_narrative":  (a[2] or "")[:200] + ("…" if a[2] and len(a[2]) > 200 else ""),
+                "prev_audio_path": a[3],
+                "new_audio_path":  a[4],
+                "changed_by_user_id": str(a[5]) if a[5] else None,
+                "changed_at":     a[6].isoformat() if a[6] else None,
+            }
+            for a in audit_rows
+        ],
+    }
+
+
+@router.put("/admin/river-stories/{watershed}/{reading_level}")
+def upsert_river_story(
+    watershed: str,
+    reading_level: str,
+    payload: RiverStoryPayload,
+    admin: dict = Depends(get_current_admin),
+):
+    """Save edited narrative text. Audit-logged."""
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+    lvl = _validate_reading_level(reading_level)
+
+    with engine.connect() as conn, conn.begin():
+        prev = conn.execute(text("""
+            SELECT narrative FROM river_stories
+            WHERE watershed = :ws AND reading_level = :lvl
+        """), {"ws": ws, "lvl": lvl}).fetchone()
+
+        conn.execute(text("""
+            INSERT INTO river_stories
+                (watershed, reading_level, narrative, generated_at,
+                 updated_by_user_id, updated_at)
+            VALUES (:ws, :lvl, :n, now(), :uid, now())
+            ON CONFLICT (watershed, reading_level) DO UPDATE
+              SET narrative          = EXCLUDED.narrative,
+                  generated_at       = EXCLUDED.generated_at,
+                  updated_by_user_id = EXCLUDED.updated_by_user_id,
+                  updated_at         = EXCLUDED.updated_at
+        """), {"ws": ws, "lvl": lvl, "n": payload.narrative, "uid": admin["id"]})
+
+        conn.execute(text("""
+            INSERT INTO audit.river_stories_log
+                (watershed, reading_level, action,
+                 prev_narrative, new_narrative,
+                 changed_by_user_id)
+            VALUES (:ws, :lvl, 'narrative_update', :prev, :new, :uid)
+        """), {
+            "ws": ws, "lvl": lvl,
+            "prev": prev[0] if prev else None,
+            "new": payload.narrative,
+            "uid": admin["id"],
+        })
+
+    return {"ok": True, "watershed": ws, "reading_level": lvl,
+            "action": "update" if prev else "insert"}
+
+
+@router.post("/admin/river-stories/{watershed}/{reading_level}/regenerate-audio")
+def regenerate_river_story_audio(
+    watershed: str,
+    reading_level: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """Call OpenAI TTS on the current narrative, persist the MP3 to the
+    configured backend (GCS in prod, local in dev), and audit-log the
+    new audio path. Returns the new audio_url for immediate preview."""
+    import os
+    import httpx
+    from app.audio_cache import get_audio_url, put_audio_bytes
+
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+    lvl = _validate_reading_level(reading_level)
+
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if not openai_key:
+        raise HTTPException(503, "OPENAI_API_KEY not configured")
+
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT narrative FROM river_stories
+            WHERE watershed = :ws AND reading_level = :lvl
+        """), {"ws": ws, "lvl": lvl}).fetchone()
+    if not row or not row[0]:
+        raise HTTPException(404, "No narrative to synthesise. Save text first.")
+    narrative: str = row[0]
+
+    # OpenAI TTS — `nova` voice is what /api/v1/deep-time/narrate-async uses;
+    # keep the river_story voice consistent with DeepTrail narration.
+    try:
+        resp = httpx.post(
+            "https://api.openai.com/v1/audio/speech",
+            headers={
+                "Authorization": f"Bearer {openai_key}",
+                "Content-Type": "application/json",
+            },
+            json={"model": "tts-1", "voice": "nova", "input": narrative},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        audio_bytes = resp.content
+    except httpx.HTTPError as e:
+        raise HTTPException(502, f"OpenAI TTS error: {e}") from e
+
+    filename = f"{ws}_{lvl}.mp3"
+    prev_path = get_audio_url("river_stories", filename)
+    new_path = put_audio_bytes("river_stories", filename, audio_bytes)
+    if not new_path:
+        raise HTTPException(500, "Failed to persist audio to storage")
+
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text("""
+            INSERT INTO audit.river_stories_log
+                (watershed, reading_level, action,
+                 prev_audio_path, new_audio_path,
+                 changed_by_user_id)
+            VALUES (:ws, :lvl, 'audio_regenerate', :prev, :new, :uid)
+        """), {
+            "ws": ws, "lvl": lvl,
+            "prev": prev_path, "new": new_path,
+            "uid": admin["id"],
+        })
+
+    audio_serve_url = (
+        new_path if new_path.startswith("http")
+        else f"/api/v1/sites/{ws}/river-story-audio?reading_level={lvl}"
+    )
+    return {
+        "ok": True,
+        "watershed": ws,
+        "reading_level": lvl,
+        "audio_url": audio_serve_url,
+        "audio_bytes": len(audio_bytes),
+    }
+
+
 # ── Self-service admin revocation (OF-6) ──────────────────────────
 
 @router.post("/admin/self/revoke")

@@ -63,6 +63,7 @@ const StockingMapPage = lazy(() => import('./pages/StockingMapPage'))
 const PhotoDetailPage = lazy(() => import('./pages/PhotoDetailPage'))
 const AdminPhotosPage = lazy(() => import('./pages/AdminPhotosPage'))
 const AdminPhotoHistoryPage = lazy(() => import('./pages/AdminPhotoHistoryPage'))
+const AdminRiverStoriesPage = lazy(() => import('./pages/AdminRiverStoriesPage'))
 const AdminRoute = lazy(() => import('./components/AdminRoute'))
 
 // Bottom nav
@@ -187,6 +188,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/admin/photos" element={<AdminRoute><AdminPhotosPage /></AdminRoute>} />
             <Route path="/admin/photos/:species_key" element={<AdminRoute><AdminPhotosPage /></AdminRoute>} />
             <Route path="/admin/photos/:species_key/history" element={<AdminRoute><AdminPhotoHistoryPage /></AdminRoute>} />
+            <Route path="/admin/river-stories" element={<AdminRoute><AdminRiverStoriesPage /></AdminRoute>} />
+            <Route path="/admin/river-stories/:watershed/:reading_level" element={<AdminRoute><AdminRiverStoriesPage /></AdminRoute>} />
             <Route path="/path/saved/map/:watershed" element={<MyObsMapPage />} />
             <Route path="/path/stocking/:watershed" element={<StockingMapPage />} />
             <Route path="/path/map/:watershed" element={<SpeciesMapPage />} />

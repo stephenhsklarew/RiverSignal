@@ -130,6 +130,7 @@ function AdminPhotosList() {
       <header className="admin-header">
         <h1>Curated species photos</h1>
         <div className="admin-header-actions">
+          <Link to="/admin/river-stories" className="admin-nav-link">→ River Stories</Link>
           <button
             className="admin-add-btn"
             onClick={() => {

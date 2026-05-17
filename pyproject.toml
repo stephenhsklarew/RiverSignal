@@ -20,6 +20,7 @@ dependencies = [
     "python-jose[cryptography]>=3.3",
     "scikit-learn>=1.5",
     "numpy>=1.26",
+    "google-cloud-storage>=2.18",
 ]
 
 [project.scripts]

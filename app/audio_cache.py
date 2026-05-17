@@ -62,3 +62,37 @@ def get_audio_bytes(audio_type: str, filename: str) -> bytes | None:
     if local_file.exists():
         return local_file.read_bytes()
     return None
+
+
+def put_audio_bytes(audio_type: str, filename: str, content: bytes,
+                    content_type: str = "audio/mpeg") -> str | None:
+    """Write `content` to the configured backend (GCS in prod, local in dev).
+
+    Returns a servable URL (or None on failure). Used by the admin
+    "regenerate audio" endpoint so curators can refresh a river-story
+    MP3 without leaving the UI.
+    """
+    if _STORAGE_BACKEND == "gcs" and _GCS_BUCKET:
+        try:
+            from google.cloud import storage  # lazy import — only needed in prod
+            client = storage.Client()
+            bucket = client.bucket(_GCS_BUCKET)
+            blob_path = f"audio/{audio_type}/{filename}"
+            blob = bucket.blob(blob_path)
+            blob.cache_control = "public, max-age=3600"
+            blob.upload_from_string(content, content_type=content_type)
+            return f"https://storage.googleapis.com/{_GCS_BUCKET}/{blob_path}"
+        except Exception:
+            return None
+
+    # Local filesystem
+    dir_map = {
+        "river_stories": ".river_story_audio",
+        "deep_time": ".deep_time_audio",
+        "campfire": ".campfire_cache",
+    }
+    local_dir = _PROJECT_ROOT / dir_map.get(audio_type, audio_type)
+    local_dir.mkdir(parents=True, exist_ok=True)
+    local_file = local_dir / filename
+    local_file.write_bytes(content)
+    return str(local_file)
