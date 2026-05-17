@@ -10,8 +10,6 @@
 }
 .myobs-map-back:hover { text-decoration: underline; }
 
-.myobs-map-page .ws-header { padding: 8px 16px 8px; }
-
 .myobs-map-meta {
   display: flex; align-items: center; padding: 8px 16px 10px;
 }

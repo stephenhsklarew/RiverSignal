@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
 import { useWatershed } from '../hooks/useWatershed'
-import PhotoObservation from '../components/PhotoObservation'
 import './ExplorePage.css'
 
 
@@ -168,7 +167,6 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <PhotoObservation app="riverpath" watershed={ws} />
     </div>
   )
 }

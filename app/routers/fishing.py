@@ -51,10 +51,14 @@ def fishing_species(watershed: str):
             if tn and tn not in photo_map:
                 photo_map[tn] = g[2]
 
-        # Fill remaining gaps from the curated Wikimedia lookup. iNat photos
-        # win when present (real observations); curated kicks in only for
-        # species iNat has never documented inside our watershed bboxes
-        # (musky on Shenandoah, fallfish, razorback sucker, etc.).
+        # Apply curated Wikimedia entries LAST so they override iNat for
+        # species we've explicitly vetted. The curated set is small (~25
+        # entries) and represents canonical reference photos. iNat can
+        # supply mangled/dead/blurry observation photos that read badly
+        # in a carousel — for the curated species we accept the tradeoff
+        # of losing a real-observation photo in favour of an editorially
+        # chosen image. Species NOT in curated still pick up iNat photos
+        # via the gallery loop above.
         curated = conn.execute(text("""
             SELECT species_key, scientific_name, photo_url
             FROM gold.curated_species_photos
@@ -62,9 +66,9 @@ def fishing_species(watershed: str):
         for c in curated:
             key = (c[0] or "").lower()
             sn = (c[1] or "").lower()
-            if key and key not in photo_map:
+            if key:
                 photo_map[key] = c[2]
-            if sn and sn not in photo_map:
+            if sn:
                 photo_map[sn] = c[2]
 
         # Aliases mapping state-agency shorthands and ODFW run-codes onto

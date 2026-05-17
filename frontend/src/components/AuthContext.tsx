@@ -47,6 +47,16 @@ function getAnonymousId(): string {
 }
 
 const PERSONA_SKIP_SESSION_KEY = 'rs_persona_skipped_session'
+export const RETURN_PATH_KEY = 'rs_return_to'
+
+/** Remember where the user was so /auth/success can send them back after OAuth. */
+function saveReturnPath() {
+  const here = window.location.pathname + window.location.search
+  // Avoid bouncing back to /auth/* pages (would cause loops).
+  if (!here.startsWith('/auth')) {
+    sessionStorage.setItem(RETURN_PATH_KEY, here)
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -68,10 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loginWithGoogle = useCallback(() => {
+    saveReturnPath()
     window.location.href = `${API_BASE}/auth/google/login`
   }, [])
 
   const loginWithApple = useCallback(() => {
+    saveReturnPath()
     window.location.href = `${API_BASE}/auth/apple/login`
   }, [])
 

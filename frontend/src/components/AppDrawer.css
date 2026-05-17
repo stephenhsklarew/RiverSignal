@@ -1,0 +1,158 @@
+.app-drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.25s;
+  z-index: 1100; pointer-events: none;
+}
+.app-drawer-backdrop.open {
+  background: rgba(0, 0, 0, 0.36);
+  pointer-events: auto;
+}
+
+.app-drawer {
+  position: fixed; top: 0; bottom: 0; left: 0;
+  width: 320px; max-width: 88vw;
+  background: var(--surface, #ffffff);
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 1110;
+  display: flex; flex-direction: column;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+}
+.app-drawer.open { transform: translateX(0); }
+
+.app-drawer-header {
+  padding: 48px 18px 16px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, #1a6b4a 0%, #155039 100%);
+  color: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.app-drawer-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: 12px;
+  width: 32px; height: 32px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: none; border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px; line-height: 1;
+  font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+.app-drawer-close:hover { background: rgba(255, 255, 255, 0.24); }
+.app-drawer-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  flex-shrink: 0; border: 2px solid rgba(255, 255, 255, 0.2);
+  object-fit: cover;
+}
+.app-drawer-avatar-text {
+  background: linear-gradient(135deg, #c8a36b, #8a6e3f);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700;
+}
+
+/* Logged-out treatment: muted, outlined, person-silhouette glyph. */
+.app-drawer-avatar-empty {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px dashed rgba(255, 255, 255, 0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.app-drawer-avatar-empty svg {
+  width: 22px; height: 22px;
+  stroke: rgba(255, 255, 255, 0.85);
+  fill: none; stroke-width: 1.6;
+}
+.app-drawer-user { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.app-drawer-user-name { font-size: 15px; font-weight: 600; }
+.app-drawer-user-email {
+  font-size: 11.5px; opacity: 0.85;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.app-drawer-signin {
+  background: rgba(255, 255, 255, 0.16); color: #fff;
+  border: none; border-radius: 16px; padding: 4px 10px;
+  font-size: 11.5px; font-family: inherit; cursor: pointer;
+  align-self: flex-start;
+}
+.app-drawer-signin:hover { background: rgba(255, 255, 255, 0.24); }
+
+.app-drawer-scroll {
+  flex: 1; overflow-y: auto; padding: 6px 0 20px;
+  overscroll-behavior: contain;
+}
+
+.app-drawer-tip {
+  margin: 10px 14px 8px;
+  padding: 10px 12px 10px 14px;
+  background: var(--accent-light, #1a6b4a18);
+  border-radius: 10px;
+  font-size: 12.5px; color: var(--accent, #1a6b4a);
+  line-height: 1.4;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.app-drawer-tip-text { flex: 1; }
+.app-drawer-tip-text b { font-weight: 600; }
+.app-drawer-tip-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--accent, #1a6b4a); opacity: 0.6;
+  font-size: 14px; padding: 0 4px; line-height: 1;
+}
+.app-drawer-tip-close:hover { opacity: 1; }
+
+.app-drawer-section-head {
+  padding: 14px 18px 4px;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted, #9e9b96); font-weight: 600;
+}
+
+.app-drawer-row {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; background: none; border: none; cursor: pointer;
+  font-family: inherit;
+  padding: 12px 18px;
+  font-size: 15px; color: var(--text, #1a1612);
+  text-align: left; text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.app-drawer-row:hover { background: #f7f3eb; }
+.app-drawer-row svg {
+  width: 22px; height: 22px;
+  stroke: var(--text-secondary, #6b6966); fill: none; stroke-width: 1.6;
+  flex-shrink: 0;
+}
+.app-drawer-row .app-drawer-row-label { flex: 1; }
+.app-drawer-row .app-drawer-row-badge {
+  background: var(--danger, #b5683a); color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 7px; border-radius: 10px;
+}
+
+.app-drawer-row.active {
+  background: var(--accent-light, #1a6b4a18);
+  color: var(--accent, #1a6b4a);
+  font-weight: 600;
+}
+.app-drawer-row.active svg { stroke: var(--accent, #1a6b4a); stroke-width: 2; }
+.app-drawer-row.active::before {
+  content: ''; position: absolute;
+  left: 0; top: 4px; bottom: 4px; width: 3px;
+  background: var(--accent, #1a6b4a); border-radius: 0 2px 2px 0;
+}
+
+.app-drawer-divider {
+  height: 1px; background: var(--border, #e8e6e1);
+  margin: 6px 0;
+}
+
+/* Hide on desktop — RiverPath's drawer is mobile-only. */
+@media (min-width: 1025px) {
+  .app-drawer-backdrop, .app-drawer { display: none; }
+}

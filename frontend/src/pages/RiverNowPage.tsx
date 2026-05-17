@@ -4,10 +4,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
 import SaveButton from '../components/SaveButton'
 import WatershedHeader from '../components/WatershedHeader'
+import { useScrollRestoration } from '../components/useScrollRestoration'
 import { CardSettingsPanel, loadCardSettings, type CardConfig } from '../components/CardSettings'
 import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
-import PhotoObservation from '../components/PhotoObservation'
 import InfoTooltip from '../components/InfoTooltip'
 import TripQualityCard from '../components/TripQualityCard'
 import TappablePhoto from '../components/TappablePhoto'
@@ -192,6 +192,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const pendingQuestion = searchParams.get('q')
   const stateSources = WS_STATE_SOURCES[watershed] || DEFAULT_STATE_SOURCES
 
+  // Restore scroll position when returning from a detail screen (e.g. PhotoDetailPage,
+  // FishRefugePage). Gated on `site` so we wait for content to render before scrolling.
+
   // ─── SWR-backed page data (stale-while-revalidate, cache survives navigation) ───
   // TTL bands:
   //   ~ 60 s   : "near-live" — live USGS gauges
@@ -224,6 +227,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const { data: spotter } = useSWR<any>(`/sites/${watershed}/species-spotter`, { dedupingInterval: HOUR })
   const { data: replay } = useSWR<any>(`/sites/${watershed}/replay?days_ago=30`, { dedupingInterval: DAY })
   const { data: timeMachine } = useSWR<any>(`/sites/${watershed}/time-machine`, { dedupingInterval: DAY })
+
+  useScrollRestoration(!!site)
 
   // Conditional keys (skip the fetch when there's no watershed center).
   const center = WS_CENTERS[watershed]
@@ -1060,7 +1065,6 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
         </>
       )}
 
-      <PhotoObservation app="riverpath" watershed={watershed} />
     </div>
   )
 }

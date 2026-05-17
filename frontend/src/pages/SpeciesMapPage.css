@@ -10,8 +10,6 @@
 }
 .species-map-back:hover { text-decoration: underline; }
 
-.species-map-page .ws-header { padding: 8px 16px 8px; }
-
 .species-map-toggle {
   display: flex; align-items: center; gap: 6px; padding: 8px 16px 10px;
 }

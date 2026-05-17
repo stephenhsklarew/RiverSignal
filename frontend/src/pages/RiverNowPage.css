@@ -1,5 +1,5 @@
 /* ── Default view (all rivers) ── */
-.rnow-default { padding: 0 0 72px; }
+.rnow-default { padding: 0 0 88px; }
 .rnow-default-nav {
   display: flex; justify-content: center; padding: 14px 16px 6px;
   position: sticky; top: 0; z-index: 10; background: var(--bg, #fff);
@@ -50,7 +50,7 @@
 }
 
 /* ── Detail view ── */
-.rnow { padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
+.rnow { padding: 16px 16px 88px; max-width: 600px; margin: 0 auto; }
 
 .rnow-header { margin-bottom: 16px; }
 .rnow-locating { text-align: center; color: var(--text-muted); font-style: italic; padding: 24px 0; }

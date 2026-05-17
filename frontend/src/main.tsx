@@ -5,7 +5,7 @@ import { SWRConfig } from 'swr'
 import { swrDefault } from './lib/swr'
 import { SavedProvider } from './components/SavedContext'
 import { DeepTrailProvider } from './components/DeepTrailContext'
-import { AuthProvider, useAuth } from './components/AuthContext'
+import { AuthProvider, useAuth, RETURN_PATH_KEY } from './components/AuthContext'
 import './index.css'
 
 function DynamicFavicon() {
@@ -70,6 +70,10 @@ function AuthSuccessRedirect() {
   const { loading, needsUsername } = useAuth()
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>Signing in...</div>
   if (needsUsername) return <Navigate to="/auth/setup-username" replace />
+  // Return the user to where they signed in from (saved by AuthContext before the OAuth redirect).
+  const returnTo = sessionStorage.getItem(RETURN_PATH_KEY)
+  sessionStorage.removeItem(RETURN_PATH_KEY)
+  if (returnTo && !returnTo.startsWith('/auth')) return <Navigate to={returnTo} replace />
   return <Navigate to="/" replace />
 }
 

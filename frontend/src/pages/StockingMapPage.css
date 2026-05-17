@@ -10,8 +10,6 @@
 }
 .stocking-map-back:hover { text-decoration: underline; }
 
-.stocking-map-page .ws-header { padding: 8px 16px 8px; }
-
 .stocking-map-meta {
   display: flex; align-items: center; padding: 8px 16px 10px;
 }

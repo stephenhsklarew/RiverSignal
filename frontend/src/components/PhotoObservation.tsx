@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useAuth } from './AuthContext'
@@ -24,6 +24,12 @@ interface PhotoObservationProps {
   app: 'riverpath' | 'deeptrail'
   watershed?: string
   onSaved?: () => void
+  /** Hide the built-in floating action button. Pair with the imperative `open()` handle. */
+  hideFab?: boolean
+}
+
+export interface PhotoObservationHandle {
+  open: () => void
 }
 
 const DT_CATEGORIES = ['Fossil', 'Rock', 'Mineral', 'Crystal', 'Landscape', 'Other']
@@ -152,7 +158,10 @@ function parseExif(buffer: ArrayBuffer): ExifData {
   return result
 }
 
-export default function PhotoObservation({ app, watershed, onSaved }: PhotoObservationProps) {
+const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProps>(function PhotoObservation(
+  { app, watershed, onSaved, hideFab },
+  ref,
+) {
   const [isOpen, setIsOpen] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoBase64, setPhotoBase64] = useState<string | null>(null)
@@ -172,6 +181,10 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const [showSourcePicker, setShowSourcePicker] = useState(false)
+
+  useImperativeHandle(ref, () => ({
+    open: () => setShowSourcePicker(true),
+  }), [])
   const typeaheadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Location-picker map refs — drag/click to adjust the observation pin.
@@ -417,19 +430,30 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
         <LoginNudge dark={isDark} onDismiss={() => setShowNudge(false)} />
       )}
 
-      {/* Floating action button */}
-      <button
-        className={`photo-fab ${isDark ? 'dark' : ''}`}
-        onClick={() => setShowSourcePicker(true)}
-        title="Add observation"
-      >
-        📷
-      </button>
+      {/* Floating action button (suppressed when an external trigger drives `open()`) */}
+      {!hideFab && (
+        <button
+          className={`photo-fab ${isDark ? 'dark' : ''}`}
+          onClick={() => setShowSourcePicker(true)}
+          title="Add observation"
+        >
+          📷
+        </button>
+      )}
 
       {/* Source picker menu */}
       {showSourcePicker && (
         <div className="photo-source-overlay" onClick={() => setShowSourcePicker(false)}>
           <div className={`photo-source-menu ${isDark ? 'dark' : ''}`} onClick={e => e.stopPropagation()}>
+            <div className="photo-source-header">
+              <span className="photo-source-title">Log observation</span>
+              <button
+                type="button"
+                className="photo-source-close"
+                onClick={() => setShowSourcePicker(false)}
+                aria-label="Close"
+              >✕</button>
+            </div>
             <button className="photo-source-option" onClick={() => { setShowSourcePicker(false); cameraRef.current?.click() }}>
               <span className="photo-source-icon">📸</span>
               <span>Take Photo</span>
@@ -625,4 +649,6 @@ export default function PhotoObservation({ app, watershed, onSaved }: PhotoObser
       )}
     </>
   )
-}
+})
+
+export default PhotoObservation

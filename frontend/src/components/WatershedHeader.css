@@ -27,13 +27,34 @@
   margin-right: auto;
 }
 .ws-header-caret { font-size: 10px; color: var(--text-muted, #9e9b96); margin-left: 2px; }
-.ws-header-settings {
-  background: none; border: 1px solid var(--border); border-radius: 6px;
-  width: 32px; height: 32px; font-size: 16px; cursor: pointer;
-  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; font-family: inherit;
+
+/* ── Hamburger (left of logo) ── */
+.ws-header-hamburger {
+  width: 36px; height: 36px;
+  background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
 }
-.ws-header-settings:hover { border-color: var(--accent); color: var(--accent); }
+.ws-header-hamburger:hover { background: #f7f3eb; }
+.ws-header-hamburger-bar {
+  width: 20px; height: 2.5px;
+  background: var(--text, #1a1612); border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+  display: block;
+}
+.ws-header-hamburger.is-x .ws-header-hamburger-bar:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+.ws-header-hamburger.is-x .ws-header-hamburger-bar:nth-child(2) { opacity: 0; }
+.ws-header-hamburger.is-x .ws-header-hamburger-bar:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
 
 /* Modal */
 .ws-modal-overlay {

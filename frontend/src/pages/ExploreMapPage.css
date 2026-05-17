@@ -10,8 +10,6 @@
 }
 .explore-map-back:hover { text-decoration: underline; }
 
-.explore-map-page .ws-header { padding: 8px 16px 8px; }
-
 .explore-map-filters {
   display: flex; align-items: center; gap: 6px; padding: 8px 16px 10px;
   overflow-x: auto;

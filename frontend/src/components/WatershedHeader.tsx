@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import rpLogo from '../assets/riverpath-logo.svg'
-import UserMenu from './UserMenu'
+import AppDrawer from './AppDrawer'
 import './WatershedHeader.css'
 
 const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
@@ -30,15 +30,16 @@ interface WatershedHeaderProps {
   watershed: string
   /** Base path for navigation when changing watershed (e.g. "/path/now") */
   basePath: string
-  /** Hide the embedded UserMenu — caller will render its own. */
-  hideUserMenu?: boolean
-  /** Optional handler for the settings (⚙) button. If omitted, the button is hidden. */
+  /** Optional handler for the page-specific "Customize this page" row in the drawer. */
   onSettingsClick?: () => void
+  /** Deprecated — UserMenu is no longer rendered; kept for backward-compatible call sites. */
+  hideUserMenu?: boolean
 }
 
-export default function WatershedHeader({ watershed, basePath, hideUserMenu, onSettingsClick }: WatershedHeaderProps) {
+export default function WatershedHeader({ watershed, basePath, onSettingsClick }: WatershedHeaderProps) {
   const navigate = useNavigate()
   const [showPicker, setShowPicker] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const handleSelect = (ws: string) => {
     setShowPicker(false)
@@ -49,15 +50,28 @@ export default function WatershedHeader({ watershed, basePath, hideUserMenu, onS
   return (
     <>
       <div className="ws-header">
+        <button
+          type="button"
+          className={`ws-header-hamburger${drawerOpen ? ' is-x' : ''}`}
+          onClick={() => setDrawerOpen(o => !o)}
+          aria-label="Open menu"
+          aria-expanded={drawerOpen}
+        >
+          <span className="ws-header-hamburger-bar" />
+          <span className="ws-header-hamburger-bar" />
+          <span className="ws-header-hamburger-bar" />
+        </button>
         <img src={rpLogo} alt="RiverPath" className="ws-header-logo" />
         <button className="ws-header-name" onClick={() => setShowPicker(true)}>
           {WATERSHED_LABELS[watershed] || watershed} <span className="ws-header-caret">▾</span>
         </button>
-        {!hideUserMenu && <UserMenu />}
-        {onSettingsClick && (
-          <button className="ws-header-settings" onClick={onSettingsClick} title="Customize cards">⚙</button>
-        )}
       </div>
+
+      <AppDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onCustomizeCards={onSettingsClick}
+      />
 
       {showPicker && (
         <div className="ws-modal-overlay" onClick={() => setShowPicker(false)}>

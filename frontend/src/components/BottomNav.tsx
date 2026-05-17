@@ -1,84 +1,95 @@
+import { useRef } from 'react'
 import { NavLink } from 'react-router-dom'
-import useSWR from 'swr'
 import { useSaved } from './SavedContext'
-import { useAuth } from './AuthContext'
 import { getSelectedWatershed } from './WatershedHeader'
 import { useUserObsCount } from './useUserObsCount'
-import { API_BASE } from '../config'
+import PhotoObservation, { type PhotoObservationHandle } from './PhotoObservation'
 import './BottomNav.css'
+
+/**
+ * RiverPath bottom toolbar — Option F.
+ * 5 slots: River Now · Explore · 📷 Observe (featured FAB) · Hatch · Saved.
+ * Steward / Alerts / Where / etc. live in the AppDrawer (top-left ☰).
+ */
 
 type Tab = {
   to: string
   label: string
   icon: React.ReactNode
   key: string
-  // Persona keys that should see this tab. Omit to always show.
-  // Anonymous users and users who skipped persona selection see all tabs.
-  requires?: string[]
 }
 
-// Inline SVG bell so the icon stroke inherits the tab's `color` (gray/green)
-// like the other Unicode-glyph icons. Color emoji ignore CSS color.
-const BellIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M12 3.5a5.5 5.5 0 0 0-5.5 5.5v3.2L4.9 15a.9.9 0 0 0 .8 1.4h12.6a.9.9 0 0 0 .8-1.4l-1.6-2.8V9A5.5 5.5 0 0 0 12 3.5Z"
-      stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"
-    />
-    <path d="M9.7 18.5a2.5 2.5 0 0 0 4.6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-)
-
 const TABS: Tab[] = [
-  { to: '/path/now', label: 'River Now', icon: '〰', key: 'now' },
-  { to: '/path/explore', label: 'Explore', icon: '◎', key: 'explore' },
-  { to: '/path/hatch', label: 'Hatch', icon: '◬', key: 'hatch' },
-  { to: '/path/alerts', label: 'Alerts', icon: <BellIcon />, key: 'alerts',
-    requires: ['angler_self_guided', 'guide_professional'] },
-  { to: '/path/steward', label: 'Steward', icon: '♻︎', key: 'steward' },
-  { to: '/path/saved', label: 'Saved', icon: '♡', key: 'saved' },
+  { to: '/path/now', key: 'now', label: 'River Now', icon: (
+    <svg viewBox="0 0 24 24"><path d="M2 12c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0M2 17c2-2.5 4-2.5 6 0s4 2.5 6 0 4-2.5 6 0"/></svg>
+  ) },
+  { to: '/path/explore', key: 'explore', label: 'Explore', icon: (
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-4 2-2 4 4-2z" strokeLinejoin="round"/></svg>
+  ) },
+  { to: '/path/hatch', key: 'hatch', label: 'Hatch', icon: (
+    <svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="4" ry="6"/><path d="M12 7V4M9 5l-2-2M15 5l2-2M8 10l-3-1M16 10l3-1M8 16l-3 1M16 16l3 1"/></svg>
+  ) },
+  { to: '/path/saved', key: 'saved', label: 'Saved', icon: (
+    <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" strokeLinejoin="round"/></svg>
+  ) },
 ]
 
 export default function BottomNav() {
   const { countSaved } = useSaved()
-  const { isLoggedIn, hasAnyPersona, isUnsetOrSkipped } = useAuth()
   const ws = getSelectedWatershed() || 'mckenzie'
   const obsCount = useUserObsCount(ws)
   const savedCount = countSaved(ws) + obsCount
 
-  const { data: alertsData } = useSWR<{ alerts: unknown[] }>(
-    isLoggedIn ? `${API_BASE}/alerts?seen=false` : null,
-    (u: string) => fetch(u, { credentials: 'include' }).then(r => r.json()),
-    { refreshInterval: 60_000 }
-  )
-  const unseenAlerts = alertsData?.alerts?.length || 0
+  const photoRef = useRef<PhotoObservationHandle>(null)
 
-  const visibleTabs = TABS.filter(tab => {
-    if (!tab.requires) return true
-    if (isUnsetOrSkipped()) return true
-    return hasAnyPersona(...tab.requires)
-  })
+  const renderTab = (tab: Tab) => (
+    <NavLink
+      key={tab.to}
+      to={tab.to}
+      role="tab"
+      className={({ isActive }) => `bottom-nav-tab${isActive ? ' active' : ''}`}
+      aria-selected={undefined}
+    >
+      <span className={`bottom-nav-icon bottom-nav-icon-${tab.key}`}>
+        {tab.label === 'Saved' && savedCount > 0 ? (
+          <span className="bottom-nav-icon-wrap">
+            {tab.icon}
+            <span className="bottom-nav-badge">{savedCount > 99 ? '99+' : savedCount}</span>
+          </span>
+        ) : tab.icon}
+      </span>
+      <span className="bottom-nav-label">{tab.label}</span>
+    </NavLink>
+  )
 
   return (
-    <nav className="bottom-nav" role="tablist">
-      {visibleTabs.map(tab => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          role="tab"
-          className={({ isActive }) => `bottom-nav-tab${isActive ? ' active' : ''}`}
-          aria-selected={undefined} // NavLink handles active state
-        >
-          <span className={`bottom-nav-icon bottom-nav-icon-${tab.key}`}>
-            {tab.label === 'Saved' && savedCount > 0 ? (
-              <span className="bottom-nav-icon-wrap">{tab.icon}<span className="bottom-nav-badge">{savedCount > 99 ? '99+' : savedCount}</span></span>
-            ) : tab.label === 'Alerts' && unseenAlerts > 0 ? (
-              <span className="bottom-nav-icon-wrap">{tab.icon}<span className="bottom-nav-badge">{unseenAlerts > 99 ? '99+' : unseenAlerts}</span></span>
-            ) : tab.icon}
-          </span>
-          <span className="bottom-nav-label">{tab.label}</span>
-        </NavLink>
-      ))}
-    </nav>
+    <>
+      <nav className="bottom-nav" role="tablist">
+        {renderTab(TABS[0]) /* River Now */}
+        {renderTab(TABS[1]) /* Explore */}
+
+        <div className="bottom-nav-camera-slot">
+          <button
+            type="button"
+            className="bottom-nav-camera-fab"
+            onClick={() => photoRef.current?.open()}
+            aria-label="Log a new observation"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" strokeLinejoin="round"/>
+              <circle cx="12" cy="13.5" r="4"/>
+            </svg>
+          </button>
+          <span className="bottom-nav-camera-label">Log</span>
+        </div>
+
+        {renderTab(TABS[2]) /* Hatch */}
+        {renderTab(TABS[3]) /* Saved */}
+      </nav>
+
+      {/* Single PhotoObservation instance for the RiverPath bottom toolbar.
+          Its built-in FAB is hidden; we open it imperatively from the camera tab. */}
+      <PhotoObservation app="riverpath" watershed={ws} hideFab ref={photoRef} />
+    </>
   )
 }
