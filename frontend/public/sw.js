@@ -10,8 +10,15 @@
 // /path served stale index.html referencing asset hashes that no longer
 // existed after a redeploy — blank page on mobile until cache cleared.
 
-const CACHE_NAME = 'riversignal-v3'
-const API_CACHE = 'riversignal-api-v3'
+// Bump these strings whenever a deploy changes API response shape or
+// content that active users would otherwise see as 'stale.' The
+// activate handler below deletes any cache whose name doesn't match
+// these constants, so changing the version forces an eviction on
+// every active client at their next navigation. Last bump 2026-05-17:
+// curated hatch photos changed and stale-while-revalidate was keeping
+// users on the old Hendrickson/Sulphur images for a full cycle.
+const CACHE_NAME = 'riversignal-v4'
+const API_CACHE = 'riversignal-api-v4'
 const API_BASE = '/api/v1/'
 
 // Pre-cache HTML shells so first-load offline works. Network-first runtime
