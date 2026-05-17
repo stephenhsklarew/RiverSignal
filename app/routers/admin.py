@@ -421,11 +421,13 @@ def inat_search(
         if k[2] < current_bucket:
             _INAT_CACHE.pop(k, None)
 
+    # iNat's per_page max is 200; 50 gives ~4 pages of 12 in the admin
+    # candidate grid without spamming the API.
     params: dict[str, Any] = {
         "taxon_name": name,
         "quality_grade": "research",
         "photos": "true",
-        "per_page": 12,
+        "per_page": 50,
         "order_by": "votes",
         "order": "desc",
     }

@@ -185,6 +185,40 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+.admin-candidates-meta {
+  margin: 12px 0 8px;
+  font-size: 0.78rem; color: #888;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-candidates-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f0ede5;
+}
+.admin-candidates-pager-btn {
+  background: #fff;
+  border: 1px solid #d4cdb8;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-family: inherit; font-size: 0.82rem; font-weight: 500;
+  color: #2c6e49;
+  cursor: pointer;
+  min-height: 34px;
+}
+.admin-candidates-pager-btn:hover:not(:disabled) {
+  background: #f0f7f2; border-color: #2c6e49;
+}
+.admin-candidates-pager-btn:disabled {
+  color: #b0a890; cursor: not-allowed; border-color: #ebe8df;
+}
+.admin-candidates-pager-label {
+  font-size: 0.82rem; color: #555;
+  font-variant-numeric: tabular-nums;
+}
+
 .admin-actions {
   display: flex; align-items: center; gap: 12px;
   margin-bottom: 20px;

@@ -260,10 +260,12 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
 
   // iNat search — pass the watershed so the proxy can filter to its bbox
   // (gives editorially-relevant candidates instead of generic global hits).
+  // Proxy returns up to 50; the grid shows 12 per page.
   const inatUrl = scientificName.trim() && scientificName.includes(' ')
     ? `${API_BASE}/admin/inat/photos?scientific_name=${encodeURIComponent(scientificName.trim())}&watershed=${encodeURIComponent(watershed)}`
     : null
   const [searchEnabled, setSearchEnabled] = useState(false)
+  const [inatPage, setInatPage] = useState(0)
   const { data: inatData, isLoading: inatLoading } = useSWR<{
     candidates: InatCandidate[]
     error?: string
@@ -271,6 +273,16 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
   }>(
     searchEnabled ? inatUrl : null,
     fetcher,
+    // Reset to page 0 whenever a new search returns.
+    { onSuccess: () => setInatPage(0) },
+  )
+
+  const CANDIDATES_PER_PAGE = 12
+  const allCandidates = inatData?.candidates || []
+  const totalPages = Math.max(1, Math.ceil(allCandidates.length / CANDIDATES_PER_PAGE))
+  const visibleCandidates = allCandidates.slice(
+    inatPage * CANDIDATES_PER_PAGE,
+    (inatPage + 1) * CANDIDATES_PER_PAGE,
   )
 
   function pickCandidate(c: InatCandidate) {
@@ -433,24 +445,50 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
             </a>{' '}and paste a URL above.
           </div>
         )}
-        {inatData?.candidates && inatData.candidates.length > 0 && (
-          <ul className="admin-candidates">
-            {inatData.candidates.map(c => (
-              <li
-                key={c.observation_id}
-                className={`admin-candidate ${selectedObs?.observation_id === c.observation_id ? 'on' : ''}`}
-                onClick={() => pickCandidate(c)}
-              >
-                <img src={c.photo_url} alt="" loading="lazy" />
-                <div className="admin-candidate-meta">
-                  <div>📷 {c.photographer || 'unknown'}</div>
-                  <div className="admin-candidate-license">{c.license_code}</div>
-                  {c.observed_on && <div>{c.observed_on}</div>}
-                  {c.place_guess && <div className="admin-candidate-place">{c.place_guess}</div>}
-                </div>
-              </li>
-            ))}
-          </ul>
+        {allCandidates.length > 0 && (
+          <>
+            <div className="admin-candidates-meta">
+              Showing {inatPage * CANDIDATES_PER_PAGE + 1}–
+              {Math.min((inatPage + 1) * CANDIDATES_PER_PAGE, allCandidates.length)} of{' '}
+              {allCandidates.length} candidates
+            </div>
+            <ul className="admin-candidates">
+              {visibleCandidates.map(c => (
+                <li
+                  key={c.observation_id}
+                  className={`admin-candidate ${selectedObs?.observation_id === c.observation_id ? 'on' : ''}`}
+                  onClick={() => pickCandidate(c)}
+                >
+                  <img src={c.photo_url} alt="" loading="lazy" />
+                  <div className="admin-candidate-meta">
+                    <div>📷 {c.photographer || 'unknown'}</div>
+                    <div className="admin-candidate-license">{c.license_code}</div>
+                    {c.observed_on && <div>{c.observed_on}</div>}
+                    {c.place_guess && <div className="admin-candidate-place">{c.place_guess}</div>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {totalPages > 1 && (
+              <div className="admin-candidates-pager">
+                <button
+                  type="button"
+                  className="admin-candidates-pager-btn"
+                  disabled={inatPage === 0}
+                  onClick={() => setInatPage(p => Math.max(0, p - 1))}
+                >← Prev</button>
+                <span className="admin-candidates-pager-label">
+                  Page {inatPage + 1} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="admin-candidates-pager-btn"
+                  disabled={inatPage >= totalPages - 1}
+                  onClick={() => setInatPage(p => Math.min(totalPages - 1, p + 1))}
+                >Next →</button>
+              </div>
+            )}
+          </>
         )}
       </section>
 
