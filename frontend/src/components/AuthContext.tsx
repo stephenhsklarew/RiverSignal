@@ -12,6 +12,7 @@ export interface User {
   personas?: string[]
   personas_set_at?: string | null
   personas_version?: number
+  is_admin?: boolean
 }
 
 interface AuthState {

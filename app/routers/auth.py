@@ -312,11 +312,12 @@ def get_me(request: Request):
     if not user:
         return {"user": None, "anonymous": True}
 
-    # Refresh username/is_new/personas from DB (JWT may be stale)
+    # Refresh username/is_new/personas/is_admin from DB (JWT may be stale)
     with engine.connect() as conn:
         row = conn.execute(text(
             """
-            SELECT username, is_new, personas, personas_set_at, personas_version
+            SELECT username, is_new, personas, personas_set_at, personas_version,
+                   COALESCE(is_admin, false) AS is_admin
             FROM users WHERE id = :uid
             """
         ), {"uid": user["id"]}).fetchone()
@@ -327,6 +328,7 @@ def get_me(request: Request):
             user["personas"] = list(row[2] or [])
             user["personas_set_at"] = row[3].isoformat() if row[3] else None
             user["personas_version"] = int(row[4]) if row[4] is not None else 1
+            user["is_admin"] = bool(row[5])
 
     return {"user": user, "anonymous": False}
 

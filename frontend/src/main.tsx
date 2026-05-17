@@ -61,6 +61,9 @@ const ExploreMapPage = lazy(() => import('./pages/ExploreMapPage'))
 const MyObsMapPage = lazy(() => import('./pages/MyObsMapPage'))
 const StockingMapPage = lazy(() => import('./pages/StockingMapPage'))
 const PhotoDetailPage = lazy(() => import('./pages/PhotoDetailPage'))
+const AdminPhotosPage = lazy(() => import('./pages/AdminPhotosPage'))
+const AdminPhotoHistoryPage = lazy(() => import('./pages/AdminPhotoHistoryPage'))
+const AdminRoute = lazy(() => import('./components/AdminRoute'))
 
 // Bottom nav
 const BottomNav = lazy(() => import('./components/BottomNav'))
@@ -179,6 +182,11 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/path/saved" element={<SavedPage />} />
             <Route path="/path/where" element={<WherePage />} />
             <Route path="/path/alerts" element={<AlertsPage />} />
+
+            {/* Admin console (v0 = photo curation). Gated by AdminRoute. */}
+            <Route path="/admin/photos" element={<AdminRoute><AdminPhotosPage /></AdminRoute>} />
+            <Route path="/admin/photos/:species_key" element={<AdminRoute><AdminPhotosPage /></AdminRoute>} />
+            <Route path="/admin/photos/:species_key/history" element={<AdminRoute><AdminPhotoHistoryPage /></AdminRoute>} />
             <Route path="/path/saved/map/:watershed" element={<MyObsMapPage />} />
             <Route path="/path/stocking/:watershed" element={<StockingMapPage />} />
             <Route path="/path/map/:watershed" element={<SpeciesMapPage />} />

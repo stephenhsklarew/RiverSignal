@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import rsLogo from '../assets/riversignal-logo.svg'
 import rpLogo from '../assets/riverpath-logo.svg'
 import dtLogo from '../assets/deeptrail-logo.svg'
 import lmLogo from '../assets/liquid-marble-logo.png'
+import { useAuth } from '../components/AuthContext'
 import './LandingPage.css'
 
 const products = [
@@ -37,6 +38,9 @@ const products = [
 ]
 
 export default function LandingPage() {
+  const { user } = useAuth()
+  const isAdmin = !!user?.is_admin
+  const navigate = useNavigate()
   useEffect(() => {
     document.title = 'Liquid Marble'
     return () => { document.title = 'River Signal' }
@@ -66,6 +70,20 @@ export default function LandingPage() {
             <p className="product-tagline">{p.tagline}</p>
             <p className="product-desc">{p.description}</p>
             <span className="product-audience">{p.audience}</span>
+            {/* RiverPath admin entry — only renders for users with is_admin.
+                Rendered as a <button> not <Link> to avoid nested anchors. */}
+            {p.name === 'RiverPath' && isAdmin && (
+              <button
+                type="button"
+                className="product-admin-pill"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  navigate('/admin/photos')
+                }}
+                aria-label="RiverPath admin"
+              >Admin</button>
+            )}
           </Link>
         ))}
       </div>

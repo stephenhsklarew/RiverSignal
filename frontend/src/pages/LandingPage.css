@@ -67,6 +67,32 @@
   overflow: hidden;
 }
 
+/* Admin pill (only rendered when the user is_admin). Positioned bottom-
+   right inside the RiverPath product card; clicks stopPropagation so the
+   parent card's navigation doesn't intercept. */
+.product-admin-pill {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: var(--accent, #2d7a9c);
+  color: #fff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  z-index: 2;
+  opacity: 0.92;
+  transition: opacity 0.12s, transform 0.05s;
+}
+.product-admin-pill:hover { opacity: 1; }
+.product-admin-pill:active { transform: scale(0.97);
+}
+
 .product-card::before {
   content: '';
   position: absolute;

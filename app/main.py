@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.routers import sites, reasoning, fishing, reports, health, data_status, geology, weather, predictions, ai_features, deeptrail_ai, user_observations, auth, intelligence, reaches, trip_feedback, watchlist, sms
+from app.routers import sites, reasoning, fishing, reports, health, data_status, geology, weather, predictions, ai_features, deeptrail_ai, user_observations, auth, intelligence, reaches, trip_feedback, watchlist, sms, admin
 
 
 @asynccontextmanager
@@ -53,6 +53,7 @@ app.include_router(reaches.router, prefix="/api/v1")
 app.include_router(trip_feedback.router, prefix="/api/v1")
 app.include_router(watchlist.router, prefix="/api/v1")
 app.include_router(sms.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 
 # ── Serve frontend SPA (production) ──
 # In production, the frontend build is copied into the Docker image at /app/frontend/dist
