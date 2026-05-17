@@ -80,8 +80,13 @@ def fishing_species(watershed: str):
             "chum": "chum salmon",
             # UDWR uppercase stocking shorthands (Green River basin):
             # come through species_by_reach as 'RAINBOW' / 'KOKANEE'.
+            # Kokanee is the freshwater form of Sockeye Salmon
+            # (Oncorhynchus nerka); iNat photos are labelled "Sockeye
+            # Salmon" so we map kokanee → sockeye salmon for the
+            # photo lookup. Same scientific species.
             "rainbow": "rainbow trout",
-            "kokanee": "kokanee salmon",
+            "kokanee": "sockeye salmon",
+            "kokanee salmon": "sockeye salmon",
             "tiger trout": "tiger trout",
             "splake": "splake",
         }

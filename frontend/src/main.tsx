@@ -81,17 +81,27 @@ const Loading = () => (
 
 function ConditionalBottomNav() {
   const { pathname } = useLocation()
+
   // DeepTrail bottom nav on /trail/<tab>/<location> routes. Require a
-  // non-empty segment after the tab so the /trail or /trail/<tab>
-  // splash views stay clean.
+  // non-empty location segment — bare /trail and /trail/<tab> are the
+  // location picker, which has its own nav.
   const isTrailTabRoute = /^\/trail\/(story|explore|collect|learn|saved)\/[^/]+/.test(pathname)
   if (isTrailTabRoute) return <DeepTrailBottomNav />
-  // RiverPath bottom nav on /path/<tab>/<watershed> routes. The bare
-  // /path splash and /path/now (watershed-picker default) both show
-  // every watershed's card and have their own nav — they shouldn't
-  // also display the per-watershed bottom toolbar.
-  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking|where|alerts)\/[^/]+/.test(pathname)
-  if (isTabRoute) return <BottomNav />
+
+  // RiverPath bottom nav: show on every /path/<tab> route EXCEPT:
+  //   - bare /path (HomePage splash)        — no tab in path at all
+  //   - bare /path/now (RiverNowDefault     — the watershed-picker
+  //     splash; renders the same card grid as /path)
+  //
+  // All other tabs default to the session-stored watershed when the
+  // URL has no watershed segment (e.g. /path/alerts, /path/saved,
+  // /path/hatch), so they need the toolbar even without a
+  // watershed slug in the URL. The previous regex required
+  // `\/[^/]+` after the tab name, which incorrectly hid the toolbar
+  // on those routes.
+  const isTabRoute = /^\/path\/(now|explore|hatch|steward|saved|fish|map|explore-map|stocking|where|alerts)(\/|$)/.test(pathname)
+  const isBareNowPicker = pathname === '/path/now' || pathname === '/path/now/'
+  if (isTabRoute && !isBareNowPicker) return <BottomNav />
   return null
 }
 
