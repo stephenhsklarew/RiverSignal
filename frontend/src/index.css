@@ -27,15 +27,29 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* `overflow-x: clip` clips horizontal overflow without creating a new
    scroll container. The previously-used `overflow-x: hidden` does
    create a scroll container, which breaks `position: sticky` on every
    descendant in iOS Safari (and in some Chrome versions too).
    `clip` keeps the same visual effect (no horizontal scrollbar) while
    leaving sticky headers anchored to the viewport. Falls back to
-   `hidden` on engines that don't recognise `clip` yet. */
-body { margin: 0; overflow-x: hidden; overflow-x: clip; }
+   `hidden` on engines that don't recognise `clip` yet.
+   `overscroll-behavior-x: none` disables iOS's horizontal rubber-band
+   pan on the page background — on iPhone the page was visibly sliding
+   left/right when swiped because the root element wasn't anchored. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+body {
+  margin: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
 #root { width: 100%; max-width: 100%; overflow-x: hidden; overflow-x: clip; }
 
 @keyframes pulse {
