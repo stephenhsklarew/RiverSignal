@@ -327,13 +327,48 @@
 .photo-crop-modal.dark .photo-crop-close:hover { background: rgba(255, 255, 255, 0.08); color: #e8e0d4; }
 
 .photo-crop-canvas {
-  position: relative;
+  display: flex; align-items: center; justify-content: center;
   width: 100%;
-  height: 60vh;
-  max-height: 460px;
+  max-height: 60vh;
   background: #1a1612;
+  overflow: hidden;
 }
 .photo-crop-modal.dark .photo-crop-canvas { background: #000; }
+
+/* The cropper renders an <img> inside <ReactCrop>; cap its displayed size so
+   it fits inside the modal regardless of the source image's natural pixels. */
+.photo-crop-img {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Style the corner + edge handles on top of react-image-crop's defaults so
+   they match the accent colour and are easier to grab on touch. */
+.photo-crop-canvas .ReactCrop__crop-selection {
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.55);
+}
+.photo-crop-canvas .ReactCrop__drag-handle {
+  width: 14px; height: 14px;
+  background: #1a6b4a;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  opacity: 1;
+}
+.photo-crop-modal.dark .photo-crop-canvas .ReactCrop__drag-handle {
+  background: #d4a96a;
+}
+.photo-crop-canvas .ReactCrop__drag-handle::after { background: transparent; }
+/* Edge handles (top/bottom/left/right) need bigger hit targets on touch. */
+.photo-crop-canvas .ReactCrop__drag-handle.ord-n,
+.photo-crop-canvas .ReactCrop__drag-handle.ord-s,
+.photo-crop-canvas .ReactCrop__drag-handle.ord-e,
+.photo-crop-canvas .ReactCrop__drag-handle.ord-w {
+  width: 12px; height: 12px;
+}
 
 .photo-crop-aspect {
   display: flex; gap: 6px; justify-content: center;

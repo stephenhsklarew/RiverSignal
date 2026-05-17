@@ -1,19 +1,23 @@
 import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import Cropper, { type Area } from 'react-easy-crop'
+import ReactCrop, { centerCrop, makeAspectCrop, type Crop, type PixelCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
 import { useAuth } from './AuthContext'
 import { useSaved } from './SavedContext'
 import { LoginNudge } from './LoginModal'
 import { API_BASE } from '../config'
 import './PhotoObservation.css'
 
+interface CropRect { x: number; y: number; width: number; height: number }
+
 /**
  * Crops `imageSrc` (data URL or external URL) to the given pixel rectangle using
  * a canvas re-encode and returns a JPEG data URL. Used by the optional crop step
  * in the observation flow — the result replaces `photoBase64` for upload.
+ * `pixelCrop` is expressed in NATURAL image pixels (not displayed pixels).
  */
-async function cropImageToDataUrl(imageSrc: string, pixelCrop: Area): Promise<string> {
+async function cropImageToDataUrl(imageSrc: string, pixelCrop: CropRect): Promise<string> {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
@@ -202,6 +206,7 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [typeaheadResults, setTypeaheadResults] = useState<{ name: string; type: string; scientific_name?: string }[]>([])
   const [showTypeahead, setShowTypeahead] = useState(false)
 
@@ -210,12 +215,14 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
   const [showSourcePicker, setShowSourcePicker] = useState(false)
 
   // Cropping state (optional step between picking a photo and submitting).
+  // `crop` is the live drag state (percent units so it stays responsive),
+  // `completedCrop` is the final pixel rectangle after pointer-up.
   const [showCropper, setShowCropper] = useState(false)
-  const [crop, setCrop] = useState({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
+  const [crop, setCrop] = useState<Crop | undefined>()
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | undefined>()
   const [aspect, setAspect] = useState<number | undefined>(undefined) // undefined = free-form
   const [cropping, setCropping] = useState(false) // applying the crop (canvas re-encode)
-  const croppedAreaRef = useRef<Area | null>(null)
+  const cropImgRef = useRef<HTMLImageElement>(null)
 
   useImperativeHandle(ref, () => ({
     open: () => setShowSourcePicker(true),
@@ -250,39 +257,67 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
     setVisibility('public')
     setNotes('')
     setSuccess(false)
+    setSubmitError(null)
     setTypeaheadResults([])
     setShowCropper(false)
-    setCrop({ x: 0, y: 0 })
-    setZoom(1)
+    setCrop(undefined)
+    setCompletedCrop(undefined)
     setAspect(undefined)
-    croppedAreaRef.current = null
   }, [])
 
-  const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
-    croppedAreaRef.current = areaPixels
+  /** Build a sensible default crop rectangle (80% centered, respecting aspect). */
+  const recenterCrop = useCallback((aspectArg?: number) => {
+    const img = cropImgRef.current
+    if (!img || !img.width || !img.height) return
+    const next: Crop = aspectArg
+      ? centerCrop(
+          makeAspectCrop({ unit: '%', width: 80 }, aspectArg, img.width, img.height),
+          img.width,
+          img.height,
+        )
+      : { unit: '%', x: 10, y: 10, width: 80, height: 80 }
+    setCrop(next)
   }, [])
+
+  const onCropImageLoad = useCallback(() => recenterCrop(aspect), [aspect, recenterCrop])
+
+  // Recenter when the user changes aspect-ratio chip mid-crop.
+  useEffect(() => {
+    if (!showCropper) return
+    recenterCrop(aspect)
+  }, [aspect, showCropper, recenterCrop])
 
   const applyCrop = useCallback(async () => {
-    if (!photoPreview || !croppedAreaRef.current) return
+    const img = cropImgRef.current
+    if (!photoPreview || !completedCrop || !img) return
     setCropping(true)
     try {
-      const cropped = await cropImageToDataUrl(photoPreview, croppedAreaRef.current)
+      // PixelCrop is in DISPLAYED pixels; scale to natural pixels for the canvas re-encode.
+      const scaleX = img.naturalWidth / img.width
+      const scaleY = img.naturalHeight / img.height
+      const naturalCrop: CropRect = {
+        x: completedCrop.x * scaleX,
+        y: completedCrop.y * scaleY,
+        width: completedCrop.width * scaleX,
+        height: completedCrop.height * scaleY,
+      }
+      const cropped = await cropImageToDataUrl(photoPreview, naturalCrop)
       setPhotoPreview(cropped)
       setPhotoBase64(cropped)
       setShowCropper(false)
-      setCrop({ x: 0, y: 0 })
-      setZoom(1)
+      setCrop(undefined)
+      setCompletedCrop(undefined)
     } catch {
       // leave original photo intact on failure
     } finally {
       setCropping(false)
     }
-  }, [photoPreview])
+  }, [photoPreview, completedCrop])
 
   const cancelCrop = useCallback(() => {
     setShowCropper(false)
-    setCrop({ x: 0, y: 0 })
-    setZoom(1)
+    setCrop(undefined)
+    setCompletedCrop(undefined)
     setAspect(undefined)
   }, [])
 
@@ -355,6 +390,7 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
     if (app !== 'deeptrail' && !speciesName) return
     if (!speciesName && !category) return
     setSubmitting(true)
+    setSubmitError(null)
 
     try {
       const resp = await fetch(`${API_BASE}/observations/user`, {
@@ -393,9 +429,21 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
         setSuccess(true)
         onSaved?.()
         setTimeout(() => { setIsOpen(false); reset() }, 1500)
+      } else {
+        // Surface backend rejections (e.g. point outside every covered
+        // watershed bbox, or missing pin). The API returns
+        // { detail: "..." } for HTTPException.
+        let msg = 'Could not save observation. Please try again.'
+        try {
+          const err = await resp.json()
+          if (typeof err?.detail === 'string') msg = err.detail
+        } catch {
+          // ignore parse failure — fall back to generic message
+        }
+        setSubmitError(msg)
       }
     } catch {
-      // silent
+      setSubmitError('Could not save observation. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -714,6 +762,26 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
                   />
                 </div>
 
+                {/* Error message from the API (e.g. point outside every
+                    covered watershed bbox, or missing pin) */}
+                {submitError && (
+                  <div
+                    role="alert"
+                    style={{
+                      background: 'var(--alert-light, #fef0ed)',
+                      color: 'var(--alert, #c4432b)',
+                      border: '1px solid var(--alert, #c4432b)',
+                      borderRadius: 6,
+                      padding: '10px 12px',
+                      marginBottom: 10,
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {submitError}
+                  </div>
+                )}
+
                 {/* Submit */}
                 <button
                   className="photo-submit"
@@ -745,16 +813,24 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
                     <button type="button" className="photo-crop-close" onClick={cancelCrop} aria-label="Cancel crop">✕</button>
                   </div>
                   <div className="photo-crop-canvas">
-                    <Cropper
-                      image={photoPreview}
+                    <ReactCrop
                       crop={crop}
-                      zoom={zoom}
+                      onChange={(_pixelCrop, percentCrop) => setCrop(percentCrop)}
+                      onComplete={(c) => setCompletedCrop(c)}
                       aspect={aspect}
-                      onCropChange={setCrop}
-                      onZoomChange={setZoom}
-                      onCropComplete={onCropComplete}
-                      restrictPosition
-                    />
+                      minWidth={40}
+                      minHeight={40}
+                      keepSelection
+                      ruleOfThirds
+                    >
+                      <img
+                        ref={cropImgRef}
+                        src={photoPreview}
+                        alt="Crop preview"
+                        onLoad={onCropImageLoad}
+                        className="photo-crop-img"
+                      />
+                    </ReactCrop>
                   </div>
                   <div className="photo-crop-aspect">
                     <button
