@@ -219,12 +219,23 @@ def fishing_harvest(watershed: str):
 
 @router.get("/sites/{watershed}/fishing/stocking")
 def fishing_stocking(watershed: str):
-    """Get trout stocking schedule."""
+    """Get trout stocking schedule.
+
+    SELECT DISTINCT collapses identical (waterbody, date, fish_count)
+    rows the matview inherits from the UDWR / VA-DWR adapters, which
+    re-INSERT on each pipeline run without a unique constraint. Two
+    distinct fish counts on the same waterbody+date are different
+    species (e.g. rainbow vs cutthroat), so we dedupe on the triple,
+    not just the pair.
+    """
     with engine.connect() as conn:
         rows = conn.execute(text("""
             SELECT waterbody, stocking_date, total_fish
-            FROM gold.stocking_schedule WHERE watershed = :ws
-            ORDER BY stocking_date DESC LIMIT 20
+            FROM (
+                SELECT DISTINCT waterbody, stocking_date, total_fish
+                FROM gold.stocking_schedule WHERE watershed = :ws
+            ) t
+            ORDER BY stocking_date DESC, total_fish DESC LIMIT 20
         """), {"ws": watershed}).fetchall()
 
     return [
