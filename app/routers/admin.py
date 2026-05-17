@@ -429,6 +429,31 @@ def inat_search(
     return {"candidates": candidates, "cached": False, "watershed": ws}
 
 
+# ── TEMP DIAG (remove after debugging brook trout on deschutes) ───
+
+@router.get("/admin/_diag/curated/{species_key}")
+def diag_curated(species_key: str):
+    """Public, read-only. Returns every curated row for a species_key so
+    we can confirm the per-watershed override actually persisted."""
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT species_key, watershed, photo_url, source, updated_at
+            FROM gold.curated_species_photos
+            WHERE species_key = :sk
+            ORDER BY watershed
+        """), {"sk": species_key.lower().strip()}).fetchall()
+    return [
+        {
+            "species_key": r[0],
+            "watershed":   r[1],
+            "photo_url":   r[2],
+            "source":      r[3],
+            "updated_at":  r[4].isoformat() if r[4] else None,
+        }
+        for r in rows
+    ]
+
+
 # ── Self-service admin revocation (OF-6) ──────────────────────────
 
 @router.post("/admin/self/revoke")
