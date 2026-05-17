@@ -327,56 +327,87 @@ def curated_photo_history(
 
 # ── iNat search proxy with 1h LRU cache ───────────────────────────
 
-_INAT_CACHE: dict[tuple[str, int], list[dict[str, Any]]] = {}
+_INAT_CACHE: dict[tuple[str, str, int], list[dict[str, Any]]] = {}
 _INAT_TTL_SECS = 3600
 
 
-def _inat_cache_key(scientific_name: str) -> tuple[str, int]:
-    """Hour-bucketed key so cached entries automatically expire."""
+def _inat_cache_key(scientific_name: str, watershed: str) -> tuple[str, str, int]:
+    """Hour-bucketed key so cached entries automatically expire.
+    Cache is per (name, watershed) so global vs per-watershed searches
+    don't share a slot."""
     bucket = int(time.time()) // _INAT_TTL_SECS
-    return (scientific_name.lower().strip(), bucket)
+    return (scientific_name.lower().strip(), watershed, bucket)
+
+
+def _watershed_bbox(watershed: str) -> dict[str, float] | None:
+    """Look up the bbox for a watershed (None for the global sentinel '*')."""
+    if watershed == GLOBAL_WATERSHED:
+        return None
+    try:
+        from pipeline.config.watersheds import WATERSHEDS
+    except ImportError:
+        return None
+    return (WATERSHEDS.get(watershed) or {}).get("bbox")
 
 
 @router.get("/admin/inat/photos")
 def inat_search(
     scientific_name: str,
+    watershed: str = Query(GLOBAL_WATERSHED, description="'*' for global search, or a watershed slug to filter to its bbox"),
     admin: dict = Depends(get_current_admin),
 ):
     """Return up to 12 research-grade iNat observation photos for a species.
 
-    Cached in-memory for 1 hour per scientific_name to stay polite to iNat.
+    When `watershed` is a real slug (not '*'), the search is restricted
+    to iNat observations inside that watershed's bbox via the swlat /
+    swlng / nelat / nelng query params. Results are vastly more useful
+    editorially — an Oregon brown trout shot for /path/now/mckenzie
+    instead of a New Zealand specimen.
+
+    Cached in-memory for 1 hour per (scientific_name, watershed).
     """
     name = scientific_name.strip()
     if not name or " " not in name:
         raise HTTPException(400, "scientific_name must be a binomial (Genus species)")
+    ws = _validate_watershed(watershed)
 
-    key = _inat_cache_key(name)
+    key = _inat_cache_key(name, ws)
     if key in _INAT_CACHE:
-        return {"candidates": _INAT_CACHE[key], "cached": True}
+        return {"candidates": _INAT_CACHE[key], "cached": True, "watershed": ws}
 
     # Drop expired keys (older buckets) opportunistically.
-    current_bucket = key[1]
+    current_bucket = key[2]
     for k in list(_INAT_CACHE):
-        if k[1] < current_bucket:
+        if k[2] < current_bucket:
             _INAT_CACHE.pop(k, None)
+
+    params: dict[str, Any] = {
+        "taxon_name": name,
+        "quality_grade": "research",
+        "photos": "true",
+        "per_page": 12,
+        "order_by": "votes",
+        "order": "desc",
+    }
+    bbox = _watershed_bbox(ws)
+    if bbox:
+        params.update({
+            "swlat": bbox["south"],
+            "swlng": bbox["west"],
+            "nelat": bbox["north"],
+            "nelng": bbox["east"],
+        })
 
     try:
         with httpx.Client(timeout=15.0) as client:
             r = client.get(
                 "https://api.inaturalist.org/v1/observations",
-                params={
-                    "taxon_name": name,
-                    "quality_grade": "research",
-                    "photos": "true",
-                    "per_page": 12,
-                    "order_by": "votes",
-                    "order": "desc",
-                },
+                params=params,
             )
             r.raise_for_status()
             data = r.json()
     except httpx.HTTPError as e:
-        return {"candidates": [], "error": f"iNaturalist API error: {e}"}
+        return {"candidates": [], "error": f"iNaturalist API error: {e}", "watershed": ws}
 
     candidates: list[dict[str, Any]] = []
     for obs in data.get("results", []):
@@ -395,7 +426,7 @@ def inat_search(
         })
 
     _INAT_CACHE[key] = candidates
-    return {"candidates": candidates, "cached": False}
+    return {"candidates": candidates, "cached": False, "watershed": ws}
 
 
 # ── Self-service admin revocation (OF-6) ──────────────────────────

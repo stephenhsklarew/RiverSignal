@@ -309,3 +309,64 @@
   background: #f0ede5; padding: 1px 5px; border-radius: 3px;
   font-size: 0.78rem;
 }
+
+/* Grouped list: each species has its own section */
+.admin-groups {
+  display: flex; flex-direction: column; gap: 22px;
+}
+.admin-group {
+  background: #fff;
+  border: 1px solid #e6e1d4;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.admin-group-header {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0ede5;
+}
+.admin-group-key {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.92rem; font-weight: 600;
+  color: #1a1a1a;
+}
+.admin-group-count {
+  font-size: 0.74rem; color: #888;
+}
+
+/* "Add another scope" inline card */
+.admin-card-add {
+  border-style: dashed;
+  background: #faf8f3;
+}
+.admin-card-add-thumb {
+  font-size: 2.2rem; color: #d4cdb8; font-weight: 300;
+}
+.admin-card-add-select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid #d4cdb8;
+  border-radius: 6px;
+  font-family: inherit; font-size: 0.82rem;
+  background: #fff;
+}
+
+/* Specialize-for-watershed dropdown on the editor scope banner */
+.admin-specialize { display: inline-block; }
+.admin-specialize-select {
+  padding: 5px 8px;
+  border: 1px solid #c4a878;
+  border-radius: 6px;
+  font-family: inherit; font-size: 0.78rem;
+  background: #fff7e6; color: #5a4a1a;
+  cursor: pointer;
+}
+
+/* iNat search hint */
+.admin-inat-hint {
+  display: inline-block; margin-left: 10px;
+  font-size: 0.78rem; color: #666;
+  font-style: italic;
+}
