@@ -285,6 +285,29 @@ def _load_flow_band(conn, reach_id: str):
     return row
 
 
+def _latest_discharge_cfs(conn, station_id: str, target_date: date) -> float | None:
+    """Latest USGS discharge reading for a station near target_date.
+
+    Returns None if no reading is available in the ±14d / +1d window —
+    the caller then falls back to mid-of-ideal as a static proxy.
+    USGS daily-value ingest stores discharge under parameter='discharge'
+    (see PARAM_CODES in pipeline/ingest/usgs.py).
+    """
+    if not station_id:
+        return None
+    row = conn.execute(text("""
+        SELECT value FROM time_series
+        WHERE station_id = :station
+          AND parameter = 'discharge'
+          AND value IS NOT NULL
+          AND timestamp >= :d::timestamp - INTERVAL '14 days'
+          AND timestamp <= :d::timestamp + INTERVAL '1 day'
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """), {"station": station_id, "d": target_date}).fetchone()
+    return float(row[0]) if row else None
+
+
 def _load_hatch_windows(conn, watershed: str) -> list[tuple[int, int]]:
     rows = conn.execute(text("""
         SELECT start_month, end_month
@@ -453,8 +476,14 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                 band = flow_bands.get(rid)
                 proxy_cfs: float | None = None
                 if band:
-                    # Mid-of-ideal as a proxy until USGS time-series integration
-                    proxy_cfs = (band[1] + band[2]) / 2.0
+                    # Try live USGS discharge first; fall back to mid-of-ideal
+                    # when no recent reading is available for this gauge.
+                    # r[5] is primary_usgs_site_id from _load_reaches().
+                    usgs_site = r[5]
+                    if usgs_site:
+                        proxy_cfs = _latest_discharge_cfs(conn, usgs_site, d)
+                    if proxy_cfs is None:
+                        proxy_cfs = (band[1] + band[2]) / 2.0
                     fl = flow_score(proxy_cfs, *band)
                 else:
                     fl = 50
