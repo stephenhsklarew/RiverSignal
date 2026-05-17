@@ -515,17 +515,26 @@ def hatch_confidence(watershed: str, month: int = None):
             curated = conn.execute(text("""
                 SELECT c.common_name, c.scientific_name, c.insect_order,
                        c.start_month, c.end_month, c.peak_months, c.fly_patterns,
-                       (SELECT g.photo_url
-                          FROM gold.species_gallery g
-                         WHERE g.photo_url IS NOT NULL
-                           AND (
-                               g.taxon_name ILIKE '%' || c.scientific_name || '%'
-                               OR g.taxon_name ILIKE '%' || split_part(c.scientific_name, ' ', 1) || '%'
-                           )
-                         ORDER BY
-                           CASE WHEN g.taxon_name ILIKE '%' || c.scientific_name || '%' THEN 0 ELSE 1 END,
-                           CASE WHEN g.watershed = c.watershed THEN 0 ELSE 1 END
-                         LIMIT 1) as photo_url
+                       -- Prefer the explicit curated photo URL (set via
+                       -- alembic xx24); fall back to the species_gallery
+                       -- join only when the curated column is null.
+                       -- This stops Hendrickson + Sulphur from collapsing
+                       -- onto the same Ephemerella photo via genus-level
+                       -- fallback.
+                       COALESCE(
+                         c.photo_url,
+                         (SELECT g.photo_url
+                            FROM gold.species_gallery g
+                           WHERE g.photo_url IS NOT NULL
+                             AND (
+                                 g.taxon_name ILIKE '%' || c.scientific_name || '%'
+                                 OR g.taxon_name ILIKE '%' || split_part(c.scientific_name, ' ', 1) || '%'
+                             )
+                           ORDER BY
+                             CASE WHEN g.taxon_name ILIKE '%' || c.scientific_name || '%' THEN 0 ELSE 1 END,
+                             CASE WHEN g.watershed = c.watershed THEN 0 ELSE 1 END
+                           LIMIT 1)
+                       ) AS photo_url
                 FROM curated_hatch_chart c
                 WHERE c.watershed = :ws
                   AND (c.start_month <= :m1 AND c.end_month >= :m1
