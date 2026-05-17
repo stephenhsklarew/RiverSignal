@@ -295,13 +295,15 @@ def _latest_discharge_cfs(conn, station_id: str, target_date: date) -> float | N
     """
     if not station_id:
         return None
+    # Use CAST(...) instead of ::-cast so the :d bind parameter doesn't
+    # collide with PostgreSQL's :: cast operator at parse time.
     row = conn.execute(text("""
         SELECT value FROM time_series
         WHERE station_id = :station
           AND parameter = 'discharge'
           AND value IS NOT NULL
-          AND timestamp >= :d::timestamp - INTERVAL '14 days'
-          AND timestamp <= :d::timestamp + INTERVAL '1 day'
+          AND timestamp >= CAST(:d AS timestamp) - INTERVAL '14 days'
+          AND timestamp <= CAST(:d AS timestamp) + INTERVAL '1 day'
         ORDER BY timestamp DESC
         LIMIT 1
     """), {"station": station_id, "d": target_date}).fetchone()
