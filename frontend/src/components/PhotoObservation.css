@@ -88,6 +88,7 @@
 
 /* Modal */
 .photo-modal {
+  position: relative; /* anchors .photo-modal-busy overlay */
   background: #fff;
   border-radius: 20px 20px 0 0;
   width: 100%;
@@ -115,12 +116,36 @@
 
 /* Photo preview */
 .photo-preview-wrap {
+  position: relative;
   width: 100%; border-radius: 12px; overflow: hidden;
   margin-bottom: 14px; max-height: 200px;
 }
 .photo-preview {
   width: 100%; height: auto; max-height: 200px;
   object-fit: cover; display: block;
+}
+
+/* Crop button overlaid in the bottom-right of the preview */
+.photo-preview-crop-btn {
+  position: absolute;
+  right: 8px; bottom: 8px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px 5px 8px;
+  background: rgba(20, 18, 14, 0.78);
+  color: #fff;
+  border: none; border-radius: 999px;
+  font-family: inherit; font-size: 0.74rem; font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.photo-preview-crop-btn:hover { background: rgba(20, 18, 14, 0.92); }
+.photo-preview-crop-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.photo-preview-crop-btn svg {
+  width: 13px; height: 13px;
+  stroke: currentColor; fill: none; stroke-width: 2;
 }
 
 /* Fields */
@@ -230,11 +255,145 @@
   font-size: 0.95rem; font-weight: 600; font-family: inherit;
   cursor: pointer; margin-top: 8px;
   transition: background 0.15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  position: relative; z-index: 1; /* sit above .photo-modal-busy overlay */
 }
 .photo-submit:hover { background: #15573d; }
 .photo-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 .photo-overlay.dark .photo-submit { background: #d4a96a; color: #1a1612; }
 .photo-overlay.dark .photo-submit:hover { background: #e0c07a; }
+
+/* Spinner inside the submit button while the upload is in flight. */
+.photo-submit-spinner {
+  width: 16px; height: 16px;
+  animation: photo-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes photo-spin { to { transform: rotate(360deg); } }
+
+/* Dim everything in the modal except the submit button while uploading. The
+   submit button is z-index 1 above this overlay so it stays interactive (and
+   the user sees the spinner). */
+.photo-modal-busy {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 20px 20px 0 0;
+  z-index: 0;
+  cursor: progress;
+}
+.photo-overlay.dark .photo-modal-busy { background: rgba(20, 18, 14, 0.55); }
+
+/* ── Crop modal (opens over the form) ── */
+.photo-crop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 1200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.photo-crop-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  font-family: 'Outfit', sans-serif;
+}
+.photo-crop-modal.dark {
+  background: #1a1612;
+  color: #e8e0d4;
+}
+.photo-crop-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e8e5de;
+  font-size: 1rem; font-weight: 600;
+}
+.photo-crop-modal.dark .photo-crop-header { border-bottom-color: #3d3328; }
+.photo-crop-close {
+  width: 32px; height: 32px;
+  background: none; border: none;
+  font-size: 1.1rem; color: #999;
+  cursor: pointer; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit;
+}
+.photo-crop-close:hover { background: rgba(0, 0, 0, 0.06); color: #1a1612; }
+.photo-crop-modal.dark .photo-crop-close { color: #6b5f4f; }
+.photo-crop-modal.dark .photo-crop-close:hover { background: rgba(255, 255, 255, 0.08); color: #e8e0d4; }
+
+.photo-crop-canvas {
+  position: relative;
+  width: 100%;
+  height: 60vh;
+  max-height: 460px;
+  background: #1a1612;
+}
+.photo-crop-modal.dark .photo-crop-canvas { background: #000; }
+
+.photo-crop-aspect {
+  display: flex; gap: 6px; justify-content: center;
+  padding: 12px 16px 0;
+  flex-wrap: wrap;
+}
+.photo-crop-aspect-chip {
+  padding: 6px 14px;
+  background: #f5f2eb;
+  border: 1px solid #e8e5de;
+  color: #5a4a2a;
+  border-radius: 999px;
+  font-family: inherit; font-size: 0.78rem; font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.photo-crop-aspect-chip:hover { border-color: #1a6b4a; color: #1a6b4a; }
+.photo-crop-aspect-chip.active {
+  background: #1a6b4a; border-color: #1a6b4a; color: #fff;
+}
+.photo-crop-modal.dark .photo-crop-aspect-chip {
+  background: #2a2318; border-color: #3d3328; color: #b5ab95;
+}
+.photo-crop-modal.dark .photo-crop-aspect-chip:hover { border-color: #d4a96a; color: #d4a96a; }
+.photo-crop-modal.dark .photo-crop-aspect-chip.active {
+  background: #d4a96a; border-color: #d4a96a; color: #1a1612;
+}
+
+.photo-crop-actions {
+  display: flex; gap: 8px;
+  padding: 14px 16px 16px;
+}
+.photo-crop-cancel,
+.photo-crop-apply {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  font-family: inherit; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+.photo-crop-cancel {
+  background: transparent;
+  border: 1px solid #e8e5de;
+  color: #5a4a2a;
+}
+.photo-crop-cancel:hover { background: #f5f2eb; }
+.photo-crop-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+.photo-crop-modal.dark .photo-crop-cancel {
+  border-color: #3d3328; color: #b5ab95;
+}
+.photo-crop-modal.dark .photo-crop-cancel:hover { background: #2a2318; }
+.photo-crop-apply {
+  background: #1a6b4a; color: #fff;
+}
+.photo-crop-apply:hover { background: #15573d; }
+.photo-crop-apply:disabled { opacity: 0.6; cursor: not-allowed; }
+.photo-crop-modal.dark .photo-crop-apply { background: #d4a96a; color: #1a1612; }
+.photo-crop-modal.dark .photo-crop-apply:hover { background: #e0c07a; }
 
 /* Success state */
 .photo-success {

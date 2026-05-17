@@ -1,11 +1,38 @@
 import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import Cropper, { type Area } from 'react-easy-crop'
 import { useAuth } from './AuthContext'
 import { useSaved } from './SavedContext'
 import { LoginNudge } from './LoginModal'
 import { API_BASE } from '../config'
 import './PhotoObservation.css'
+
+/**
+ * Crops `imageSrc` (data URL or external URL) to the given pixel rectangle using
+ * a canvas re-encode and returns a JPEG data URL. Used by the optional crop step
+ * in the observation flow — the result replaces `photoBase64` for upload.
+ */
+async function cropImageToDataUrl(imageSrc: string, pixelCrop: Area): Promise<string> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = imageSrc
+  })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(pixelCrop.width)
+  canvas.height = Math.round(pixelCrop.height)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas 2D context unavailable')
+  ctx.drawImage(
+    image,
+    pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height,
+    0, 0, pixelCrop.width, pixelCrop.height,
+  )
+  return canvas.toDataURL('image/jpeg', 0.9)
+}
 
 // Watershed center coordinates used as a fallback for the location-picker map
 // when the photo has no GPS metadata and the device hasn't provided geolocation.
@@ -182,6 +209,14 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
   const cameraRef = useRef<HTMLInputElement>(null)
   const [showSourcePicker, setShowSourcePicker] = useState(false)
 
+  // Cropping state (optional step between picking a photo and submitting).
+  const [showCropper, setShowCropper] = useState(false)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [aspect, setAspect] = useState<number | undefined>(undefined) // undefined = free-form
+  const [cropping, setCropping] = useState(false) // applying the crop (canvas re-encode)
+  const croppedAreaRef = useRef<Area | null>(null)
+
   useImperativeHandle(ref, () => ({
     open: () => setShowSourcePicker(true),
   }), [])
@@ -216,6 +251,39 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
     setNotes('')
     setSuccess(false)
     setTypeaheadResults([])
+    setShowCropper(false)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setAspect(undefined)
+    croppedAreaRef.current = null
+  }, [])
+
+  const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
+    croppedAreaRef.current = areaPixels
+  }, [])
+
+  const applyCrop = useCallback(async () => {
+    if (!photoPreview || !croppedAreaRef.current) return
+    setCropping(true)
+    try {
+      const cropped = await cropImageToDataUrl(photoPreview, croppedAreaRef.current)
+      setPhotoPreview(cropped)
+      setPhotoBase64(cropped)
+      setShowCropper(false)
+      setCrop({ x: 0, y: 0 })
+      setZoom(1)
+    } catch {
+      // leave original photo intact on failure
+    } finally {
+      setCropping(false)
+    }
+  }, [photoPreview])
+
+  const cancelCrop = useCallback(() => {
+    setShowCropper(false)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setAspect(undefined)
   }, [])
 
   const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -502,10 +570,22 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
                   <button className="photo-modal-close" onClick={() => { setIsOpen(false); reset() }}>✕</button>
                 </div>
 
-                {/* Photo preview */}
+                {/* Photo preview + optional crop trigger */}
                 {photoPreview && (
                   <div className="photo-preview-wrap">
                     <img src={photoPreview} alt="Preview" className="photo-preview" />
+                    <button
+                      type="button"
+                      className="photo-preview-crop-btn"
+                      onClick={() => setShowCropper(true)}
+                      disabled={submitting}
+                      aria-label="Crop photo"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Crop
+                    </button>
                   </div>
                 )}
 
@@ -640,9 +720,74 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
                   onClick={handleSubmit}
                   disabled={submitting || (app !== 'deeptrail' && !speciesName) || (!speciesName && !category)}
                 >
-                  {submitting ? 'Saving...' : 'Save Observation'}
+                  {submitting ? (
+                    <>
+                      <svg className="photo-submit-spinner" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="40 60" />
+                      </svg>
+                      Uploading…
+                    </>
+                  ) : 'Save Observation'}
                 </button>
+
+                {/* Full-modal busy overlay while uploading. Prevents accidental
+                    edits to the form fields during the network round-trip. */}
+                {submitting && <div className="photo-modal-busy" aria-hidden="true" />}
               </>
+            )}
+
+            {/* Crop modal — opens over the form, returns a re-encoded JPEG */}
+            {showCropper && photoPreview && (
+              <div className="photo-crop-overlay" onClick={cancelCrop}>
+                <div className={`photo-crop-modal ${isDark ? 'dark' : ''}`} onClick={e => e.stopPropagation()}>
+                  <div className="photo-crop-header">
+                    <span>Crop photo</span>
+                    <button type="button" className="photo-crop-close" onClick={cancelCrop} aria-label="Cancel crop">✕</button>
+                  </div>
+                  <div className="photo-crop-canvas">
+                    <Cropper
+                      image={photoPreview}
+                      crop={crop}
+                      zoom={zoom}
+                      aspect={aspect}
+                      onCropChange={setCrop}
+                      onZoomChange={setZoom}
+                      onCropComplete={onCropComplete}
+                      restrictPosition
+                    />
+                  </div>
+                  <div className="photo-crop-aspect">
+                    <button
+                      type="button"
+                      className={`photo-crop-aspect-chip${aspect === undefined ? ' active' : ''}`}
+                      onClick={() => setAspect(undefined)}
+                    >Free</button>
+                    <button
+                      type="button"
+                      className={`photo-crop-aspect-chip${aspect === 1 ? ' active' : ''}`}
+                      onClick={() => setAspect(1)}
+                    >1:1</button>
+                    <button
+                      type="button"
+                      className={`photo-crop-aspect-chip${aspect === 4 / 3 ? ' active' : ''}`}
+                      onClick={() => setAspect(4 / 3)}
+                    >4:3</button>
+                    <button
+                      type="button"
+                      className={`photo-crop-aspect-chip${aspect === 3 / 4 ? ' active' : ''}`}
+                      onClick={() => setAspect(3 / 4)}
+                    >3:4</button>
+                  </div>
+                  <div className="photo-crop-actions">
+                    <button type="button" className="photo-crop-cancel" onClick={cancelCrop} disabled={cropping}>
+                      Cancel
+                    </button>
+                    <button type="button" className="photo-crop-apply" onClick={applyCrop} disabled={cropping}>
+                      {cropping ? 'Applying…' : 'Apply'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
