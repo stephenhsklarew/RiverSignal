@@ -126,6 +126,16 @@ def fishing_species(watershed: str):
         "sucker", "suckers",   # multiple sucker species; bare 'sucker' is non-actionable
         "minnow", "minnows", "dace",  # likewise vague at the bare-genus level
     }
+    # Canonical aliases — collapse common nicknames to one display name so
+    # the dedup key catches "Musky" + "Muskellunge", "Walleye" + "Walleyed
+    # Pike", etc. Matches the CANONICAL_NAMES dict on the
+    # catch-probability endpoint; the two should stay in sync.
+    CANONICAL_NAMES = {
+        "musky": "Muskellunge",
+        "muskellunge": "Muskellunge",
+        "small mouth bass": "Smallmouth Bass",
+        "large mouth bass": "Largemouth Bass",
+    }
     seen: set[str] = set()
     out: list[dict] = []
     for r in rows:
@@ -141,6 +151,10 @@ def fishing_species(watershed: str):
         if common.lower() in VAGUE_GENUS_NAMES:
             continue
         display = " ".join(common.split()).title()
+        # Apply canonical-name alias so "Musky" and "Muskellunge" both
+        # collapse to a single "Muskellunge" entry. Photo lookup uses the
+        # collapsed name so the result is consistent.
+        display = CANONICAL_NAMES.get(display.lower(), display)
         key = display.lower()
         if key in seen:
             continue
@@ -489,20 +503,28 @@ def hatch_confidence(watershed: str, month: int = None):
         insects = []
 
         # 1. Curated hatch chart entries active this month and next.
-        # Photo lookup: prefer same-watershed iNat observations, but fall
-        # back to ANY watershed's matching genus so newly-onboarded
-        # watersheds (whose gold.species_gallery may not yet have insect
-        # rows) still show photos. Same fallback pattern used by
-        # /sites/<ws>/fishing/species.
+        # Photo lookup priority:
+        #   1. exact species match  (full scientific_name in g.taxon_name)
+        #   2. genus fallback       (first word of scientific_name)
+        # ...then prefer same-watershed observations.
+        # The species-first ordering prevents Hendrickson (Ephemerella
+        # subvaria) and Sulphur (Ephemerella invaria) — both genus
+        # Ephemerella — from collapsing onto the SAME photo just because
+        # genus is the only join key.
         try:
             curated = conn.execute(text("""
                 SELECT c.common_name, c.scientific_name, c.insect_order,
                        c.start_month, c.end_month, c.peak_months, c.fly_patterns,
                        (SELECT g.photo_url
                           FROM gold.species_gallery g
-                         WHERE g.taxon_name ILIKE '%' || split_part(c.scientific_name, ' ', 1) || '%'
-                           AND g.photo_url IS NOT NULL
-                         ORDER BY CASE WHEN g.watershed = c.watershed THEN 0 ELSE 1 END
+                         WHERE g.photo_url IS NOT NULL
+                           AND (
+                               g.taxon_name ILIKE '%' || c.scientific_name || '%'
+                               OR g.taxon_name ILIKE '%' || split_part(c.scientific_name, ' ', 1) || '%'
+                           )
+                         ORDER BY
+                           CASE WHEN g.taxon_name ILIKE '%' || c.scientific_name || '%' THEN 0 ELSE 1 END,
+                           CASE WHEN g.watershed = c.watershed THEN 0 ELSE 1 END
                          LIMIT 1) as photo_url
                 FROM curated_hatch_chart c
                 WHERE c.watershed = :ws
@@ -518,23 +540,42 @@ def hatch_confidence(watershed: str, month: int = None):
             conn.rollback()
             curated = []
 
+        next_month = (month % 12) + 1
         for r in curated:
-            is_peak = month in (r[5] or [])
-            active_month = month if (r[3] <= month <= r[4]) else (month % 12) + 1
-            confidence = 'high' if is_peak else 'medium'
-            insects.append({
-                "taxon_name": r[1],
-                "common_name": r[0],
-                "month": active_month,
-                "observations": None,
-                "activity": "peak" if is_peak else "present",
-                "confidence": confidence,
-                "photo_url": r[7],
-                "years_observed": None,
-                "insect_order": r[2],
-                "fly_patterns": _enrich_patterns(r[6] or [], video_map),
-                "source": "curated",
-            })
+            start_m, end_m = r[3], r[4]
+            peak_months = r[5] or []
+            # Emit ONE row per active-month so the frontend's
+            # `i.month === currentMonth` AND `i.month === nextMonth`
+            # filters can both find a match for hatches active in both
+            # months (e.g. Sulphur, May-Jul). Previously this assigned a
+            # single `active_month` favouring the current month, which
+            # made every multi-month hatch silently disappear from the
+            # "Next Month" surface.
+            #
+            # Active-month range can wrap year-end (start=11, end=2 means
+            # Nov–Feb) so handle wrap by treating start>end as two
+            # contiguous spans.
+            if start_m <= end_m:
+                active_range = range(start_m, end_m + 1)
+            else:
+                active_range = list(range(start_m, 13)) + list(range(1, end_m + 1))
+            for m in (month, next_month):
+                if m not in active_range:
+                    continue
+                is_peak = m in peak_months
+                insects.append({
+                    "taxon_name": r[1],
+                    "common_name": r[0],
+                    "month": m,
+                    "observations": None,
+                    "activity": "peak" if is_peak else "present",
+                    "confidence": 'high' if is_peak else 'medium',
+                    "photo_url": r[7],
+                    "years_observed": None,
+                    "insect_order": r[2],
+                    "fly_patterns": _enrich_patterns(r[6] or [], video_map),
+                    "source": "curated",
+                })
 
         # 2. Supplement with observation-based data from aquatic hatch chart
         try:
