@@ -149,6 +149,37 @@ def create_user_observation(body: ObservationCreate, request: Request):
     body.notes = _sanitize_text(body.notes, 1000)
     body.watershed = _sanitize_text(body.watershed, 50)
 
+    # Reject submissions that can't be placed inside any covered watershed.
+    # The legacy behaviour (silently tag the row with body.watershed and
+    # pin to the nearest centroid) caused orphan observations to surface
+    # under the wrong watershed on /path/saved. We require the user to
+    # pick a real location, and the location must fall inside the bbox of
+    # a watershed RiverPath actually covers.
+    if body.latitude is None or body.longitude is None:
+        raise HTTPException(400,
+            "Observation location is required. Drag the pin on the map "
+            "to where the photo was taken before saving.")
+
+    with engine.connect() as _bbox_conn:
+        bbox_match = _bbox_conn.execute(text("""
+            SELECT watershed FROM sites
+             WHERE bbox IS NOT NULL
+               AND (bbox->>'west')::float  <= :lon
+               AND (bbox->>'east')::float  >= :lon
+               AND (bbox->>'south')::float <= :lat
+               AND (bbox->>'north')::float >= :lat
+             LIMIT 1
+        """), {"lat": body.latitude, "lon": body.longitude}).fetchone()
+        if not bbox_match:
+            covered = [r[0] for r in _bbox_conn.execute(text(
+                "SELECT DISTINCT watershed FROM sites WHERE bbox IS NOT NULL ORDER BY watershed"
+            )).fetchall()]
+            raise HTTPException(400,
+                "This photo's location is outside the watersheds RiverPath "
+                "currently covers (" + ", ".join(covered) + "). More "
+                "watersheds are coming — for now, observations outside "
+                "these areas can't be saved.")
+
     # Save photo
     if body.photo_base64:
         try:
@@ -259,14 +290,10 @@ def create_user_observation(body: ObservationCreate, request: Request):
                     "UPDATE user_observations SET user_id = :uid WHERE id = :oid"
                 ), {"uid": user_id, "oid": obs_id})
 
-            # Resolve the watershed strictly from the observation's lat/long:
-            # whichever watershed's bbox contains the point wins, regardless
-            # of what the client sent in body.watershed. Falls back to
-            # nearest-centroid only if the point sits outside every bbox
-            # (e.g. ocean / inter-watershed gap). After picking, fix-up
-            # body.watershed so the user_observations row gets the correct
-            # value too (the INSERT above ran with body.watershed; we update
-            # it in-place below).
+            # Resolve the watershed strictly from the observation's
+            # lat/long — whichever watershed's bbox contains the point
+            # wins. The pre-INSERT guard above already rejected points
+            # outside every bbox, so this lookup is guaranteed to match.
             site_id = None
             resolved_watershed = body.watershed
             bbox_row = conn.execute(text("""
@@ -281,25 +308,6 @@ def create_user_observation(body: ObservationCreate, request: Request):
             if bbox_row:
                 site_id = bbox_row[0]
                 resolved_watershed = bbox_row[1]
-
-            if not site_id:
-                # Point sits outside every watershed bbox — pick nearest
-                # by centroid as a last resort.
-                site_row = conn.execute(text("""
-                    SELECT id, watershed FROM sites
-                    WHERE bbox IS NOT NULL
-                    ORDER BY ST_Distance(
-                        ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
-                        ST_SetSRID(ST_MakePoint(
-                            ((bbox->>'west')::float + (bbox->>'east')::float) / 2,
-                            ((bbox->>'south')::float + (bbox->>'north')::float) / 2
-                        ), 4326)::geography
-                    )
-                    LIMIT 1
-                """), {"lat": body.latitude, "lon": body.longitude}).fetchone()
-                if site_row:
-                    site_id = site_row[0]
-                    resolved_watershed = site_row[1]
 
             # Persist the resolved watershed on the user_observations row
             # even if the client lied about which one it was filed under.
