@@ -6,7 +6,7 @@
  * plan-2026-05-17-watershed-admin-console.md).
  */
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import useSWR from 'swr'
 import { API_BASE } from '../config'
 import './AdminPhotosPage.css'
@@ -135,7 +135,6 @@ function RiverStoriesList() {
 // ─── Editor view ───────────────────────────────────────────────────
 
 function RiverStoryEditor({ watershed, readingLevel }: { watershed: string; readingLevel: string }) {
-  const navigate = useNavigate()
   const url = `${API_BASE}/admin/river-stories/${encodeURIComponent(watershed)}/${encodeURIComponent(readingLevel)}`
   const { data, mutate, error } = useSWR<RiverStoryDetail>(url, fetcher)
 
