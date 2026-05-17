@@ -109,26 +109,8 @@ export default function StewardPage() {
         </section>
       )}
 
-      {/* ── How to Help ── */}
-      {data?.opportunities?.length > 0 && (
-        <section className="steward-section">
-          <h2 className="steward-section-title">How to Help</h2>
-          <div className="opp-grid">
-            {data.opportunities.map((opp: any, i: number) => (
-              <div key={i} className="opp-card">
-                <span className="opp-icon">{CATEGORY_ICONS[opp.category?.toLowerCase()] || '♻'}</span>
-                <div className="opp-info">
-                  <div className="opp-category">{opp.category}</div>
-                  <div className="opp-type">{opp.type}</div>
-                  <div className="opp-meta">{opp.project_count} projects · most recent: {opp.most_recent_year}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Get Involved CTA ── */}
+      {/* ── Get Involved CTA — surfaced above the project list so users see
+             the call-to-action before scrolling through the project log. ── */}
       {council && (
         <section className="steward-section">
           <div className="steward-cta-card">
@@ -139,6 +121,27 @@ export default function StewardPage() {
             <a href={council.url} target="_blank" rel="noopener noreferrer" className="steward-cta-btn">
               Join {council.name} →
             </a>
+          </div>
+        </section>
+      )}
+
+      {/* ── Projects (sorted reverse-chronologically by most recent year) ── */}
+      {data?.opportunities?.length > 0 && (
+        <section className="steward-section">
+          <h2 className="steward-section-title">Projects</h2>
+          <div className="opp-grid">
+            {[...data.opportunities]
+              .sort((a: any, b: any) => (b.most_recent_year || 0) - (a.most_recent_year || 0))
+              .map((opp: any, i: number) => (
+                <div key={i} className="opp-card">
+                  <span className="opp-icon">{CATEGORY_ICONS[opp.category?.toLowerCase()] || '♻'}</span>
+                  <div className="opp-info">
+                    <div className="opp-category">{opp.category}</div>
+                    <div className="opp-type">{opp.type}</div>
+                    <div className="opp-meta">{opp.project_count} projects · most recent: {opp.most_recent_year}</div>
+                  </div>
+                </div>
+              ))}
           </div>
         </section>
       )}
