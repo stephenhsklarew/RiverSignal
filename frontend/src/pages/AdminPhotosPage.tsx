@@ -273,7 +273,10 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
       })
       if (!r.ok) throw new Error(`Save failed: ${r.status}`)
       await mutate()
-      setMsg('Saved.')
+      const target = watershed === '*'
+        ? 'all watersheds'
+        : `/path/now/${watershed}`
+      setMsg(`Saved to ${target}. The public page caches Fish Present for 24h client-side — open it in a fresh tab or hard-refresh to see the new photo immediately.`)
       setSelectedObs(null)
     } catch (e: unknown) {
       setMsg(`Error: ${(e as Error).message}`)

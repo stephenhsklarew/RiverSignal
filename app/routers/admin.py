@@ -58,6 +58,18 @@ def _validate_watershed(watershed: str) -> str:
     raise HTTPException(400, f"watershed must be '*' or one of {sorted(VALID_WATERSHEDS)}")
 
 
+def _detect_source(photo_url: str, client_hint: str | None) -> str:
+    """Pick a `source` label from the URL host rather than trusting the
+    client. The frontend's selectedObs-based heuristic gives the wrong
+    answer if a curator pastes an iNat URL by hand."""
+    url = (photo_url or '').lower()
+    if 'inaturalist' in url:
+        return 'inaturalist'
+    if 'wikimedia' in url or 'wikipedia' in url:
+        return 'wikimedia'
+    return client_hint or 'manual'
+
+
 # ── Curated photos: list ───────────────────────────────────────────
 
 @router.get("/admin/curated-photos")
@@ -182,6 +194,10 @@ def upsert_curated_photo(
         """), {"sk": species_key, "ws": ws}).fetchone()
         is_insert = prev is None
 
+        # Override the client-supplied source if the URL host disagrees
+        # (e.g. pasted iNat URL with client's default 'wikimedia').
+        detected_source = _detect_source(payload.photo_url, payload.source)
+
         conn.execute(text("""
             INSERT INTO gold.curated_species_photos
                 (species_key, watershed, common_name, scientific_name, photo_url,
@@ -207,7 +223,7 @@ def upsert_curated_photo(
             "oid": payload.inat_observation_id,
             "uh": payload.inat_user_handle,
             "lic": payload.license,
-            "src": payload.source,
+            "src": detected_source,
             "uid": admin["id"],
         })
 
@@ -427,31 +443,6 @@ def inat_search(
 
     _INAT_CACHE[key] = candidates
     return {"candidates": candidates, "cached": False, "watershed": ws}
-
-
-# ── TEMP DIAG (remove after debugging brook trout on deschutes) ───
-
-@router.get("/admin/_diag/curated/{species_key}")
-def diag_curated(species_key: str):
-    """Public, read-only. Returns every curated row for a species_key so
-    we can confirm the per-watershed override actually persisted."""
-    with engine.connect() as conn:
-        rows = conn.execute(text("""
-            SELECT species_key, watershed, photo_url, source, updated_at
-            FROM gold.curated_species_photos
-            WHERE species_key = :sk
-            ORDER BY watershed
-        """), {"sk": species_key.lower().strip()}).fetchall()
-    return [
-        {
-            "species_key": r[0],
-            "watershed":   r[1],
-            "photo_url":   r[2],
-            "source":      r[3],
-            "updated_at":  r[4].isoformat() if r[4] else None,
-        }
-        for r in rows
-    ]
 
 
 # ── Self-service admin revocation (OF-6) ──────────────────────────
