@@ -105,6 +105,10 @@ export default function SpeciesMapPage() {
   // `null` means "no filter, show every observation".
   const [curatedNames, setCuratedNames] = useState<Set<string> | null>(null)
   const [flyRecs, setFlyRecs] = useState<any[]>([])
+  // Per-species filter chips shown above the map in fish_present mode. Each
+  // chip toggles one species in the Fish Present list on/off. activeChips
+  // holds the keys (lowercased common_name) currently enabled.
+  const [activeChips, setActiveChips] = useState<Set<string>>(new Set())
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
@@ -151,20 +155,80 @@ export default function SpeciesMapPage() {
     setFlyRecs(Array.isArray(flyRecsData) ? flyRecsData : [])
   }, [flyRecsData])
 
+  // Build the per-species chip list from the curated Fish Present rows.
+  // One chip per unique common_name (dedupe matches RiverNowPage.uniqueFishByReach).
+  // Capped to the same FISH_PRESENT_LIMIT the carousel uses so the map filter
+  // exactly matches the cards the user sees on /path/now — without the cap,
+  // /fishing/species returns ~48 species for a typical PNW watershed and the
+  // map shows pins for 38 fish that don't appear in the section above.
+  // Only rendered for fish_present; eating_now has a different shape.
+  const FISH_PRESENT_LIMIT = 10
+  type FishChip = { key: string; label: string; photo: string | null; names: Set<string> }
+  const fishChips: FishChip[] = []
+  if (filter === 'fish_present' && Array.isArray(curatedData)) {
+    const seen = new Set<string>()
+    for (const r of curatedData) {
+      if (fishChips.length >= FISH_PRESENT_LIMIT) break
+      const label = (r.common_name || r.scientific_name || r.species || '').trim()
+      if (!label) continue
+      const key = label.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      const names = new Set<string>()
+      for (const k of ['common_name', 'scientific_name', 'species', 'taxon_name']) {
+        const v = r[k]
+        if (typeof v === 'string' && v.trim()) names.add(v.trim().toLowerCase())
+      }
+      fishChips.push({ key, label, photo: r.photo_url || null, names })
+    }
+  }
+
+  // When the chip list changes (curated data finished loading, or watershed
+  // switched), enable every chip by default — matches the prior "show all
+  // Fish Present" behavior.
+  const chipsSig = fishChips.map(c => c.key).join('|')
+  useEffect(() => {
+    setActiveChips(new Set(fishChips.map(c => c.key)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chipsSig])
+
+  // When chips are present, the effective filter narrows to the union of
+  // names from the currently-active chips. Falls back to the full curated
+  // set when there are no chips (e.g. eating_now mode).
+  const effectiveCuratedNames = fishChips.length > 0
+    ? (() => {
+        const out = new Set<string>()
+        for (const c of fishChips) {
+          if (!activeChips.has(c.key)) continue
+          for (const n of c.names) out.add(n)
+        }
+        return out
+      })()
+    : curatedNames
+
   // Apply curated-name filter to the observation features when filter is on.
-  const visibleFeatures = !filterLocked || !curatedNames
+  const visibleFeatures = !filterLocked || !effectiveCuratedNames
     ? features
     : features.filter(f => {
         const t = (f.properties.taxon_name || '').toLowerCase()
         const c = (f.properties.common_name || '').toLowerCase()
-        if (curatedNames.has(t) || curatedNames.has(c)) return true
+        if (effectiveCuratedNames.has(t) || effectiveCuratedNames.has(c)) return true
         // Loose substring match — handles "Oncorhynchus mykiss (Walbaum, 1792)" vs "Oncorhynchus mykiss"
-        for (const name of curatedNames) {
+        for (const name of effectiveCuratedNames) {
           if (name.length < 4) continue
           if (t.includes(name) || (c && c.includes(name))) return true
         }
         return false
       })
+
+  const toggleChip = (key: string) => {
+    setActiveChips(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   // Initialize map
   useEffect(() => {
@@ -335,6 +399,27 @@ export default function SpeciesMapPage() {
               : `${visibleFeatures.length} observations`}
         </span>
       </div>
+
+      {/* Fish Present species chips — one per species, tap to toggle */}
+      {fishChips.length > 1 && (
+        <div className="species-map-chip-row" role="group" aria-label="Filter by fish species">
+          {fishChips.map(chip => {
+            const on = activeChips.has(chip.key)
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                className={`species-map-chip${on ? ' active' : ''}`}
+                aria-pressed={on}
+                onClick={() => toggleChip(chip.key)}
+              >
+                {chip.photo && <img src={chip.photo} alt="" className="species-map-chip-img" />}
+                <span className="species-map-chip-label">{chip.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Map */}
       <div className="species-map-stage">

@@ -21,6 +21,40 @@
 .species-map-cat.active { background: var(--accent); color: white; border-color: var(--accent); }
 .species-map-count { margin-left: auto; font-size: 12px; color: var(--text-muted); }
 
+/* Per-species filter chip row (Fish Present mode). Horizontally scrollable. */
+.species-map-chip-row {
+  display: flex; gap: 6px;
+  padding: 0 16px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.species-map-chip-row::-webkit-scrollbar { display: none; }
+.species-map-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid #d4cdb8;
+  border-radius: 999px;
+  background: #faf8f3;
+  color: var(--text, #2a2a2a);
+  font-family: inherit; font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  min-height: 32px;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.species-map-chip:not(.active) {
+  opacity: 0.55;
+}
+.species-map-chip.active {
+  background: #e8f1ea;
+  border-color: var(--accent, #2c6e49);
+}
+.species-map-chip-img {
+  width: 22px; height: 22px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+}
+.species-map-chip-label { white-space: nowrap; }
+
 .species-map-stage { flex: 1; min-height: 0; position: relative; }
 .species-map-container { width: 100%; height: 100%; }
 
