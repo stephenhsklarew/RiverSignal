@@ -15,6 +15,15 @@ API_BASE = "https://api.inaturalist.org/v1"
 PAGE_SIZE = 200
 RATE_LIMIT_DELAY = 0.6  # seconds between requests (100 req/min limit)
 
+# Progressive `last_sync_at` checkpoint cadence. Without this, a Cloud Run
+# task-timeout kill mid-backfill leaves last_sync unset and the next run
+# restarts from scratch — the death-spiral pattern we hit on Shenandoah
+# onboarding (2026-05-15 → 2026-05-24). Every N pages we advance
+# last_sync_at to the highest observed_at seen so far and commit, so a
+# killed run resumes from the high-water mark (with a small re-fetch
+# overlap that the idempotent UPSERT absorbs).
+CHECKPOINT_EVERY_PAGES = 10
+
 UPSERT_SQL = text("""
     INSERT INTO observations (
         id, site_id, source_type, source_id, observed_at,
@@ -69,6 +78,8 @@ class INaturalistAdapter(IngestionAdapter):
         created = 0
         total_fetched = 0
         last_id = 0
+        page_count = 0
+        running_max_observed_at: datetime | None = None
 
         with httpx.Client(timeout=30) as client, engine.connect() as conn:
             while True:
@@ -96,15 +107,38 @@ class INaturalistAdapter(IngestionAdapter):
                     row = self._parse_observation(obs)
                     conn.execute(UPSERT_SQL, row)
                     last_id = obs["id"]
+                    # Track max observed_at across the run for progressive
+                    # checkpointing. Use whichever timestamp ended up in the
+                    # parsed row so this matches what's actually in the DB.
+                    obs_dt = row.get("observed_at")
+                    if isinstance(obs_dt, datetime):
+                        if obs_dt.tzinfo is None:
+                            obs_dt = obs_dt.replace(tzinfo=timezone.utc)
+                        if running_max_observed_at is None or obs_dt > running_max_observed_at:
+                            running_max_observed_at = obs_dt
 
                 conn.commit()
                 created += len(results)
                 total_fetched += len(results)
+                page_count += 1
                 console.print(
                     f"    fetched {total_fetched}/{data.get('total_results', '?')} "
                     f"observations...",
                     end="\r",
                 )
+
+                # Progressive checkpoint: every N pages, advance last_sync_at
+                # to the highest observed_at we've seen so a killed task can
+                # resume from there next time. Throttled to avoid per-page
+                # commit overhead (~5000 commits on a 1M-obs backfill).
+                if page_count % CHECKPOINT_EVERY_PAGES == 0 and running_max_observed_at:
+                    self.update_last_sync(running_max_observed_at)
+                    self.session.commit()
+                    console.print(
+                        f"\n    [dim]checkpoint: last_sync_at → "
+                        f"{running_max_observed_at.date()} "
+                        f"(after {total_fetched} obs)[/dim]"
+                    )
 
                 if len(results) < PAGE_SIZE:
                     break
