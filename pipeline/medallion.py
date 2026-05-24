@@ -32,7 +32,6 @@ GOLD_LIGHT = [
     "gold.watershed_scorecard",
     "gold.indicator_species_status",
     "gold.harvest_trends",
-    "gold.whats_alive_now",
     "gold.stewardship_opportunities",
     "gold.legal_collecting_sites",
     "gold.stocking_schedule",

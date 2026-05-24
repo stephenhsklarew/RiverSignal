@@ -74,7 +74,11 @@ resource "google_cloud_run_v2_job" "pipeline_daily" {
 
     template {
       max_retries = 1
-      timeout     = "3600s"
+      # 14400s (4h) headroom — was 3600s but hit the wall every day from
+      # 2026-05-16 onward when Shenandoah onboarded with a ~1M-observation
+      # iNaturalist backfill. Drop back to 3600s once the adapter
+      # checkpoints last_sync progressively (separate bead).
+      timeout     = "14400s"
 
       service_account = google_service_account.pipeline.email
 
@@ -261,10 +265,11 @@ resource "google_cloud_run_v2_job" "refresh_views" {
 
     template {
       max_retries = 1
-      # 3600s safety margin — silver refresh can spike when sub-views recompute
-      # against large recent windows. Set to 1800s originally; bumped after a
-      # 2026-04 timeout incident.
-      timeout     = "3600s"
+      # 14400s (4h) safety margin — bumped 2026-05-24 after gold.post_fire_recovery
+      # started taking ~37min for ~459 rows (likely a sequential scan; tracked
+      # in a separate bead). Was 3600s — set to 1800s originally, bumped after
+      # 2026-04 timeout incident, bumped again here for the May 2026 cliff.
+      timeout     = "14400s"
 
       service_account = google_service_account.pipeline.email
 

@@ -46,7 +46,6 @@ VIEW_ORDER = [
     "gold.watershed_scorecard",
     "gold.indicator_species_status",
     "gold.river_health_score",
-    "gold.whats_alive_now",
     "gold.swim_safety",
     "gold.river_story_timeline",
     # Gold — ecology: views that depend on other gold views
