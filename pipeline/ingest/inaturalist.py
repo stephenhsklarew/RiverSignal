@@ -86,8 +86,29 @@ class INaturalistAdapter(IngestionAdapter):
                 if last_id > 0:
                     params["id_above"] = last_id
 
+                # Retry on 429 (rate limit) AND transient network errors. The
+                # iNat API regularly drops long-lived TCP connections during
+                # multi-hour backfills (e.g. RemoteProtocolError after ~90min
+                # of steady requests on the 2026-05-24 Shenandoah backfill).
+                # Without catching these, the first drop kills the entire run.
+                resp = None
                 for attempt in range(5):
-                    resp = client.get(f"{API_BASE}/observations", params=params)
+                    try:
+                        resp = client.get(f"{API_BASE}/observations", params=params)
+                    except (
+                        httpx.RemoteProtocolError,
+                        httpx.ConnectError,
+                        httpx.ReadTimeout,
+                        httpx.ReadError,
+                        httpx.WriteError,
+                    ) as e:
+                        wait = 2 ** (attempt + 1)
+                        console.print(
+                            f"    [yellow]transient network error "
+                            f"({type(e).__name__}); retrying in {wait}s...[/yellow]"
+                        )
+                        time.sleep(wait)
+                        continue
                     if resp.status_code == 429:
                         wait = 2 ** (attempt + 1)
                         console.print(f"    [yellow]rate limited, waiting {wait}s...[/yellow]")
@@ -96,7 +117,7 @@ class INaturalistAdapter(IngestionAdapter):
                     resp.raise_for_status()
                     break
                 else:
-                    resp.raise_for_status()
+                    raise httpx.HTTPError("iNat API failed after 5 retries")
                 data = resp.json()
 
                 results = data.get("results", [])
