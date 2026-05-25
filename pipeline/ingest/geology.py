@@ -745,7 +745,34 @@ class MRDSAdapter(IngestionAdapter):
                     break
                 offset += batch_count
 
-        console.print(f"    loaded {created} mineral deposits")
+        # Post-insert image enrichment: propagate image_url from any row
+        # in mineral_deposits (across all watersheds) with the same
+        # commodity string. The original enrichment was a one-off
+        # Wikimedia Commons match by commodity (commit 6cfc671 commit
+        # message) and the script was never committed; this self-heals
+        # any new ingest by reusing the URLs already cached on disk.
+        # Idempotent — only touches rows where image_url is NULL.
+        with engine.connect() as conn:
+            enriched = conn.execute(text("""
+                UPDATE mineral_deposits m
+                   SET image_url     = picked.image_url,
+                       image_license = picked.image_license,
+                       image_source  = picked.image_source
+                  FROM (
+                    SELECT commodity,
+                           (array_agg(image_url     ORDER BY ingested_at))[1] AS image_url,
+                           (array_agg(image_license ORDER BY ingested_at))[1] AS image_license,
+                           (array_agg(image_source  ORDER BY ingested_at))[1] AS image_source
+                      FROM mineral_deposits
+                     WHERE image_url IS NOT NULL
+                     GROUP BY commodity
+                  ) AS picked
+                 WHERE m.image_url IS NULL
+                   AND m.site_id = :site_id
+                   AND m.commodity = picked.commodity
+            """), {"site_id": self.site_id}).rowcount
+            conn.commit()
+        console.print(f"    loaded {created} mineral deposits ({enriched} got image_url via commodity match)")
         return created, 0
 
 
