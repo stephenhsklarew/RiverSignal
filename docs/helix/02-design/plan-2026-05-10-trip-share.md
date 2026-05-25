@@ -22,6 +22,21 @@ Eight forks worked through with the product owner, resolving the highest-leverag
 | 7. Watershed default | Current watershed only; "+ Add" for others | Wizard step shows active watershed pre-selected, others as opt-in chips |
 | 8. /path vs /trail | Same model, product-aware defaults | Single `product` field drives wizard defaults, interest catalog, prompt tone |
 
+## Recipient-View UX (2026-05-25 walk-through)
+
+Eight follow-up UX decisions for the read-only `SharedView` page that recipients see when they open a share link without an account. Supersedes Fork 6's "no save-a-copy" — save-a-copy is now in scope but constrained: public items clone by reference, private observations remain view-only.
+
+| ID | Decision | Implication |
+|---|---|---|
+| RV-1 Layout | **Map-first with list panel.** Top half = map with pins for every spatial item; tapping a pin scrolls the list to that card. Mobile stacks map above list. | Recipient gets spatial sense immediately; works equally well for trip-plan and observation shares |
+| RV-2 Sender identity | **Username + optional 200-char note.** Header reads "Stephen shared 12 items with you" + sender's optional message ("trip ideas for next weekend") | New `note` column on `shares` table; share creation form gains a note field |
+| RV-3 Private-obs marker | **Subtle 🔒 chip per card** with hover/tap text: "This observation is private — visible only via this share link." | Trust signal without paternalism; per-card render, not a top banner |
+| RV-4 Live conditions | **Show today's TQS + weather/flow per watershed touched.** Pulls from existing `/trip-quality` and `/conditions/live` endpoints | No new endpoints; one extra fetch per unique watershed in the share |
+| RV-5 Sign-in nudge | **Footer CTA (dismissable) + one inline prompt at fold.** No interstitial walls. | Browse without friction; nudge ties to value not pressure |
+| RV-6 Save-a-copy | **Authenticated recipients clone *public* items by reference; private observations stay view-only inside the share.** | Reinstates save-a-copy (Fork 6) with private-stays-private guard rail. Adds `POST /api/v1/saved/from-share/{slug}` |
+| RV-7 Trip Plan emphasis | **Hero at top with daily itinerary; items the plan references inline per day; loose items show as "Extras" below.** | When a share contains a trip plan, plan dominates; pure-items shares fall back to the map+list pattern |
+| RV-8 Link previews | **Dynamic OG image (map + watershed name + sender) + title + summary.** Server-rendered per share slug. | Adds `/s/{slug}/og.png` endpoint backed by a lightweight static-map service (e.g. MapTiler static API or Skia render); cached aggressively |
+
 ## Problem Statement
 
 RiverPath and DeepTrail already let users bookmark reaches, species, fly patterns, recreation sites, restoration projects, fossils, minerals, rock sites, and (for /path users) their own observations. Today a user's "trip" lives in their head — they have a Saved tab with disconnected items, and no way to:
