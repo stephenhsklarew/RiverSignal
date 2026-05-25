@@ -78,7 +78,7 @@ resource "google_cloud_run_v2_job" "pipeline_daily" {
       # 2026-05-16 onward when Shenandoah onboarded with a ~1M-observation
       # iNaturalist backfill. Drop back to 3600s once the adapter
       # checkpoints last_sync progressively (separate bead).
-      timeout     = "14400s"
+      timeout = "14400s"
 
       service_account = google_service_account.pipeline.email
 
@@ -92,7 +92,7 @@ resource "google_cloud_run_v2_job" "pipeline_daily" {
         command = ["/bin/bash", "-c"]
         # NWS observations + 7-day forecast capture appended at the END so an
         # NWS outage doesn't short-circuit inaturalist/snotel/usgs above.
-        args    = ["python -m pipeline.cli ingest inaturalist -w all && python -m pipeline.cli ingest snotel -w all && python -m pipeline.cli ingest usgs -w all && python -m pipeline.ingest.nws_observations && python -m pipeline.ingest.nws_observations forecasts"]
+        args = ["python -m pipeline.cli ingest inaturalist -w all && python -m pipeline.cli ingest snotel -w all && python -m pipeline.cli ingest usgs -w all && python -m pipeline.ingest.nws_observations && python -m pipeline.ingest.nws_observations forecasts"]
 
         resources {
           limits = {
@@ -269,7 +269,7 @@ resource "google_cloud_run_v2_job" "refresh_views" {
       # started taking ~37min for ~459 rows (likely a sequential scan; tracked
       # in a separate bead). Was 3600s — set to 1800s originally, bumped after
       # 2026-04 timeout incident, bumped again here for the May 2026 cliff.
-      timeout     = "14400s"
+      timeout = "14400s"
 
       service_account = google_service_account.pipeline.email
 
@@ -465,6 +465,71 @@ resource "google_cloud_run_v2_job" "refresh_heavy" {
           limits = {
             cpu    = "2"
             memory = "2Gi"
+          }
+        }
+
+        env {
+          name  = "DATABASE_URL"
+          value = local.db_url
+        }
+
+        volume_mounts {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [local.db_connection_name]
+        }
+      }
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+# fossil-images: backfill specimen photos via iDigBio media, MorphoSource,
+# Smithsonian, Wikimedia Commons, and PhyloPic. The job iterates every row
+# with image_url IS NULL across all watersheds; new watersheds get covered
+# automatically. Was previously a manual `python -m pipeline.cli fossil-images`
+# step that fell off the runbook after Green River and left Shenandoah's
+# 2,926 fossil rows photo-less.
+#
+# Scheduled monthly because the bulk of the work converges on the first run
+# after a new watershed lands; subsequent runs only touch new arrivals.
+resource "google_cloud_run_v2_job" "fossil_images" {
+  name     = "${var.app_name}-fossil-images"
+  location = var.region
+
+  template {
+    task_count  = 1
+    parallelism = 1
+
+    template {
+      max_retries = 1
+      # 7200s (2h) — backfill is rate-limited to be polite to upstream
+      # (Wikimedia, PhyloPic, MorphoSource, iDigBio). Empirically ~15-30
+      # min per net-new watershed; idempotent re-runs are fast.
+      timeout = "7200s"
+
+      service_account = google_service_account.pipeline.email
+
+      vpc_access {
+        connector = google_vpc_access_connector.connector.id
+        egress    = "PRIVATE_RANGES_ONLY"
+      }
+
+      containers {
+        image   = local.image
+        command = ["python", "-m", "pipeline.cli", "fossil-images"]
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "1Gi"
           }
         }
 

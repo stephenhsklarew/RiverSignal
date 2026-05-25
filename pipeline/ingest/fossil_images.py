@@ -100,14 +100,27 @@ def backfill_idigbio_images() -> int:
 
         if missing:
             console.print(f"  iDigBio pass 2: searching media for {len(missing)} records with hasImage flag")
+            # Load every configured watershed's bbox from sites. The old
+            # implementation hardcoded four OR watersheds, which meant any
+            # newly-onboarded watershed (Shenandoah, future Mad River, etc.)
+            # silently got skipped by this pass.
+            with engine.connect() as bbox_conn:
+                bbox_rows = bbox_conn.execute(text("""
+                    SELECT watershed,
+                           (bbox->>'north')::float AS north,
+                           (bbox->>'south')::float AS south,
+                           (bbox->>'east')::float  AS east,
+                           (bbox->>'west')::float  AS west
+                      FROM sites
+                     WHERE bbox IS NOT NULL
+                     ORDER BY watershed
+                """)).fetchall()
+            watershed_bboxes = [
+                (r[0], {"north": r[1], "south": r[2], "east": r[3], "west": r[4]})
+                for r in bbox_rows
+            ]
             with httpx.Client(timeout=30) as client:
-                # Batch search: get all fossil media in Oregon bbox
-                for bbox_label, bbox in [
-                    ("McKenzie", {"north": 44.35, "south": 43.8, "west": -122.6, "east": -121.7}),
-                    ("Deschutes", {"north": 44.8, "south": 43.6, "west": -122.0, "east": -120.5}),
-                    ("Metolius", {"north": 44.7, "south": 44.3, "west": -122.0, "east": -121.3}),
-                    ("Klamath", {"north": 43.0, "south": 41.8, "west": -122.5, "east": -121.0}),
-                ]:
+                for bbox_label, bbox in watershed_bboxes:
                     offset = 0
                     while offset < 2000:
                         body = {

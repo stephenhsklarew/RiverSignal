@@ -682,14 +682,15 @@ class MRDSAdapter(IngestionAdapter):
 
                 SQL = text("""
                     INSERT INTO mineral_deposits (id, source, source_id, site_name, commodity,
-                        dev_status, location, latitude, longitude, data_payload)
+                        dev_status, location, latitude, longitude, data_payload, site_id)
                     VALUES (gen_random_uuid(), 'mrds', :source_id, :site_name, :commodity,
                         :dev_status, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326),
-                        :lat, :lon, CAST(:payload AS jsonb))
+                        :lat, :lon, CAST(:payload AS jsonb), :site_id)
                     ON CONFLICT (source, source_id) DO UPDATE SET
                         commodity = EXCLUDED.commodity,
                         dev_status = EXCLUDED.dev_status,
-                        data_payload = EXCLUDED.data_payload
+                        data_payload = EXCLUDED.data_payload,
+                        site_id = EXCLUDED.site_id
                 """)
 
                 with engine.connect() as conn:
@@ -733,6 +734,7 @@ class MRDSAdapter(IngestionAdapter):
                             "dev_status": str(dev_stat)[:100],
                             "lat": lat, "lon": lon,
                             "payload": json.dumps(payload),
+                            "site_id": self.site_id,
                         })
                         created += 1
                         batch_count += 1
