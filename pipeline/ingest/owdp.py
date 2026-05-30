@@ -4,6 +4,7 @@ Uses the Oregon Water Resources Department water quality data via their
 WQP (Water Quality Portal) compatible endpoint.
 """
 
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -67,17 +68,36 @@ class OWDPAdapter(IngestionAdapter):
                 f"{WQP_BASE}/data/Result/search",
             ]
 
+            # WQP is frequently overloaded and returns transient 5xx ("system
+            # may be overloaded"); the wqx3 profile also 500s for narrowResult.
+            # Retry each endpoint on 5xx / network errors before falling through
+            # to the next. Without this, a transient blip lands 0 rows silently
+            # (observed onboarding mad_river_oh — WQP had 187 OH stations but the
+            # batch run caught an overload window). See verification report.
             resp = None
             for url in urls:
-                try:
-                    resp = client.get(url, params=params)
-                    if resp.status_code == 200:
+                got_ok = False
+                for attempt in range(3):
+                    try:
+                        r = client.get(url, params=params)
+                        if r.status_code == 200:
+                            resp = r
+                            got_ok = True
+                            break
+                        if r.status_code == 204:
+                            console.print("    no water quality data found in this area")
+                            return 0, 0
+                        # 5xx → transient, back off and retry this url
+                        if r.status_code >= 500:
+                            time.sleep(3 * (attempt + 1))
+                            continue
+                        # other 4xx → don't retry this url, try the next
                         break
-                    if resp.status_code == 204:
-                        console.print("    no water quality data found in this area")
-                        return 0, 0
-                except httpx.HTTPError:
-                    continue
+                    except httpx.HTTPError:
+                        time.sleep(3 * (attempt + 1))
+                        continue
+                if got_ok:
+                    break
 
             if resp is None or resp.status_code != 200:
                 console.print("    [yellow]WQP API unavailable, skipping[/yellow]")

@@ -59,13 +59,31 @@ def _arcgis_query(client, url, bbox, extra_params=None, max_records=2000):
     if extra_params:
         params.update(extra_params)
 
-    for attempt in range(3):
+    # These public ArcGIS services (NWI, ATTAINS) intermittently return a 5xx
+    # or an HTML error page instead of JSON when overloaded — observed during
+    # the mad_river_oh batch, where NWI had 25,696 polygons for the bbox but a
+    # transient blip landed 0 rows silently. Retry with backoff on 5xx, network
+    # errors, AND non-JSON bodies before giving up. See verification report.
+    last_err = None
+    for attempt in range(4):
         try:
             resp = client.get(url, params=params)
             if resp.status_code == 200:
-                return resp.json().get("features", [])
-        except (httpx.ConnectError, httpx.ReadTimeout):
-            time.sleep(5)
+                try:
+                    return resp.json().get("features", [])
+                except ValueError:
+                    # 200 with an HTML/error body (service overloaded) — retry
+                    last_err = "non-JSON 200 body"
+            elif resp.status_code >= 500:
+                last_err = f"HTTP {resp.status_code}"
+            else:
+                # 4xx — not transient, don't hammer the service
+                return []
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ReadError,
+                httpx.RemoteProtocolError, httpx.WriteError):
+            last_err = "network error"
+        time.sleep(3 * (attempt + 1))
+    console.print(f"    [yellow]ArcGIS query gave up after retries ({last_err}): {url.split('/rest/')[0]}[/yellow]")
     return []
 
 
