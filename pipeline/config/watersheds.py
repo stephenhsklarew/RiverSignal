@@ -152,4 +152,28 @@ WATERSHEDS = {
             "west": -79.40,
         },
     },
+    "mad_river_oh": {
+        "name": "Mad River",
+        "description": (
+            "Mad River from headwater springs near Campbell Hill (Logan "
+            "County, OH — highest point in Ohio) through Champaign and "
+            "Clark counties to the Great Miami confluence at Dayton. "
+            "Spring-fed, limestone-influenced stream; one of only two "
+            "stocked trout fisheries in Ohio (brown trout). First Midwest / "
+            "Ohio-River-Basin watershed on the platform — Paleozoic carbonate "
+            "geology, glacial-outwash baseflow, smallmouth bass in the lower "
+            "warm-water reaches."
+        ),
+        # HUC8 05080001 (Upper Great Miami headwaters; Mad is the principal
+        # cold-water sub-basin) + 0.05° buffer. Covers Logan / Champaign /
+        # Clark / Greene / Montgomery county portions of the basin; north
+        # bound clears Indian Lake / Campbell Hill headwaters, south/west
+        # bounds clear the Great Miami confluence at Dayton.
+        "bbox": {
+            "north": 40.60,
+            "south": 39.65,
+            "east": -83.45,
+            "west": -84.30,
+        },
+    },
 }

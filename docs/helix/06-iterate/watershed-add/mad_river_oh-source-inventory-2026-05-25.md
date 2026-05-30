@@ -12,16 +12,18 @@
 
 ---
 
-## Step 0 — Pre-flight clarification (deferred — to confirm before Step 2 if user chooses this watershed)
+## Step 0 — Pre-flight clarification (CONFIRMED by user 2026-05-30)
 
-| # | Question | Assumed default (matches Shenandoah) | Material effect if different |
+User acknowledged all six answers on 2026-05-30 via the `/add-watershed` skill before any Step 2 work began.
+
+| # | Question | Confirmed answer | Notes |
 |---|---|---|---|
-| Q1 | HUC boundary level | HUC8 `05080001` + 0.05° buffer | If HUC10 desired, would split Upper / Middle / Lower Mad |
-| Q2 | Paid-API tolerance | Stop and ask if any v1 source needs a paid key | None expected for OH — all candidate feeds are ORC §149.43 public record |
-| Q3 | B2B license filter | Tag with `license` + `commercial:true\|false`; do not gate | Same as Shenandoah — all OH state-agency data is `Public Records` + `commercial:true` |
+| Q1 | HUC boundary level | **HUC8 `05080001` + 0.05° buffer** (bbox N40.60/S39.65/E-83.45/W-84.30) | As proposed in inventory |
+| Q2 | Paid-API tolerance | **Stop and ask** if any v1 source needs a paid key | Won't trigger — all OH feeds are ORC §149.43 public record |
+| Q3 | B2B license filter | **Tag with `license` + `commercial:true\|false`; do NOT gate** | Shenandoah posture. **Overrides the runbook's ADR-008 gate-by-default** — user chose tag-only for Mad River |
 | Q4 | Confluence into existing watershed | N/A — Mad → Great Miami → Ohio River; Great Miami is not on the platform | Skipped |
-| Q5 | Curation pace | Ship v0 with `needs_review=true` flags on hatch chart / fly shops / rockhound sites | OH brown-trout-on-limestone hatch chart genuinely needs an Ohio entomologist's eyes (different mayfly mix than Shenandoah) |
-| Q6 | Target ship date | No deadline | — |
+| Q5 | Curation pace | **Ship v0 with `needs_review=true` flags** on hatch chart / fly shops / rockhound sites | OH brown-trout-on-limestone hatch chart flagged `needs_entomologist_review=true` |
+| Q6 | Target ship date | **Ship this session** — drive to prod through the four §2.8 approval gates | Tighter than inventory's "no deadline" assumption; terraform apply + prod deploy happen this session |
 | **Scope** | If onboarded, author 1 new state adapter (`ohio_stocking`) for v0+P1; extend `restoration` and verify `impaired`/ATTAINS for OH as P2 | Materially smaller scope than Shenandoah (1 new adapter vs 2) |
 
 ---
