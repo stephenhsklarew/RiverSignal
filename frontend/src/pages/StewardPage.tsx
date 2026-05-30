@@ -12,6 +12,7 @@ const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   klamath: { name: 'Klamath Watershed Partnership', url: 'https://www.klamathpartnership.org/' },
   johnday: { name: 'Grant Soil & Water Conservation District', url: 'https://grantswcd.org/' },
   shenandoah: { name: 'Friends of the Shenandoah River', url: 'https://www.fosr.org/' },
+  mad_river_oh: { name: 'Tecumseh Land Trust', url: 'https://www.tecumsehlandtrust.org/' },
 }
 
 const CATEGORY_ICONS: Record<string, string> = {

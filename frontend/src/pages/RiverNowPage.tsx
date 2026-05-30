@@ -32,6 +32,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   mckenzie: [-122.3, 44.08],
   metolius: [-121.57, 44.50],
   shenandoah: [-78.20, 38.92],
+  mad_river_oh: [-83.85, 40.05],
   skagit: [-121.50, 48.45],
 }
 
@@ -61,7 +62,7 @@ export default function RiverNowPage() {
 
 import logo from '../assets/riverpath-logo.svg'
 
-const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
 const PHOTOS: Record<string, string> = {
   deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop',
@@ -70,6 +71,7 @@ const PHOTOS: Record<string, string> = {
   mckenzie: 'https://images.unsplash.com/photo-1660806739398-0f0627930230?w=900&h=600&fit=crop',
   metolius: 'https://images.unsplash.com/photo-1657215223750-c4988d4a2635?w=900&h=600&fit=crop',
   shenandoah: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
+  mad_river_oh: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {
@@ -80,6 +82,7 @@ const TAGLINES: Record<string, string> = {
   mckenzie: 'Fire, recovery, and the return of salmon',
   metolius: "Spring-fed sanctuary — Oregon's purest river",
   shenandoah: 'Blue Ridge headwaters, limestone springs, and smallmouth main stem',
+  mad_river_oh: "Ohio's spring-fed brown-trout stream through carbonate country",
   skagit: 'All five salmon species in the shadow of the North Cascades',
 }
 
@@ -183,6 +186,7 @@ const WS_STATE_SOURCES: Record<string, { fishing: string[]; stocking: string[]; 
   skagit:      { fishing: ['washington'],                    stocking: ['washington'],                    access: ['recreation', 'washington'],                    attribution: 'WDFW' },
   green_river: { fishing: ['utah'],                         stocking: ['utah'],                         access: ['recreation', 'utah'],                         attribution: 'UDWR' },
   shenandoah:  { fishing: ['virginia', 'west_virginia'],    stocking: ['virginia', 'west_virginia'],    access: ['recreation', 'virginia', 'west_virginia'],    attribution: 'VDGIF / WVDNR' },
+  mad_river_oh:{ fishing: ['ohio_stocking'],                stocking: ['ohio_stocking'],                access: ['recreation', 'ohio_stocking'],                attribution: 'ODNR' },
 }
 const DEFAULT_STATE_SOURCES = { fishing: ['fishing'], stocking: ['fishing'], access: ['recreation'], attribution: 'ODFW' }
 

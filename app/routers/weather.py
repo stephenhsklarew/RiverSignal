@@ -18,6 +18,7 @@ WS_COORDS = {
     "skagit": (48.45, -121.50),
     "green_river": (40.50, -109.50),  # Dinosaur National Monument area
     "shenandoah": (38.92, -78.20),    # Shenandoah Valley centroid (between forks confluence and main stem)
+    "mad_river_oh": (40.05, -83.85),  # Mad River basin centroid near the Eagle City gauge / C&R trout section
 }
 
 # USGS gauge station IDs per watershed (primary stations)
@@ -30,6 +31,7 @@ WS_GAUGES = {
     "skagit": ["12189500", "12200500"],        # Skagit nr Concrete, nr Mount Vernon
     "green_river": ["09234500", "09315000"],   # Green River nr Greendale UT (Flaming Gorge tailwater), at Green River UT (Desolation/Gray)
     "shenandoah": ["01631000", "01634000", "01636500"],  # SF at Front Royal, NF at Strasburg, Main Stem at Millville WV
+    "mad_river_oh": ["03267900", "03269500"],  # Mad R at Eagle City (upper/trout), Mad R nr Springfield (lower)
 }
 
 # Simple in-memory cache: {key: (timestamp, data)}

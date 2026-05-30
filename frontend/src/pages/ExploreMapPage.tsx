@@ -43,6 +43,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   skagit: [-121.50, 48.45],
   green_river: [-110.15, 38.99],
   shenandoah: [-78.20, 38.92],
+  mad_river_oh: [-83.85, 40.05],
 }
 
 interface RecSite {

@@ -22,6 +22,7 @@ const WATERSHEDS = [
   { id: 'klamath',     name: 'Klamath' },
   { id: 'johnday',     name: 'John Day' },
   { id: 'shenandoah',  name: 'Shenandoah' },
+  { id: 'mad_river_oh', name: 'Mad River (OH)' },
   { id: 'skagit',      name: 'Skagit' },
   { id: 'green_river', name: 'Green River' },
 ]
