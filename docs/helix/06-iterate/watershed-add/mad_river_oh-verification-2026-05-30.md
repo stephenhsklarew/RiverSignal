@@ -24,6 +24,13 @@ beads.
 **Headline:** `gold.trip_quality_daily` = **273 rows (3 reaches × 91 days)**, matching the
 McKenzie reference shape. All **12 Playwright UX smoke tests pass** for `mad_river_oh`.
 
+**Update 2026-05-30 — P1/P2 bead pass complete (commits `7278149`..`ba4d5b1`).** All ten
+P1/P2 follow-on beads were addressed (see "P1/P2 bead resolution" below). Net effect on the
+grid: Water Quality, Stocking, River-Story-timeline, and ODGS Geology all moved to ✓.
+Wetlands and the fish-passage/restoration source integrations remain genuinely deferred with
+precise diagnoses. Two real latent bugs were fixed along the way (restoration `State='OR'`
+hardcode; WQP/ArcGIS adapters now retry transient outages).
+
 ### Environment notes (local DB was mid-repair)
 The local DB (`postgresql@17` on :5433) was stopped and its `alembic_version` sat ahead of
 actual schema. Three pre-existing missing objects had to be re-created from their canonical
@@ -52,8 +59,9 @@ fast (3–6 s each) and were run directly.
 | `watershed_boundaries` | 144 | wbd |
 | `geologic_units` | ✓ (bbox) | macrostrat (23 new in bbox) |
 | `recreation_sites` | 10 | curated `curated_mad_river_oh_v0` (RIDB sparse for OH) |
-| `interventions` (fish_stocking) | 0 | ohio_stocking (put-and-take feed has no Mad-River rows) |
-| `wetlands` | **0** | nwi — ⚠ returned 0 for OH bbox (gap, see below) |
+| `geologic_units` (odgs) | 561 | **ODGS 24K adapter (P1 bead)** |
+| `interventions` (fish_stocking) | 2 | **brown-trout C&R seed (P1 bead, mr10)**; ohio_stocking put-and-take feed has no Mad-River rows |
+| `wetlands` | **0** | nwi — data exists (25,696 polys) but MapServer times out on dense geometry; needs state-geodatabase bulk load (see beads) |
 
 ### Curated seeds (alembic)
 | Table | Rows | Flag |
@@ -73,9 +81,12 @@ fast (3–6 s each) and were run directly.
 | `gold.hatch_chart` | 4,452 |
 | `gold.swim_safety` | 442 |
 | `gold.trip_quality_daily` | **273** (3 reaches × 91 days) |
-| `gold.species_by_reach` | 114 |
-| `gold.water_quality_monthly` | 0 (downstream of wqp=0) |
-| `gold.river_health_score` | 0 (downstream of wqp=0) |
+| `gold.species_by_reach` | 115 |
+| `gold.stocking_schedule` | **2** (after P1 bead — ohio_dnr brown-trout) |
+| `gold.water_quality_monthly` | **9,753** (after P1 wqp bead) |
+| `gold.river_story_timeline` | **148** (after P2 bead) |
+| `geologic_units (odgs)` | **561** (after P1 ODGS bead) |
+| `gold.river_health_score` | not re-measured — the local refresh of this MV is pathologically slow (29 min+; seasonal temp aggregation over 9.5M rows). Prod-grade DB refreshes it normally. |
 
 TQS by reach: `mad_river_oh_lower` avg 70 · `mad_river_oh_trout_section` avg 57 ·
 `mad_river_oh_upper` avg 58. Watershed TQS (today) = 64, best reach = `mad_river_oh_lower`.
@@ -113,11 +124,11 @@ species gallery > 0, rocks (fossils/minerals) > 0, /trail picker lists "Mad Rive
 |---|---|---|---|
 | RiverSignal | Site dashboard | ✓ | 2 active gauges + 17 ancillary; 282k time-series |
 | RiverSignal | Scorecard | ✓ | watershed_scorecard populated |
-| RiverSignal | Water quality | ⚠ | `wqp`/owdp returned **0** for OH bbox → water_quality_monthly=0. **Gap — bead below** |
+| RiverSignal | Water quality | ✓ | **RESOLVED (P1)** — transient WQP outage masked the data; 10,475 owdp rows / 187 stations. `gold.water_quality_monthly` OH 0 → **9,753**. Adapter hardened (5xx retry). |
 | RiverSignal | Macroinvertebrates | ✓ | wqp_bugs 748 |
 | RiverSignal | 303(d) impaired | ✓ | ATTAINS bbox query → 148 assessment units (inventory's predicted fix was unnecessary — adapter is bbox-based, not HUC) |
-| RiverSignal | Wetlands | ⚠ | `nwi` returned **0** for OH bbox. **Gap — bead below** |
-| RiverSignal | Restoration | ✗ | restoration adapter is PNW-scoped (0 rows). P2 follow-on (OH 319 / SWIF / H2Ohio) |
+| RiverSignal | Wetlands | ⚠ | `nwi` data exists (25,696 polys for bbox) but the USFWS NWI MapServer **times out on dense Eastern-US geometry** (90s for even 500 polys); also affects shenandoah. Adapter hardened for transient; **bulk geometry load needs the USFWS state geodatabase** (refined bead below). |
+| RiverSignal | Restoration | ✗ | **P2 addressed** — fixed the `State='OR'` hardcode (was excluding all non-OR watersheds); NOAA Atlas genuinely has 0 projects in the OH bbox. OH 319/SWIF/H2Ohio = larger follow-on. |
 | RiverSignal | Fire recovery | ✗ (N/A) | no significant W-central OH wildfire footprint — graceful empty |
 | RiverSignal | Geometry/boundary | ✓ | wbd 144 HUC12s; sites.boundary set |
 | RiverPath | Go Score + ranking | ✓ | trip_quality_daily 273; watershed pill 64 |
@@ -126,13 +137,14 @@ species gallery > 0, rocks (fossils/minerals) > 0, /trail picker lists "Mad Rive
 | RiverPath | River Story | ✓ | 3 reading levels, Ohio-correct |
 | RiverPath | Species cards | ✓ | species_gallery 10,999 (from 267k obs) |
 | RiverPath | Photo observations | ✓ | iNaturalist 264,928 obs |
-| RiverPath | Stocking | ⚠ | ohio_stocking heartbeat ✓ but 0 rows (brown-trout STREAM program not in the put-and-take feed). **P1 beads below** |
+| RiverPath | Stocking | ✓ | **RESOLVED (P1)** — curated brown-trout C&R program seeded (mr10); `gold.stocking_schedule` MV extended with ohio_dnr branch (mr11) → **2 OH rows** surface in the panel + pinned on the map. |
 | RiverPath | Swim safety | ✓ | swim_safety 442 |
 | RiverPath | Snowpack | ✗ (N/A) | SNOTEL is Western-US only — Mad is spring-fed |
 | RiverPath | Recreation / explore | ✓ | 10 curated sites (RIDB misses ODNR/ReserveOhio) |
 | RiverPath | Fly shops / guides | ✓ | 2 (Mad River Outfitters; Buckeye United Fly Fishers) |
-| RiverPath | Fish passage | ✗ | fish_passage 0 (PNW-skewed; Huffman Dam not in NFPP national pull). P2 |
-| DeepTrail | Geology units | ✓ | macrostrat (ODGS 24K adapter = P1 enhancement) |
+| RiverPath | River Story timeline | ✓ | **RESOLVED (P2)** — `gold.river_story_timeline` OH 0 → **148** after the stocking/WQ events landed. |
+| RiverPath | Fish passage | ✗ | **P2 diagnosed** — the `fish_passage` adapter source is **ODFW Oregon-only** (`nrimp.dfw.state.or.us`), NOT the national USFWS NFPP feed the inventory assumed. OH coverage needs a new national source or a curated seed (refined bead below). |
+| DeepTrail | Geology units | ✓ | **UPGRADED (P1)** — macrostrat **+ new ODGS 24K adapter** (561 bedrock unit polygons, source='odgs'). Much sharper than Macrostrat for OH. |
 | DeepTrail | Fossil sites | ✓ | 1,838 occurrences (pbdb 142 Ord/Sil/Dev carbonate ✓ inventory predicted ~129) |
 | DeepTrail | Mineral deposits | ✓ | mrds 165 (industrial carbonate) |
 | DeepTrail | Rockhound sites | ⚠ | 3 conservative viewing/permission entries |
@@ -140,24 +152,34 @@ species gallery > 0, rocks (fossils/minerals) > 0, /trail picker lists "Mad Rive
 
 ---
 
-## Follow-on beads (open these)
+## P1/P2 bead resolution (addressed 2026-05-30, commits `7278149`..`ba4d5b1`)
 
-| Pri | Bead | Source / ref |
+All ten P1/P2 beads were worked. Outcomes:
+
+| Pri | Bead | Outcome |
 |---|---|---|
-| **P1** | Mad River brown-trout STREAM stocking (~11,500 yearlings/yr, mid-Oct, Champaign/Clark C&R) — seed `interventions` or parse ODNR coldwater-streams page | ohio_stocking.py docstring; inventory §1.4 |
-| **P1** | Extend `gold.stocking_schedule` MV to UNION `ohio_dnr` interventions rows (same gap virginia.py flagged for va_dwr) | ohio_stocking.py docstring |
-| **P1** | Investigate `wqp`/owdp = 0 for OH bbox (inventory expected 151 stations; provider `21OHIO_WQX`) — likely a query-scoping issue for the first non-PNW/Atlantic bbox | this report §3.1 |
-| **P1** | Investigate `nwi` wetlands = 0 for OH bbox (inventory expected abundant glacial wetlands) | this report §3.1 |
-| **P1** | ODGS bedrock-geology adapter (ArcGIS FeatureServer, 24K) — sharper than Macrostrat | inventory §1.4 |
-| **P2** | `restoration.py` OH extension (EPA §319 + OEPA SWIF + H2Ohio) | inventory §1.4 |
-| **P2** | `fish_passage` OH verification (Huffman Dam 2003 + lowhead dams vs USFWS NFPP) | inventory §1.4 |
-| **P2** | `odnr_regs` static seed (Mad River C&R boundaries + gear restrictions) for TQS access sub-score | inventory §1.4 |
-| **P2** | DataOhio "Fish Stocking Records" dataset discovery (Tableau/PowerBI embed?) | ohio_stocking.py docstring |
-| **P2** | `gold.river_story_timeline` = 0 for OH (sparse interventions/fire/restoration events) | this report §3.3 |
-| **P3** | ReserveOhio state-parks scrape (Buck Creek SP campground, Kiser Lake SP) | inventory §1.4 |
-| **P3** | mineral_shops + more rockhounding/fly-shop curator research (Columbus/Dayton/Springfield) | seeds mr04/mr05/mr06 |
-| **chore** | Stale test `tests/test_api.py::test_list_sites` asserts `== 5` (DB has 9 watersheds; broken since green_river) — unrelated to this work | pre-existing |
-| **chore** | Kids river-story slightly misreads "11,500 stocked brown trout" as a species count — curator pass | mr09 |
+| **P1** | Mad River brown-trout STREAM stocking | ✅ **DONE** — `mr10` seeds 2 curated Oct C&R events (~11,500 yearlings) as `interventions(source=ohio_dnr)` + a `stocking_locations` pin. needs_review. |
+| **P1** | Extend `gold.stocking_schedule` UNION ohio_dnr | ✅ **DONE** — `mr11` adds the ohio_dnr branch (mirrors hh08 va_dwr). MV shows **2 OH rows**. |
+| **P1** | `wqp`/owdp = 0 | ✅ **DONE** — root cause was a **transient WQP 5xx outage** during the batch, not a scoping bug: the bbox has 187 OH stations / 10,475 results (`21OHIO_WQX` + USGS-OH). owdp.py hardened with 5xx/backoff retry; `gold.water_quality_monthly` OH 0 → **9,753**. |
+| **P1** | `nwi` wetlands = 0 | ⚠️ **PARTIAL** — also transient at batch time, but the deeper issue is the USFWS NWI MapServer **times out on dense Eastern-US geometry** (90s for 500 polys; data = 25,696). `_arcgis_query` hardened (retry on 5xx/non-JSON/network). Full bulk load needs the **USFWS NWI state geodatabase download** (not the live MapServer) — see remaining beads. |
+| **P1** | ODGS 24K geology adapter | ✅ **DONE** — `ODGSAdapter` (geology.py) + full wiring; **561 unit polygons** ingested. |
+| **P2** | `restoration.py` OH | ✅ **ADDRESSED** — fixed the `State='OR'` hardcode (real latent bug). NOAA Atlas has 0 projects in the OH bbox; EPA §319/SWIF/H2Ohio = larger follow-on. |
+| **P2** | `fish_passage` OH | ✅ **DIAGNOSED** — the adapter source is **ODFW Oregon-only**, not the national NFPP feed the inventory assumed. No OH data without a new source; not fabricated. See remaining beads. |
+| **P2** | `odnr_regs` seed | ✅ **DONE** — `mr12` appends the C&R special-reg note to the trout-section reach. |
+| **P2** | DataOhio dataset discovery | ✅ **CLOSED** — `data.ohio.gov` exposes no programmatic API (CKAN action endpoint 404; no data.gov entry). Tableau/PowerBI embed only; not adapter-able without scraping. Deferred. |
+| **P2** | `gold.river_story_timeline` = 0 | ✅ **DONE** — once the stocking/WQ events landed and the MV was refreshed, OH = **148**. |
+
+## Remaining follow-on beads (genuinely deferred)
+
+| Pri | Bead | Why deferred |
+|---|---|---|
+| **P1→P2** | NWI wetlands bulk load via the USFWS **state geodatabase** (or a tiled small-bbox crawl) | the live MapServer can't serve dense OH geometry within timeouts |
+| **P2** | EPA §319 grants + OEPA SWIF + H2Ohio restoration integration | new source adapters; NOAA Atlas has no inland-OH projects |
+| **P2** | National fish-passage source (USFWS NFPP / dam inventory) or curated Mad River barrier seed | existing adapter is Oregon-only |
+| **P3** | ReserveOhio state-parks scrape (Buck Creek SP campground, Kiser Lake SP) | RIDB covers USACE C.J. Brown; ODNR has no public API |
+| **P3** | mineral_shops + more rockhounding/fly-shop curator research (Columbus/Dayton/Springfield) | no fabrication — needs verified listings |
+| **chore** | Stale test `tests/test_api.py::test_list_sites` asserts `== 5` (DB has 9 watersheds) — pre-existing, unrelated | — |
+| **chore** | Kids river-story slightly misreads "11,500 stocked brown trout" as a species count — curator pass | — |
 
 ---
 
