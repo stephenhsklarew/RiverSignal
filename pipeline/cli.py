@@ -36,7 +36,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "west_virginia", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "west_virginia", "ohio_stocking", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -62,6 +62,7 @@ def ingest(source: str, watershed: str, from_date):
         IDigBioFossilAdapter, MRDSAdapter, PBDBFossilAdapter,
     )
     from pipeline.ingest.inaturalist import INaturalistAdapter
+    from pipeline.ingest.ohio_stocking import OhioStockingAdapter
     from pipeline.ingest.spatial import ImpairedWatersAdapter, WatershedBoundaryAdapter, WetlandsAdapter
     from pipeline.ingest.mtbs import MTBSAdapter
     from pipeline.ingest.nhdplus import NHDPlusAdapter
@@ -108,6 +109,7 @@ def ingest(source: str, watershed: str, from_date):
         "virginia": VirginiaDataAdapter,
         "washington": WashingtonDataAdapter,
         "west_virginia": WestVirginiaDataAdapter,
+        "ohio_stocking": OhioStockingAdapter,
     }
 
     watersheds = list(WATERSHEDS.keys()) if watershed == "all" else [watershed]

@@ -44,6 +44,7 @@ const SOURCE_LABELS: Record<string, string> = {
   utah: 'UDWR (Utah)',
   virginia: 'VDGIF (Virginia)',
   west_virginia: 'WVDNR (West Virginia)',
+  ohio_stocking: 'ODNR (Ohio)',
   wbd: 'USGS WBD',
   nhdplus: 'NHDPlus',
   nwi: 'National Wetlands Inventory',
