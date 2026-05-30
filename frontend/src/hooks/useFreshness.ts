@@ -36,6 +36,7 @@ const SOURCE_LABELS: Record<string, string> = {
   macrostrat: 'Macrostrat',
   blm_sma: 'BLM lands',
   dogami: 'DOGAMI',
+  odgs: 'ODGS (Ohio geology)',
   mrds: 'USGS MRDS',
   mtbs: 'MTBS fire',
   fish_barrier: 'Fish passage barriers',

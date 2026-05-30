@@ -36,6 +36,7 @@ const SOURCE_META: Record<string, { description: string; upstream: string; refre
   virginia: { description: 'Virginia state data — VA DWR weekly trout stocking, fishing regulations, VGS (DGMR) geology, VA DCR state parks', upstream: 'Weekly', refresh: 'Weekly', license: 'Public Records (VA Code §2.2-3700)', commercial: true },
   west_virginia: { description: 'West Virginia state data — WV DNR stocked-trout-streams registry, regulations, WVGES geology, WV state parks', upstream: 'Varies', refresh: 'Weekly', license: 'Public Records (WV Code §29B-1)', commercial: true },
   ohio_stocking: { description: 'Ohio DNR Division of Wildlife — trout stocking (Mad River OH put-and-take + brown trout)', upstream: 'Weekly', refresh: 'Weekly', license: 'Public Records (ORC §149.43)', commercial: true },
+  odgs: { description: 'Ohio DNR Division of Geological Survey — Bedrock Geology 24K unit polygons (Mad River OH)', upstream: 'Annual', refresh: 'Annual', license: 'Public Records (ORC §149.43)', commercial: true },
   nws: { description: 'National Weather Service observations (daily roll-ups per watershed gridpoint)', upstream: 'Daily', refresh: 'Daily', license: 'Public Domain', commercial: true },
   nws_forecast: { description: 'NWS 7-day weather forecast captured daily per watershed', upstream: 'Hourly', refresh: 'Daily', license: 'Public Domain', commercial: true },
 }

@@ -525,6 +525,12 @@ def lookup_land_ownership_at_point(lat: float, lon: float) -> dict | None:
 # Oregon DOGAMI OGDC v6 — state geologic map, layer 3
 DOGAMI_URL = "https://gis.dogami.oregon.gov/arcgis/rest/services/Public/OGDC6/MapServer/3/query"
 
+# Ohio DNR Division of Geological Survey — Bedrock Geology 24K.
+# Layer 10 = "Units Ply" (bedrock geologic-unit polygons; UNIT_CODE / UNIT_NAME
+# / UNIT_AGE / UNIT_LITH). 24K resolution — much sharper than Macrostrat for OH.
+# License: Public Records (ORC §149.43), commercial:true.
+ODGS_URL = "https://gis.ohiodnr.gov/arcgis/rest/services/DGS_Services/Bedrock_Geology_24K_AGOL/FeatureServer/10/query"
+
 # USGS MRDS — mineral deposit locations (WFS)
 MRDS_URL = "https://mrdata.usgs.gov/services/mrds"
 
@@ -617,6 +623,102 @@ class DOGAMIAdapter(IngestionAdapter):
                         conn.execute(SQL_NO_GEOM, params)
                     created += 1
 
+                conn.commit()
+
+        return created, 0
+
+
+class ODGSAdapter(IngestionAdapter):
+    """Ohio DNR Division of Geological Survey — Bedrock Geology 24K unit polygons.
+
+    Source: https://gis.ohiodnr.gov/arcgis/rest/services/DGS_Services/Bedrock_Geology_24K_AGOL
+    License: Public Records (ORC §149.43), commercial:true.
+    Attribution: "Bedrock geology from Ohio DNR Division of Geological Survey".
+
+    Mirrors DOGAMIAdapter — ArcGIS REST polygons → geologic_units (source='odgs').
+    UNIT_AGE is a period name (e.g. "Ordovician"), not numeric, so age_min/max
+    stay NULL (same posture as DOGAMI/VGS). Watershed-scoped to OH (the service
+    only covers Ohio; skip non-OH bboxes to avoid needless calls).
+    """
+    source_type = "odgs"
+
+    def ingest(self) -> tuple[int, int]:
+        site = self.session.get(Site, self.site_id)
+        if not site or not site.bbox:
+            raise ValueError(f"Site {self.site_id} not found or no bbox")
+
+        # OH-only service. Add new OH watersheds here when onboarding them.
+        if site.watershed not in ("mad_river_oh",):
+            console.print(f"    odgs: skipping {site.watershed} (not an OH watershed)")
+            return 0, 0
+
+        created = 0
+        with httpx.Client(timeout=120) as client:
+            console.print("    fetching ODGS Bedrock 24K geologic units...")
+            features = _arcgis_query_paginated(client, ODGS_URL, site.bbox, max_per_page=1000)
+            console.print(f"    received {len(features)} ODGS polygons")
+
+            if not features:
+                return 0, 0
+
+            SQL = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    geometry, data_payload)
+                VALUES (gen_random_uuid(), 'odgs', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, NULL, NULL, :period, :description,
+                    ST_GeomFromGeoJSON(:geojson), CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+            SQL_NO_GEOM = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    data_payload)
+                VALUES (gen_random_uuid(), 'odgs', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, NULL, NULL, :period, :description,
+                    CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+
+            # Idempotent across re-runs: skip OBJECTIDs already loaded for odgs.
+            existing = {
+                r[0] for r in self.session.execute(
+                    text("SELECT source_id FROM geologic_units WHERE source = 'odgs'")
+                )
+            }
+
+            with engine.connect() as conn:
+                for f in features:
+                    attrs = f.get("attributes", {}) or {}
+                    source_id = str(attrs.get("OBJECTID", ""))
+                    if not source_id or source_id in existing:
+                        continue
+                    geojson = _esri_rings_to_geojson(f.get("geometry"))
+
+                    unit_name = (attrs.get("UNIT_NAME") or "")[:255]
+                    formation = (attrs.get("UNIT_CODE") or "")[:255]
+                    rock_type = (attrs.get("UNIT_LITH") or "")[:100]
+                    period = (attrs.get("UNIT_AGE") or "") or None
+                    description = (
+                        attrs.get("UNIT_DESCRIPTION") or attrs.get("COMMENTS") or ""
+                    )
+
+                    params = {
+                        "source_id": source_id,
+                        "unit_name": unit_name,
+                        "formation": formation,
+                        "rock_type": rock_type,
+                        "lithology": rock_type,
+                        "period": str(period)[:100] if period else None,
+                        "description": str(description),
+                        "payload": json.dumps(attrs),
+                    }
+                    if geojson:
+                        params["geojson"] = geojson
+                        conn.execute(SQL, params)
+                    else:
+                        conn.execute(SQL_NO_GEOM, params)
+                    created += 1
                 conn.commit()
 
         return created, 0

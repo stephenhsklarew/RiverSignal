@@ -43,6 +43,7 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "macrostrat": 8760,
     "blm_sma": 8760,
     "dogami": 8760,
+    "odgs": 8760,                # ODNR Bedrock Geology 24K (Mad River OH)
     "mrds": 8760,
     "mtbs": 4380,  # quarterly
     "nhdplus": 8760,

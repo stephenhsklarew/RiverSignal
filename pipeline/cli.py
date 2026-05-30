@@ -36,7 +36,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "west_virginia", "ohio_stocking", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "odgs", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "west_virginia", "ohio_stocking", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -59,7 +59,7 @@ def ingest(source: str, watershed: str, from_date):
     from pipeline.ingest.fishing import FishingDataAdapter
     from pipeline.ingest.geology import (
         BLMLandOwnershipAdapter, DOGAMIAdapter, GeologicUnitsAdapter,
-        IDigBioFossilAdapter, MRDSAdapter, PBDBFossilAdapter,
+        IDigBioFossilAdapter, MRDSAdapter, ODGSAdapter, PBDBFossilAdapter,
     )
     from pipeline.ingest.inaturalist import INaturalistAdapter
     from pipeline.ingest.ohio_stocking import OhioStockingAdapter
@@ -100,6 +100,7 @@ def ingest(source: str, watershed: str, from_date):
         "pbdb": PBDBFossilAdapter,
         "blm_sma": BLMLandOwnershipAdapter,
         "dogami": DOGAMIAdapter,
+        "odgs": ODGSAdapter,
         "mrds": MRDSAdapter,
         "idigbio": IDigBioFossilAdapter,
         "gbif": GBIFFossilAdapter,
