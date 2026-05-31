@@ -28,6 +28,7 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "utah": 168,
     "virginia": 168,           # VA DWR stocking + regulations
     "west_virginia": 168,      # WV DNR stocking + regulations
+    "ohio_stocking": 168,      # ODNR Div. of Wildlife trout stocking (Mad River OH)
     # Monthly ingestion (1st @ 05:00 PT)
     "biodata": 720,
     "wqp_bugs": 720,
@@ -42,6 +43,7 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "macrostrat": 8760,
     "blm_sma": 8760,
     "dogami": 8760,
+    "odgs": 8760,                # ODNR Bedrock Geology 24K (Mad River OH)
     "mrds": 8760,
     "mtbs": 4380,  # quarterly
     "nhdplus": 8760,

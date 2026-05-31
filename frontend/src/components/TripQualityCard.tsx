@@ -29,6 +29,7 @@ const WS_FISHING_SOURCE: Record<string, string[]> = {
   skagit: ['washington'],
   green_river: ['utah'],
   shenandoah: ['virginia', 'west_virginia'],
+  mad_river_oh: ['ohio_stocking'],
 }
 const DEFAULT_FISHING_SOURCE = ['fishing']
 const TQS_TOOLTIP =

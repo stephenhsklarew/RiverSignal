@@ -223,8 +223,12 @@ class RestorationAdapter(IngestionAdapter):
 
             for attempt in range(3):
                 try:
+                    # NOAA Restoration Atlas is national; the geographic filter
+                    # is the lat/lon bbox, NOT a hardcoded state. The previous
+                    # `State = 'OR'` constraint silently excluded every non-Oregon
+                    # watershed (e.g. mad_river_oh) from NOAA restoration data.
                     resp = client.get(NOAA_URL, params={
-                        "where": f"State = 'OR' AND Latitude >= {bbox['south']} AND Latitude <= {bbox['north']} AND Longitude >= {bbox['west']} AND Longitude <= {bbox['east']}",
+                        "where": f"Latitude >= {bbox['south']} AND Latitude <= {bbox['north']} AND Longitude >= {bbox['west']} AND Longitude <= {bbox['east']}",
                         "outFields": "*",
                         "f": "json",
                         "resultRecordCount": "2000",

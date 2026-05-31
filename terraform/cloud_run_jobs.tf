@@ -167,7 +167,7 @@ resource "google_cloud_run_v2_job" "pipeline_weekly" {
       containers {
         image   = local.image
         command = ["/bin/bash", "-c"]
-        args    = ["python -m pipeline.cli ingest fishing -w all && python -m pipeline.cli ingest wqp -w all && python -m pipeline.cli ingest washington -w all && python -m pipeline.cli ingest utah -w green_river && python -m pipeline.cli ingest virginia -w shenandoah && python -m pipeline.cli ingest west_virginia -w shenandoah"]
+        args    = ["python -m pipeline.cli ingest fishing -w all && python -m pipeline.cli ingest wqp -w all && python -m pipeline.cli ingest washington -w all && python -m pipeline.cli ingest utah -w green_river && python -m pipeline.cli ingest virginia -w shenandoah && python -m pipeline.cli ingest west_virginia -w shenandoah && python -m pipeline.cli ingest ohio_stocking -w mad_river_oh"]
 
         resources {
           limits = {
@@ -222,7 +222,7 @@ resource "google_cloud_run_v2_job" "pipeline_monthly" {
         image   = local.image
         command = ["/bin/bash", "-c"]
         args = [
-          "python -m pipeline.cli ingest biodata -w all && python -m pipeline.cli ingest wqp_bugs -w all && python -m pipeline.cli ingest gbif -w all && python -m pipeline.cli ingest recreation -w all && python -m pipeline.cli ingest pbdb -w all && python -m pipeline.cli ingest restoration -w all && python -m pipeline.cli ingest prism -w all && python -m pipeline.cli ingest streamnet -w all && python -m pipeline.cli ingest idigbio -w all && python -m pipeline.cli ingest mrds -w all"
+          "python -m pipeline.cli ingest biodata -w all && python -m pipeline.cli ingest wqp_bugs -w all && python -m pipeline.cli ingest gbif -w all && python -m pipeline.cli ingest recreation -w all && python -m pipeline.cli ingest pbdb -w all && python -m pipeline.cli ingest restoration -w all && python -m pipeline.cli ingest prism -w all && python -m pipeline.cli ingest streamnet -w all && python -m pipeline.cli ingest idigbio -w all && python -m pipeline.cli ingest mrds -w all && python -m pipeline.cli ingest odgs -w mad_river_oh"
         ]
 
         resources {

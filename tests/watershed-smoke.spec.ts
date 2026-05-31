@@ -205,11 +205,14 @@ test.describe(`Watershed ${WS} — DeepTrail /trail`, () => {
     await page.goto(`${BASE}/trail`);
     await page.waitForTimeout(SETTLE_MS);
     const body = (await page.locator('body').textContent()) || '';
-    // Watershed must appear somewhere on the picker page.
+    // Watershed must appear somewhere on the picker page. Normalize punctuation
+    // + whitespace so parenthesized display labels (e.g. "Mad River (OH)" for
+    // the mad_river_oh slug) still match the slug-derived expected label.
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
     const expectedLabel = WS.replace(/_/g, ' ');
-    expect(body.toLowerCase(),
+    expect(norm(body),
       `/trail picker is missing ${expectedLabel}. ` +
       `Add it to DeepTrailContext / DeepTrailPage watershed dicts.`
-    ).toContain(expectedLabel);
+    ).toContain(norm(expectedLabel));
   });
 });

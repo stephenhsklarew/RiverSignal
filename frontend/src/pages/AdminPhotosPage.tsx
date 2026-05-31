@@ -22,6 +22,7 @@ const WATERSHEDS = [
   { value: 'skagit',      label: 'Skagit' },
   { value: 'green_river', label: 'Green River' },
   { value: 'shenandoah',  label: 'Shenandoah' },
+  { value: 'mad_river_oh', label: 'Mad River (OH)' },
 ]
 
 function wsLabel(value: string): string {
@@ -139,7 +140,7 @@ function AdminPhotosList() {
               const wsChoice = prompt(
                 'Scope this photo to which watershed?\n\n' +
                 '*  = global default (applies to all watersheds)\n' +
-                'mckenzie, deschutes, metolius, klamath, johnday, skagit, green_river, shenandoah\n\n' +
+                'mckenzie, deschutes, metolius, klamath, johnday, skagit, green_river, shenandoah, mad_river_oh\n\n' +
                 'Press OK with * for global, or type a slug.', '*')
               if (!wsChoice) return
               const ws = wsChoice.trim() || '*'

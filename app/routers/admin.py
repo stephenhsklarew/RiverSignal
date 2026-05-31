@@ -44,7 +44,7 @@ GLOBAL_WATERSHED = '*'
 # can't insert a row with an arbitrary watershed value.
 VALID_WATERSHEDS = {
     'mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday',
-    'skagit', 'green_river', 'shenandoah',
+    'skagit', 'green_river', 'shenandoah', 'mad_river_oh',
 }
 
 

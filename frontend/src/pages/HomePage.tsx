@@ -17,6 +17,7 @@ const PHOTOS: Record<string, string> = {
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
   shenandoah: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // Blue Ridge / Shenandoah valley overlook
+  mad_river_oh: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&h=600&fit=crop', // spring-fed forested stream — Mad River OH
 }
 
 interface WatershedData {
@@ -63,9 +64,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: 'Blue Ridge headwaters, limestone springs, and smallmouth main stem',
     narrative: 'From Blue Ridge headwaters in Virginia to the Potomac confluence at Harpers Ferry, West Virginia, the Shenandoah threads two forks through karst valleys fed by cold limestone springs. The North Fork and South Fork meet at Front Royal and run 55 miles north as one of the East Coast\'s premier smallmouth bass fisheries. Cold-water tributaries like Mossy Creek, Smith Creek, and Passage Creek host special-regulation wild trout — the storied Blue Ridge / Massanutten / Allegheny country that George Washington surveyed.',
   },
+  mad_river_oh: {
+    tagline: "Ohio's spring-fed brown-trout stream through carbonate country",
+    narrative: 'The Mad River rises from cold springs near Campbell Hill — the highest point in Ohio — and runs spring-fed and limestone-influenced through Champaign and Clark counties to meet the Great Miami at Dayton. Glacial-outwash aquifers keep it cold and stable through summer, making it one of only two streams in Ohio that hold stocked brown trout: roughly 11,500 yearlings go in every October. Below Springfield it warms into a smallmouth bass river, and its Ordovician-through-Devonian carbonate bedrock carries a rich Paleozoic fossil record. It is the platform\'s first Midwest watershed.',
+  },
 }
 
-const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()
