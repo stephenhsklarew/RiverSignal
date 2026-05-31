@@ -448,7 +448,7 @@ resource "google_cloud_run_v2_job" "refresh_heavy" {
 
     template {
       max_retries = 1
-      timeout     = "3600s"
+      timeout     = "7200s"
 
       service_account = google_service_account.pipeline.email
 
