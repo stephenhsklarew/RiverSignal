@@ -59,7 +59,6 @@ def _get_conditions(conn, watershed: str) -> dict:
     last_stocking = conn.execute(text("""
         SELECT MIN(now()::date - stocking_date::date) FROM gold.stocking_schedule
         WHERE watershed = :ws AND stocking_date <= now()::date
-        ORDER BY stocking_date DESC LIMIT 1
     """), {"ws": watershed}).scalar()
 
     # Cold water refuges

@@ -36,7 +36,8 @@ def compute_degree_days(conn, watershed: str, year: int) -> dict[int, float]:
         WHERE s.watershed = :ws
           AND t.parameter IN ('water_temperature', 'water_temp_c')
           AND t.source_type = 'usgs'
-          AND EXTRACT(YEAR FROM t.timestamp) = :year
+          AND t.timestamp >= make_date(:year, 1, 1)
+          AND t.timestamp <  make_date(:year, 1, 1) + interval '1 year'
           AND t.value > -10 AND t.value < 40
         GROUP BY doy
         ORDER BY doy
@@ -57,11 +58,21 @@ def train_and_predict(conn, watershed: str) -> list[dict]:
     current_year = datetime.now().year
     current_doy = datetime.now().timetuple().tm_yday
 
+    # Degree-days depend only on (watershed, year), so memoize per year — the
+    # historical loop below would otherwise recompute the same year's full
+    # time_series scan once per (taxon, doy) row (thousands of redundant scans).
+    _cdd_by_year: dict[int, dict[int, float]] = {}
+
+    def cdd_for_year(yr: int) -> dict[int, float]:
+        if yr not in _cdd_by_year:
+            _cdd_by_year[yr] = compute_degree_days(conn, watershed, yr)
+        return _cdd_by_year[yr]
+
     # Get current year degree days
-    cdd_current = compute_degree_days(conn, watershed, current_year)
+    cdd_current = cdd_for_year(current_year)
     if not cdd_current:
         # Fall back to previous year
-        cdd_current = compute_degree_days(conn, watershed, current_year - 1)
+        cdd_current = cdd_for_year(current_year - 1)
 
     current_cdd = cdd_current.get(current_doy, 0)
 
@@ -92,7 +103,7 @@ def train_and_predict(conn, watershed: str) -> list[dict]:
         WHERE s.watershed = :ws
           AND o.iconic_taxon = 'Insecta'
           AND o.observed_at IS NOT NULL
-          AND EXTRACT(YEAR FROM observed_at) >= 2020
+          AND o.observed_at >= make_date(2020, 1, 1)
         GROUP BY taxon_name, doy, yr
         ORDER BY taxon_name, doy
     """), {"ws": watershed}).fetchall()
@@ -101,7 +112,7 @@ def train_and_predict(conn, watershed: str) -> list[dict]:
     # For each species, find the degree-day value at peak observation dates
     species_cdd_thresholds = {}
     for taxon, doy, yr, count in historical:
-        cdd_hist = compute_degree_days(conn, watershed, yr)
+        cdd_hist = cdd_for_year(yr)
         if doy in cdd_hist:
             if taxon not in species_cdd_thresholds:
                 species_cdd_thresholds[taxon] = []
@@ -242,7 +253,7 @@ def refresh_hatch_forecast():
             )
         """))
 
-        watersheds = conn.execute(text("SELECT watershed FROM sites")).fetchall()
+        watersheds = conn.execute(text("SELECT DISTINCT watershed FROM sites")).fetchall()
 
         total = 0
         for (ws,) in watersheds:
