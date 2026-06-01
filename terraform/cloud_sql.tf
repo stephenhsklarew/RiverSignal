@@ -50,6 +50,14 @@ resource "google_sql_database_instance" "db" {
       name  = "temp_file_limit"
       value = "2147483647"
     }
+
+    # Auto-terminate sessions left idle inside a transaction for >60s. A leaked
+    # idle-in-transaction connection (e.g. from the API) otherwise blocks
+    # REFRESH MATERIALIZED VIEW CONCURRENTLY indefinitely, wedging refresh-heavy.
+    database_flags {
+      name  = "idle_in_transaction_session_timeout"
+      value = "60000"
+    }
   }
 
   deletion_protection = true
