@@ -397,11 +397,18 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     ? Math.round(((latestHarvest.harvest - priorHarvest.harvest) / priorHarvest.harvest) * 100)
     : null
 
-  // Deduplicate species by reach for carousel
+  // Deduplicate species by reach for carousel. Restrict to the same game
+  // species shown in Catch Probability so the two lists match — derive the
+  // allowed names from catchProb itself so they can't drift. speciesByReach
+  // still supplies the photo / stream / observer details for each fish.
+  const catchProbNames = new Set<string>(
+    ((catchProb?.species || []) as any[]).map((s: any) => (s.species || '').toLowerCase())
+  )
   const uniqueFishByReach: any[] = []
   const seenFish = new Set<string>()
   for (const s of speciesByReach) {
     const key = s.common_name || s.species
+    if (!catchProbNames.has((key || '').toLowerCase())) continue
     if (!seenFish.has(key)) {
       seenFish.add(key)
       uniqueFishByReach.push(s)
