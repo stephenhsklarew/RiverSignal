@@ -151,6 +151,12 @@ def get_live_conditions(watershed: str):
         except (ValueError, TypeError):
             continue
 
+        # Skip USGS nodata sentinel (-999999) — same guard as the ingest
+        # pipeline (pipeline/ingest/usgs.py). Without it a sentinel water
+        # temp renders as -999999 * 9/5 + 32 = -1799966.2°F.
+        if val <= -999999:
+            continue
+
         # Convert water temp to Fahrenheit for display
         display_val = val
         if param_name == "water_temp_c":
