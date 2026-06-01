@@ -714,7 +714,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 <button className="rnow-view-map-btn" onClick={() => navigate(`/path/map/${watershed}?filter=fish_present`)}>View Map</button>
               </div>
               <div className="rnow-fish-carousel">
-                {uniqueFishByReach.slice(0, 10).map((s: any, i: number) => (
+                {uniqueFishByReach.map((s: any, i: number) => (
                   <div key={i} className="rnow-fish-card">
                     {s.photo_url ? (
                       <TappablePhoto
