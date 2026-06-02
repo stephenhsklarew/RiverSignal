@@ -1,7 +1,7 @@
 """seed river_stories for ipswich_river_ma (adult/kids/expert)
 
 Revision ID: ip03b1c2d3e4
-Revises: ph03b1c2d3e4
+Revises: ip02a1b2c3d4
 Create Date: 2026-06-02 00:00:00.000000
 
 LLM-drafted river narrative at 3 reading levels, generated locally via
@@ -12,7 +12,10 @@ Without this, /api/v1/sites/ipswich_river_ma/river-story 404s and the River
 Story card renders blank (or shows a stale prior-watershed cache).
 Idempotent: ON CONFLICT (watershed, reading_level) DO UPDATE.
 
-Chains onto ph03b1c2d3e4 (the current shared-chain head at authoring time).
+Chains directly onto ip02a1b2c3d4 (my own flow-bands migration) — deliberately
+NOT onto the parallel worktree's ph03b1c2d3e4 (users.phone_hash) SMS migration,
+which was never committed to main. Keeping this chain self-contained so the
+prod migrate job can resolve it without the parallel agent's phantom revision.
 """
 from pathlib import Path
 from typing import Sequence, Union
@@ -22,7 +25,7 @@ from sqlalchemy import text
 
 
 revision: str = 'ip03b1c2d3e4'
-down_revision: Union[str, Sequence[str], None] = 'ph03b1c2d3e4'
+down_revision: Union[str, Sequence[str], None] = 'ip02a1b2c3d4'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
