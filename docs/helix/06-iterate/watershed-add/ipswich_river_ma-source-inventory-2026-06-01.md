@@ -7,8 +7,25 @@
 | **States** | MA |
 | **Date** | 2026-06-01 |
 | **Runbook** | `docs/helix/runbooks/add-watershed-prompt.md` |
-| **Author** | Claude (analysis-only; user evaluating whether to onboard) |
-| **Status** | **Step 1 analysis only — NOT added.** Companion: `parker_river_ma-source-inventory-2026-06-01.md`. |
+| **Author** | Claude (via `/add-watershed` skill) |
+| **Status** | **Onboarding in progress (started 2026-06-02).** STEP 0 confirmed; Step 1 analysis below; Step 2 underway. Companion: `parker_river_ma-source-inventory-2026-06-01.md`. |
+
+---
+
+## STEP 0 — Pre-flight clarification (CONFIRMED by user 2026-06-02)
+
+User invoked `/add-watershed ipswitch Ipswitch Massachusetts`; spelling corrected to **Ipswich** and the canonical identity confirmed. All STEP 0 questions answered and acknowledged via the skill's question prompt on 2026-06-02.
+
+| # | Question | Confirmed answer |
+|---|---|---|
+| — | Identity | **slug `ipswich_river_ma`, display "Ipswich River (MA)", state MA** (corrected from the typo'd "ipswitch / Ipswitch") |
+| Q1 | HUC boundary level | **HUC10** — Ipswich basin extent (W -71.22 / E -70.64 / S 42.50 / N 42.74), to avoid the Merrimack/Parker/Shawsheen overlap that HUC8 `01090001` would pull in |
+| Q2 | Paid-API tolerance | **Stop and ask** if any v1 source needs a paid key. (None expected: MA feeds are public records; RIDB needs only a *free* key; mass.gov is UA-gated but free.) |
+| Q3 | B2B license filter | **Gate non-`commercial:true` sources out of RiverSignal queries** (ADR-008 default) |
+| Q4 | Confluence into existing watershed | **N/A** — drains to Plum Island Sound / Ipswich Bay (Atlantic); no existing tracked watershed downstream |
+| Q5 | Curation pace | **Ship v0 now** with `needs_review=true` on all editorial tables (reaches, flow bands, hatch chart, river story) |
+| Q6 | Target ship date | **This session** — drive through STEP 3 incl. the four §2.8 production approval gates (explicit approval requested at each) |
+| Scope note | — | New `massachusetts` adapter authored best-effort; per runbook §2.4.5, if mass.gov UA-gating blocks the live stocking pull, ship empty stocking + open a P2 follow-on bead (no placeholder rows). First New-England-coastal-region watershed; first MA state adapter. |
 
 > **Headline: the better of the two MA candidates and a reasonable fit for the existing model.** The Ipswich is a predominantly **freshwater inland river** (155 mi² basin; tidal influence capped at the Ipswich Mills head-of-tide dam) with an on-model fishery (stocked + holdover/wild trout, smallmouth/largemouth, pickerel, panfish) and a **best-in-class, heavily documented summer low-flow / "river runs dry" narrative** that maps directly onto the flow-based Go Score. Shares two MA-wide weaknesses with Parker: **no water-temperature feed at the gauges**, and brittle HTML-only state stocking/herring sources.
 
