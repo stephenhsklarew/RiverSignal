@@ -881,6 +881,29 @@ curl -s "http://localhost:8001/api/v1/data-status/freshness" | jq --arg w <state
 
 Each should return a non-error payload with watershed-specific values.
 
+**Fish Present ↔ Catch Probability parity (mandatory).** On `/path/now`, the Fish Present carousel
+is derived from the Catch Probability response (the frontend intersects `species_by_reach` with the
+`catch-probability` species names so the two lists can't drift — fixed in #fish-present-match-catch-probability).
+For a new watershed this only holds if (a) `catch-probability` is **non-empty** (the catch-forecast
+prediction ran and `is_game_species` matched real species — note `refresh_predictions` silently
+aborts later models if `catch_forecast` errors, so confirm it actually populated), and (b) **every**
+catch-probability game species also exists in `/fishing/species` (`species_by_reach`), or it can't
+render in the carousel and Fish Present shows fewer than Catch Probability. Assert it:
+
+```bash
+W=<WATERSHED_SLUG>; API=http://localhost:8001/api/v1
+cp=$(curl -s "$API/sites/$W/catch-probability" | jq -r '.species[].species' | tr 'A-Z' 'a-z' | sort -u)
+fp=$(curl -s "$API/sites/$W/fishing/species"      | jq -r '.[].common_name'   | tr 'A-Z' 'a-z' | sort -u)
+[ -n "$cp" ] || echo "FAIL: catch-probability empty — Fish Present will be empty"
+# Every catch-probability species must be present in fishing/species:
+comm -23 <(echo "$cp") <(echo "$fp") | sed 's/^/MISSING from Fish Present source: /'
+```
+
+A clean run prints no `MISSING` lines and a non-empty `cp`. Any `MISSING` species (or empty `cp`)
+is a `⚠` on both the **Catch Probability** and **Fish Present** rows of the §3.6 grid until resolved
+(usual fix: a `CANONICAL_NAMES` alias mismatch between `app/routers/fishing.py` and the
+catch-probability endpoint, or the species genuinely absent from `species_by_reach`).
+
 ### 3.4 API smoke (prod, after deploy)
 
 Same URLs as §3.3, but against `$PROD_API_URL/api/v1/...` (discovered in §2.8 — do not hard-code).
@@ -1010,6 +1033,7 @@ By the end of a successful run:
 - [ ] Terraform args **applied to prod**, not just committed — `terraform apply` is NOT run by CI (CI only deploys the image + runs migrate). Verify the live job args contain the new adapters: `gcloud run jobs describe riversignal-pipeline-{weekly,monthly} --region us-west1 --format='value(spec.template.spec.template.spec.containers[0].args)' | grep <new-adapter>`
 - [ ] Commits pushed; CI deploy succeeded
 - [ ] Manual one-shot ingest runs on prod completed
+- [ ] **Fish Present ↔ Catch Probability parity** verified on `/path/now` (§3.3): `catch-probability` non-empty AND every game species present in `/fishing/species`, so the two lists match (they share a source by design — confirm it holds for this watershed)
 - [ ] Heavy gold views **actually refreshed and the job COMPLETED** (not just triggered) — `refresh-heavy` can run hours / time out on the prod 2-vCPU instance; confirm completion and that heavy views (`species_gallery`, `fossils_nearby`, `restoration_outcomes`, `river_health_score`) return rows for the new watershed
 - [ ] `/data-status/refresh` POST'd to bust the cache
 - [ ] Playwright UX smoke re-run against prod (`BASE_URL=https://riversignal-api-...run.app`)
