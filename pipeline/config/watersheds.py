@@ -191,15 +191,31 @@ WATERSHEDS = {
             "striped-bass fishery at the mouth."
         ),
         # HUC8 01090001 (Merrimack region) — refined to the HUC10 Ipswich
-        # main-stem extent per STEP 0 Q1 (W-71.22/E-70.64/S42.50/N42.74) to
-        # avoid the Merrimack / Parker / Shawsheen overlap a HUC8 box pulls
-        # in. Small buffer; east bound includes the river mouth + lower
-        # Plum Island Sound without reaching far offshore.
+        # main-stem extent per STEP 0 Q1, then east bound pulled in to the
+        # Ipswich Mills head-of-tide (~-70.80) to EXCLUDE Plum Island Sound /
+        # Parker River NWR — that open-coast strip is a top US birding
+        # hotspot and pulled ~400K mostly-avian iNat obs that bloat ingest
+        # and are irrelevant to the freshwater fishery (estuary is out of v0
+        # TQS scope anyway). Keeps the full freshwater river + both gauges
+        # (01101500, 01102000) + Ipswich town.
         "bbox": {
             "north": 42.78,
             "south": 42.46,
-            "east": -70.68,
+            "east": -70.80,
             "west": -71.25,
         },
     },
 }
+
+
+# Canonical lookups shared across the SMS allowlist, dispatcher display, and
+# anywhere else that enumerates watersheds. Deriving these from WATERSHEDS
+# means onboarding a watershed above propagates everywhere automatically —
+# the SMS subscription validator and dispatcher display previously drifted
+# out of sync when shenandoah / mad_river_oh were added.
+VALID_WATERSHEDS: frozenset[str] = frozenset(WATERSHEDS)
+
+
+def watershed_name(watershed: str) -> str:
+    """Full canonical display name for a watershed id; falls back to the id."""
+    return WATERSHEDS.get(watershed, {}).get("name", watershed)
