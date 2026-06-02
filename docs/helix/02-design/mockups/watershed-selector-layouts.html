@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Watershed selector — scalable layout options</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* App design tokens (from index.css / App.css) */
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --border: #e8e6e1;
+    --border-strong: #d0cec8;
+    --text: #1c1c1a;
+    --text-secondary: #6b6966;
+    --text-muted: #9e9b96;
+    --accent: #1a6b4a;
+    --accent-light: #e8f5ef;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #eef1ee;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 20px 100px;
+  }
+  h1 { font-size: 1.45rem; font-weight: 600; margin: 0 0 4px; }
+  .lede { color: var(--text-muted); font-size: 0.9rem; margin: 0 0 32px; max-width: 720px; }
+  .stack { display: flex; flex-direction: column; gap: 40px; max-width: 1040px; margin: 0 auto; }
+  .opt-head { margin: 0 0 4px; font-size: 1.05rem; font-weight: 600; color: var(--accent); }
+  .opt-desc { margin: 0 0 16px; font-size: 0.85rem; color: var(--text-secondary); max-width: 760px; }
+  .opt-desc b { color: var(--text); font-weight: 600; }
+
+  /* Faux map canvas — every option is anchored to its top-right corner, as in the app */
+  .map {
+    position: relative;
+    height: 420px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    background:
+      radial-gradient(circle at 30% 40%, #d7e6dd 0, transparent 55%),
+      radial-gradient(circle at 70% 70%, #cfe0ea 0, transparent 50%),
+      linear-gradient(135deg, #e9efe9, #dde7e3);
+  }
+  .map::after {
+    content: "map view";
+    position: absolute; left: 14px; bottom: 12px;
+    font-size: 0.72rem; color: rgba(0,0,0,0.28); letter-spacing: 0.04em;
+  }
+  .corner { position: absolute; top: 12px; right: 12px; z-index: 5; }
+
+  /* Shared control surface look */
+  .surface {
+    background: rgba(255,255,255,0.97);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  button { font-family: inherit; cursor: pointer; }
+  .caret { font-size: 0.6em; opacity: 0.6; margin-left: 4px; }
+
+  /* ─────────────────────────  OLD (for reference)  ───────────────────────── */
+  .old-tabs { display: flex; overflow: hidden; }
+  .old-tabs .tab {
+    padding: 6px 12px; font-size: 11px; border: none; background: transparent;
+    color: var(--text-secondary); border-right: 1px solid var(--border); white-space: nowrap;
+  }
+  .old-tabs .tab:last-child { border-right: none; }
+  .old-tabs .tab.active { background: var(--accent); color: #fff; }
+
+  /* ─────────────────────────  OPTION A — cascading dropdowns  ───────────────────────── */
+  .dd-row { display: flex; gap: 6px; }
+  .dd {
+    position: relative;
+  }
+  .dd-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 11px; font-size: 12px; font-weight: 500;
+    background: rgba(255,255,255,0.97); border: 1px solid var(--border);
+    border-radius: 7px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); color: var(--text);
+  }
+  .dd-btn .lbl { color: var(--text-muted); font-weight: 400; margin-right: 2px; }
+  .dd-btn.disabled { color: var(--text-muted); opacity: 0.6; cursor: not-allowed; }
+  .dd-menu {
+    position: absolute; top: calc(100% + 5px); right: 0; min-width: 180px;
+    max-height: 230px; overflow-y: auto; padding: 5px; display: none;
+  }
+  .dd-menu.open { display: block; }
+  .dd-item {
+    display: block; width: 100%; text-align: left; padding: 7px 9px; font-size: 12px;
+    border: none; background: none; border-radius: 5px; color: var(--text);
+  }
+  .dd-item:hover { background: var(--bg); }
+  .dd-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+  /* ─────────────────────────  OPTION B — master/detail popover  ───────────────────────── */
+  .pop-btn {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 13px; font-size: 12.5px; font-weight: 500;
+    background: rgba(255,255,255,0.97); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); color: var(--text);
+  }
+  .pop-btn .pin { color: var(--accent); }
+  .pop-btn .sub { color: var(--text-muted); font-weight: 400; }
+  .pop-panel {
+    position: absolute; top: calc(100% + 6px); right: 0; width: 340px;
+    display: none; overflow: hidden;
+  }
+  .pop-panel.open { display: flex; }
+  .pop-col { width: 50%; max-height: 280px; overflow-y: auto; padding: 6px; }
+  .pop-col.states { border-right: 1px solid var(--border); background: var(--bg); }
+  .pop-col h4 {
+    margin: 4px 8px 8px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600;
+  }
+  .pop-state, .pop-ws {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    width: 100%; text-align: left; padding: 8px 9px; font-size: 12.5px;
+    border: none; background: none; border-radius: 6px; color: var(--text);
+  }
+  .pop-state:hover, .pop-ws:hover { background: rgba(0,0,0,0.04); }
+  .pop-state.active { background: var(--surface); color: var(--accent); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); }
+  .pop-state .count { font-size: 10px; color: var(--text-muted); background: var(--surface); border-radius: 10px; padding: 1px 7px; }
+  .pop-state.active .count { background: var(--accent-light); }
+  .pop-ws.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+  /* ─────────────────────────  OPTION C — search-first modal  ───────────────────────── */
+  .modal-trigger {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 13px; font-size: 12.5px; font-weight: 500;
+    background: rgba(255,255,255,0.97); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); color: var(--text);
+  }
+  .modal-trigger .sub { color: var(--text-muted); font-weight: 400; }
+  .modal-overlay {
+    position: absolute; inset: 0; z-index: 20; background: rgba(20,24,20,0.42);
+    display: none; align-items: flex-start; justify-content: center; padding-top: 36px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    width: 360px; max-height: 340px; background: var(--surface);
+    border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .modal-search { padding: 12px; border-bottom: 1px solid var(--border); }
+  .modal-search input {
+    width: 100%; padding: 9px 12px; font-size: 13px; font-family: inherit;
+    border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text);
+  }
+  .modal-search input:focus { outline: none; border-color: var(--accent); }
+  .modal-list { overflow-y: auto; padding: 6px 8px 10px; }
+  .modal-group-h {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 8px 5px; font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700;
+  }
+  .modal-group-h::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .modal-item {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    padding: 9px 10px; font-size: 13px; border: none; background: none;
+    border-radius: 7px; color: var(--text);
+  }
+  .modal-item:hover { background: var(--bg); }
+  .modal-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+  .modal-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ─────────────────────────  OPTION D — state tabs + watershed chips  ───────────────────────── */
+  .tabchips { width: 360px; padding: 8px; }
+  .state-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px; }
+  .state-tab {
+    padding: 5px 11px; font-size: 11.5px; font-weight: 500; white-space: nowrap;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    border-radius: 20px;
+  }
+  .state-tab.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .ws-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .ws-chip {
+    padding: 6px 11px; font-size: 12px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); border-radius: 7px;
+  }
+  .ws-chip:hover { border-color: var(--border-strong); }
+  .ws-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .legend { font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; }
+  .legend b { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div class="stack">
+
+  <header>
+    <h1>Watershed selector — scalable layouts</h1>
+    <p class="lede">
+      Four options to replace the horizontal <code>.watershed-tabs</code> strip, which runs out of room past
+      ~6 watersheds. All stay anchored top-right over the map and follow a <b>state&nbsp;→&nbsp;watershed</b>
+      drill-down. Everything below is interactive — click around.
+    </p>
+  </header>
+
+  <!-- TODAY -->
+  <section>
+    <p class="opt-head" style="color:var(--text-muted)">Today — flat horizontal strip</p>
+    <p class="opt-desc">One button per watershed in a single row. Already crowded at 9; breaks the corner layout as more states come online.</p>
+    <div class="map">
+      <div class="corner">
+        <div class="surface old-tabs">
+          <button class="tab">Deschutes</button>
+          <button class="tab">Green</button>
+          <button class="tab">John Day</button>
+          <button class="tab active">McKenzie</button>
+          <button class="tab">Klamath</button>
+          <button class="tab">Mad</button>
+          <button class="tab">Metolius</button>
+          <button class="tab">Shenandoah</button>
+          <button class="tab">Skagit</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPTION A -->
+  <section>
+    <p class="opt-head">Option A — Cascading dropdowns</p>
+    <p class="opt-desc"><b>Smallest footprint.</b> Two compact dropdowns: pick a State, then the Watershed list filters to that state. Familiar pattern, almost no corner real-estate, scales to any number of states. Watershed dropdown stays disabled until a state is chosen.</p>
+    <div class="map">
+      <div class="corner">
+        <div class="dd-row">
+          <div class="dd" id="A-state">
+            <button class="dd-btn" onclick="toggleA('state')"><span class="lbl">State</span><b id="A-state-val">Oregon</b><span class="caret">▾</span></button>
+            <div class="dd-menu surface" id="A-state-menu"></div>
+          </div>
+          <div class="dd" id="A-ws">
+            <button class="dd-btn" onclick="toggleA('ws')"><span class="lbl">River</span><b id="A-ws-val">McKenzie</b><span class="caret">▾</span></button>
+            <div class="dd-menu surface" id="A-ws-menu"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="legend"><b>Best when:</b> corner space is tight and states will keep growing. <b>Trade-off:</b> two taps, and you can't see all rivers at a glance.</p>
+  </section>
+
+  <!-- OPTION B -->
+  <section>
+    <p class="opt-head">Option B — Master / detail popover</p>
+    <p class="opt-desc"><b>Recommended.</b> A single pill shows the current selection (<i>Oregon · McKenzie</i>). It opens a two-column panel: states on the left with a count badge, watersheds for the hovered/selected state on the right. One open surface, fast scanning, scales cleanly.</p>
+    <div class="map">
+      <div class="corner">
+        <div class="dd">
+          <button class="pop-btn" onclick="togglePop()">
+            <span class="pin">◆</span>
+            <span><span id="B-state-lbl">Oregon</span> · <b id="B-ws-lbl">McKenzie</b></span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="pop-panel surface" id="B-panel">
+            <div class="pop-col states" id="B-states"><h4>State</h4></div>
+            <div class="pop-col ws" id="B-ws"><h4>Watershed</h4></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="legend"><b>Best when:</b> you want one elegant control that reads the current context and scales to dozens of rivers. <b>Trade-off:</b> slightly wider panel than A.</p>
+  </section>
+
+  <!-- OPTION B — empty / first-load state -->
+  <section>
+    <p class="opt-head">Option B — before any state is selected (first load)</p>
+    <p class="opt-desc">On first load — or after "View all rivers" — nothing is selected and the <b>map shows every watershed</b>. The pill reads <b>"All rivers"</b> with a muted marker. Open it and the left column lists states (none active); the right column shows a <b>hint</b> until you pick/hover a state. A persistent <b>"Show all rivers"</b> row at the bottom lets you return to the unfiltered view any time.</p>
+    <div class="map">
+      <!-- map shows all markers when nothing is selected -->
+      <div style="position:absolute;left:28%;top:38%;width:9px;height:9px;border-radius:50%;background:#1a6b4a"></div>
+      <div style="position:absolute;left:34%;top:30%;width:9px;height:9px;border-radius:50%;background:#3b7dd8"></div>
+      <div style="position:absolute;left:31%;top:46%;width:9px;height:9px;border-radius:50%;background:#8a4ed8"></div>
+      <div style="position:absolute;left:26%;top:55%;width:9px;height:9px;border-radius:50%;background:#d89b1a"></div>
+      <div style="position:absolute;left:40%;top:42%;width:9px;height:9px;border-radius:50%;background:#c0504d"></div>
+      <div style="position:absolute;left:38%;top:18%;width:9px;height:9px;border-radius:50%;background:#1aa6b7"></div>
+      <div style="position:absolute;left:44%;top:22%;width:9px;height:9px;border-radius:50%;background:#5a8f2b"></div>
+      <div style="position:absolute;left:78%;top:40%;width:9px;height:9px;border-radius:50%;background:#b7501a"></div>
+      <div style="position:absolute;left:66%;top:48%;width:9px;height:9px;border-radius:50%;background:#7a5230"></div>
+      <div class="corner">
+        <div class="dd">
+          <button class="pop-btn" onclick="togglePop2()">
+            <span style="color:var(--text-muted)">◇</span>
+            <span id="B2-lbl" style="color:var(--text-secondary)">All rivers</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="pop-panel surface" id="B2-panel" style="flex-direction:column;width:340px">
+            <div style="display:flex">
+              <div class="pop-col states" id="B2-states" style="width:50%"><h4>State</h4></div>
+              <div class="pop-col ws" id="B2-ws" style="width:50%"><h4>Watershed</h4></div>
+            </div>
+            <button id="B2-all" onclick="resetB2()" style="display:flex;align-items:center;gap:7px;width:100%;padding:10px 12px;border:none;border-top:1px solid var(--border);background:var(--bg);font-size:12.5px;color:var(--text-secondary);font-weight:500">◇ Show all rivers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="legend"><b>Touch note:</b> hover previews a state's rivers on desktop; on mobile the first tap locks the state + fills the right column, the second tap picks the river.</p>
+  </section>
+
+  <!-- OPTION C -->
+  <section>
+    <p class="opt-head">Option C — Search-first modal</p>
+    <p class="opt-desc"><b>Scales furthest.</b> A trigger opens a centered modal with a search box plus rivers grouped under state headings. Type "ska" to jump straight to Skagit, or browse by state. Color dots match the map markers.</p>
+    <div class="map">
+      <div class="corner">
+        <button class="modal-trigger" onclick="openModal()">
+          <span style="color:var(--accent)">◆</span> McKenzie <span class="sub">· Oregon</span> <span class="caret">▾</span>
+        </button>
+      </div>
+      <div class="modal-overlay" id="C-overlay" onclick="if(event.target===this)closeModal()">
+        <div class="modal">
+          <div class="modal-search"><input id="C-search" placeholder="Search rivers or states…" oninput="renderModal()" autocomplete="off" /></div>
+          <div class="modal-list" id="C-list"></div>
+        </div>
+      </div>
+    </div>
+    <p class="legend"><b>Best when:</b> the list grows past ~20 rivers and search matters most. <b>Trade-off:</b> a modal is heavier than an inline control for small lists.</p>
+  </section>
+
+  <!-- OPTION D -->
+  <section>
+    <p class="opt-head">Option D — State tabs + watershed chips</p>
+    <p class="opt-desc"><b>Most visible.</b> A small inline card: state pills on top, watershed chips for the active state below. Everything for one state is visible at once — no second click to see options. Good middle ground while state count stays modest.</p>
+    <div class="map">
+      <div class="corner">
+        <div class="surface tabchips">
+          <div class="state-tabs" id="D-states"></div>
+          <div class="ws-chips" id="D-chips"></div>
+        </div>
+      </div>
+    </div>
+    <p class="legend"><b>Best when:</b> a handful of states, and seeing every river for a state matters. <b>Trade-off:</b> the card grows tall/wide; state row scrolls horizontally past ~8 states.</p>
+  </section>
+
+</div>
+
+<script>
+  // ── Shared data ──
+  const DATA = {
+    Oregon:     [["mckenzie","McKenzie"],["deschutes","Deschutes"],["metolius","Metolius"],["klamath","Upper Klamath"],["johnday","John Day"]],
+    Washington: [["skagit","Skagit"],["green_river","Green"]],
+    Virginia:   [["shenandoah","Shenandoah"]],
+    Ohio:       [["mad_river_oh","Mad River"]],
+  };
+  const STATES = Object.keys(DATA);
+  const COLORS = { mckenzie:"#1a6b4a", deschutes:"#3b7dd8", metolius:"#8a4ed8", klamath:"#d89b1a",
+    johnday:"#c0504d", skagit:"#1aa6b7", green_river:"#5a8f2b", shenandoah:"#b7501a", mad_river_oh:"#7a5230" };
+  const wsLabel = (k) => { for (const s of STATES) { const f = DATA[s].find(w=>w[0]===k); if(f) return f[1]; } return k; };
+
+  // ════════ OPTION A ════════
+  const A = { state: "Oregon", ws: "mckenzie", open: null };
+  function buildA() {
+    const sm = document.getElementById("A-state-menu");
+    sm.innerHTML = STATES.map(s=>`<button class="dd-item ${s===A.state?'active':''}" onclick="pickAState('${s}')">${s}</button>`).join("");
+    const wm = document.getElementById("A-ws-menu");
+    wm.innerHTML = DATA[A.state].map(([k,l])=>`<button class="dd-item ${k===A.ws?'active':''}" onclick="pickAWs('${k}')">${l}</button>`).join("");
+    document.getElementById("A-state-val").textContent = A.state;
+    document.getElementById("A-ws-val").textContent = wsLabel(A.ws);
+  }
+  function toggleA(which){ A.open = A.open===which?null:which;
+    document.getElementById("A-state-menu").classList.toggle("open", A.open==="state");
+    document.getElementById("A-ws-menu").classList.toggle("open", A.open==="ws"); }
+  function pickAState(s){ A.state=s; A.ws=DATA[s][0][0]; A.open="ws"; buildA(); toggleA("ws"); }
+  function pickAWs(k){ A.ws=k; A.open=null; buildA(); document.getElementById("A-ws-menu").classList.remove("open"); }
+
+  // ════════ OPTION B ════════
+  const B = { state: "Oregon", ws: "mckenzie", hover: "Oregon", open:false };
+  function buildB() {
+    document.getElementById("B-states").innerHTML = '<h4>State</h4>' + STATES.map(s=>
+      `<button class="pop-state ${s===B.hover?'active':''}" onclick="pickBState('${s}')" onmouseenter="hoverBState('${s}')">
+        <span>${s}</span><span class="count">${DATA[s].length}</span></button>`).join("");
+    document.getElementById("B-ws").innerHTML = '<h4>Watershed</h4>' + DATA[B.hover].map(([k,l])=>
+      `<button class="pop-ws ${k===B.ws&&B.hover===B.state?'active':''}" onclick="pickBWs('${k}')">${l}</button>`).join("");
+    document.getElementById("B-state-lbl").textContent = B.state;
+    document.getElementById("B-ws-lbl").textContent = wsLabel(B.ws);
+  }
+  function togglePop(){ B.open=!B.open; B.hover=B.state; buildB(); document.getElementById("B-panel").classList.toggle("open",B.open); }
+  function hoverBState(s){ B.hover=s; buildB(); }
+  function pickBState(s){ B.hover=s; buildB(); }
+  function pickBWs(k){ B.ws=k; B.state=B.hover; B.open=false; buildB(); document.getElementById("B-panel").classList.remove("open"); }
+
+  // ════════ OPTION C ════════
+  const C = { ws: "mckenzie" };
+  function openModal(){ document.getElementById("C-overlay").classList.add("open"); document.getElementById("C-search").value=""; renderModal(); setTimeout(()=>document.getElementById("C-search").focus(),0); }
+  function closeModal(){ document.getElementById("C-overlay").classList.remove("open"); }
+  function renderModal(){
+    const q = document.getElementById("C-search").value.toLowerCase();
+    let html = "";
+    for (const s of STATES) {
+      const matchState = s.toLowerCase().includes(q);
+      const rivers = DATA[s].filter(([k,l]) => matchState || l.toLowerCase().includes(q));
+      if (!rivers.length) continue;
+      html += `<div class="modal-group-h">${s}</div>`;
+      html += rivers.map(([k,l])=>`<button class="modal-item ${k===C.ws?'active':''}" onclick="pickC('${k}')">
+        <span class="dot" style="background:${COLORS[k]}"></span>${l} River</button>`).join("");
+    }
+    document.getElementById("C-list").innerHTML = html || '<div class="modal-group-h">No matches</div>';
+  }
+  function pickC(k){ C.ws=k; closeModal(); }
+
+  // ════════ OPTION D ════════
+  const D = { state: "Oregon", ws: "mckenzie" };
+  function buildD(){
+    document.getElementById("D-states").innerHTML = STATES.map(s=>
+      `<button class="state-tab ${s===D.state?'active':''}" onclick="pickDState('${s}')">${s}</button>`).join("");
+    document.getElementById("D-chips").innerHTML = DATA[D.state].map(([k,l])=>
+      `<button class="ws-chip ${k===D.ws&&DATA[D.state].some(w=>w[0]===D.ws)?'active':''}" onclick="pickDWs('${k}')">${l}</button>`).join("");
+  }
+  function pickDState(s){ D.state=s; buildD(); }
+  function pickDWs(k){ D.ws=k; buildD(); }
+
+  // ════════ OPTION B — empty/first-load variant ════════
+  const B2 = { state: null, ws: null, hover: null, open:false };
+  function buildB2(){
+    document.getElementById("B2-states").innerHTML = '<h4>State</h4>' + STATES.map(s=>
+      `<button class="pop-state ${s===B2.hover?'active':''}" onclick="pickB2State('${s}')" onmouseenter="hoverB2('${s}')">
+        <span>${s}</span><span class="count">${DATA[s].length}</span></button>`).join("");
+    const wsCol = document.getElementById("B2-ws");
+    if (B2.hover === null) {
+      wsCol.innerHTML = '<h4>Watershed</h4><div style="padding:24px 12px;font-size:12px;color:var(--text-muted);line-height:1.5">Pick a state to see its rivers.</div>';
+    } else {
+      wsCol.innerHTML = '<h4>Watershed</h4>' + DATA[B2.hover].map(([k,l])=>
+        `<button class="pop-ws ${k===B2.ws&&B2.hover===B2.state?'active':''}" onclick="pickB2Ws('${k}')">${l}</button>`).join("");
+    }
+    document.getElementById("B2-lbl").textContent = B2.ws ? (B2.state+" · "+wsLabel(B2.ws)) : "All rivers";
+  }
+  function togglePop2(){ B2.open=!B2.open; B2.hover=B2.state; buildB2(); document.getElementById("B2-panel").classList.toggle("open",B2.open); }
+  function hoverB2(s){ B2.hover=s; buildB2(); }
+  function pickB2State(s){ B2.hover=s; buildB2(); }
+  function pickB2Ws(k){ B2.ws=k; B2.state=B2.hover; B2.open=false; buildB2(); document.getElementById("B2-panel").classList.remove("open"); }
+  function resetB2(){ B2.state=null; B2.ws=null; B2.hover=null; B2.open=false; buildB2(); document.getElementById("B2-panel").classList.remove("open"); }
+
+  // init
+  buildA(); buildB(); buildB2(); renderModal(); buildD();
+  document.addEventListener("click", e=>{
+    if(!e.target.closest("#A-state")&&!e.target.closest("#A-ws")){A.open=null;document.querySelectorAll(".dd-menu").forEach(m=>m.classList.remove("open"));}
+  });
+</script>
+</body>
+</html>
