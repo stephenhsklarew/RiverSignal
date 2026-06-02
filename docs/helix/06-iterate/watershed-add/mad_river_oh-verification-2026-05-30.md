@@ -145,7 +145,7 @@ species gallery > 0, rocks (fossils/minerals) > 0, /trail picker lists "Mad Rive
 | RiverPath | River Story timeline | ✓ | **RESOLVED (P2)** — `gold.river_story_timeline` OH 0 → **148** after the stocking/WQ events landed. |
 | RiverPath | Fish passage | ✗ | **P2 diagnosed** — the `fish_passage` adapter source is **ODFW Oregon-only** (`nrimp.dfw.state.or.us`), NOT the national USFWS NFPP feed the inventory assumed. OH coverage needs a new national source or a curated seed (refined bead below). |
 | DeepTrail | Geology units | ✓ | **UPGRADED (P1)** — macrostrat **+ new ODGS 24K adapter** (561 bedrock unit polygons, source='odgs'). Much sharper than Macrostrat for OH. |
-| DeepTrail | Fossil sites | ✓ | 1,838 occurrences (pbdb 142 Ord/Sil/Dev carbonate ✓ inventory predicted ~129) |
+| DeepTrail | Fossil sites | ⚠→✓ | 1,838 occurrences (pbdb 142 Ord/Sil/Dev carbonate ✓ inventory predicted ~129). **CORRECTION 2026-06-01:** all 1,838 had **0 images** — the `fossil-images` backfill (separate monthly job, never run since onboarding) was missed at launch. Triggered `riversignal-fossil-images` to backfill; runbook §2.8 Gate 2 + §3.6 updated so this is a launch step going forward. |
 | DeepTrail | Mineral deposits | ✓ | mrds 165 (industrial carbonate) |
 | DeepTrail | Rockhound sites | ⚠ | 3 conservative viewing/permission entries |
 | DeepTrail | Mineral & rock shops | ✗ | 0 (intentional — curator research needed) |

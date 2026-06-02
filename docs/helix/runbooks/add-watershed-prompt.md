@@ -715,19 +715,37 @@ slug. **A clean pass here is a precondition for §2.8 Gate 1.**
 
 For every new adapter authored in §2.2, append to the appropriate job's args in
 `terraform/cloud_run_jobs.tf` (at the END of the `&&` chain — failures don't short-circuit upstream).
+Fossil/specimen image backfill is the `fossil-images` job (cron `0 4 2 * *`) — no per-watershed
+arg, but make sure it's deployed (see Gate 2).
 
-Plan with targeted apply:
+**`terraform apply` is NOT run by CI.** The GitHub Actions deploy (Gate 1) only builds/deploys the
+image and runs the migrate job. Job-arg, scheduler, and any infra changes must be **applied
+manually** — and are easy to forget. Watersheds have shipped with their weekly/monthly adapter
+args committed but never applied to prod.
+
+**Run a FULL, untargeted `terraform plan` first** — never start with `-target`:
 
 ```
 cd terraform
-terraform plan -target=google_cloud_run_v2_job.pipeline_daily  \
-               -target=google_cloud_run_v2_job.pipeline_weekly \
-               -target=google_cloud_run_v2_job.pipeline_monthly
+terraform plan        # full plan — inspect EVERYTHING that would change
 ```
 
-Apply only after the user reviews. Take a Cloud SQL backup first if any change touches the SQL
-instance (look for `google_sql_database_instance.db` in the plan — should NOT appear for arg-only
-changes).
+Why: `terraform plan/apply -target=<job>` is **NOT isolation** — `-target` pulls in the target's
+*dependencies* (the Cloud Run jobs depend on `google_sql_database_instance.db` via the DB URL), so
+a "targeted" job-args apply will **also apply any pending diff on the DB**. A targeted apply once
+silently flipped the prod DB's public IP off mid-job. So: a full plan must show **only** your
+intended job-arg changes. If `google_sql_database_instance.db` (or anything else) shows a diff you
+did not author, that is pre-existing drift — **stop, reconcile it deliberately, and back up the DB
+first** (per Pause trigger #2) before applying anything.
+
+Apply only after the user reviews the full plan. After applying, **verify the live args**:
+
+```
+gcloud run jobs describe riversignal-pipeline-weekly  --region us-west1 \
+  --format='value(spec.template.spec.template.spec.containers[0].args)' | tr '&' '\n' | grep <new-adapter>
+gcloud run jobs describe riversignal-pipeline-monthly --region us-west1 \
+  --format='value(spec.template.spec.template.spec.containers[0].args)' | tr '&' '\n' | grep <new-adapter>
+```
 
 ### 2.8 Commit, push, deploy — **EXPLICIT USER APPROVAL REQUIRED AT EACH GATE**
 
@@ -771,6 +789,12 @@ gcloud run jobs execute riversignal-pipeline-daily    --region us-west1 --wait
 gcloud run jobs execute riversignal-pipeline-weekly   --region us-west1 --wait
 gcloud run jobs execute riversignal-pipeline-monthly  --region us-west1 --wait
 gcloud run jobs execute riversignal-tqs-daily-refresh --region us-west1 --wait
+# Fossil specimen IMAGES are NOT populated by the pbdb/idigbio/gbif adapters —
+# they come from a SEPARATE backfill (fossil-images) that runs only monthly
+# (cron `0 4 2 * *`). Without triggering it at launch, the new watershed's
+# fossils have NO images for up to a month (this is why mad_river_oh and
+# shenandoah shipped with imageless fossils). Run it once now:
+gcloud run jobs execute riversignal-fossil-images     --region us-west1 --wait
 ```
 
 If any job fails, halt and show the failing job's last 50 log lines before proceeding.
@@ -904,9 +928,26 @@ its actual status on prod:
 | RiverPath   | River Story            | ⚠         | draft only, marked is_draft=true                   |
 | RiverPath   | Stocking               | ✗         | MT FWP adapter pending — placeholder row only       |
 | DeepTrail   | Geology units          | ⚠         | macrostrat only — MBMG adapter pending             |
-| DeepTrail   | Fossil sites           | ✓         | 22 PBDB + 47 iDigBio records                       |
+| DeepTrail   | Fossil sites           | ✓         | 22 PBDB + 47 iDigBio records, 61/69 with images    |
 | ...         | ...                    | ...       | ...                                                 |
 ```
+
+**Fossil sites is only ✓ if its specimens have IMAGES, not just records.** Fossil images come
+from the separate `fossil-images` backfill (§2.8 Gate 2), not the pbdb/idigbio/gbif adapters.
+Verify against the local DB AND prod:
+
+```sql
+-- Expect a high image fill rate (other watersheds run ~85–93%). 0% means the
+-- fossil-images backfill never ran for this watershed (the recurring miss).
+SELECT count(*) AS fossils,
+       count(*) FILTER (WHERE f.image_url IS NOT NULL) AS with_images
+FROM fossil_occurrences f JOIN sites s ON s.id = f.site_id
+WHERE s.watershed = '<slug>';
+```
+
+If `with_images = 0` (or far below the ~85% other watersheds hit), the `fossil-images` job did
+not run — trigger it (§2.8 Gate 2) and re-check. Mark the row `⚠` with the fill rate until it's
+populated.
 
 Every `⚠` or `✗` corresponds to a §1.4 gap. The verification doc closes by listing the follow-on
 beads created during the work, with priority hints (P1 = blocks RiverPath ship, P2 = degraded
@@ -928,6 +969,12 @@ feature, P3 = nice-to-have).
 - **Cost discipline.** LLM calls (river story, narrative) cached per-watershed and reused.
 - **Curation flags are load-bearing.** Anything `needs_review=true` must be visible in a follow-up
   inventory query — don't bury it in a notes field that nobody greps.
+- **Images come from separate backfills, not ingest — verify images, not just row counts.** Several
+  surfaces populate media via a distinct enrichment pass that the ingest adapters do NOT run:
+  fossils (`fossil-images` job), species photos (`species_gallery` via `refresh-heavy` + iNat
+  `photo_license`), minerals (MRDS post-insert image enrichment). A surface can have rows but zero
+  images. For every media-bearing surface, the §3 verification must assert `image_url IS NOT NULL`
+  fill rate for the new watershed (≈ the rate other watersheds hit), not just `count(*) > 0`.
 
 ## Pause / escalation triggers (stop and ask)
 
@@ -957,11 +1004,13 @@ By the end of a successful run:
 - [ ] Frontend dicts updated (`WATERSHED_LABELS`, `WATERSHED_ORDER`, `WS_COORDS`, `WS_GAUGES`, `PHOTOS`, `WATERSHED_META`, `TAGLINES` — see §2.6 table)
 - [ ] Pre-launch data seeds applied (§2.6.5): river_stories, sites.boundary, stocking_locations, recreation_sites, species_by_reach MV verified, species_gallery refreshed AND has >0 rows for the new watershed
 - [ ] `riversignal-pipeline-monthly` triggered once for the new watershed (pbdb / idigbio / mrds / restoration / prism / recreation) — see §2.6.5
+- [ ] `riversignal-fossil-images` triggered once at launch AND fossils have images (`with_images` ≈ other watersheds' ~85%+, not 0) — see §2.8 Gate 2 / §3.6. **This is a separate monthly job; without an explicit launch trigger, fossils ship imageless for up to a month.**
 - [ ] `frontend/src/components/MapView.tsx` initial `bounds` box covers the new watershed's bbox — see §2.6.5
 - [ ] Playwright UX smoke `tests/watershed-smoke.spec.ts` passes against local (§2.6.6)
-- [ ] Terraform args updated for new adapter scheduling
+- [ ] Terraform args **applied to prod**, not just committed — `terraform apply` is NOT run by CI (CI only deploys the image + runs migrate). Verify the live job args contain the new adapters: `gcloud run jobs describe riversignal-pipeline-{weekly,monthly} --region us-west1 --format='value(spec.template.spec.template.spec.containers[0].args)' | grep <new-adapter>`
 - [ ] Commits pushed; CI deploy succeeded
 - [ ] Manual one-shot ingest runs on prod completed
+- [ ] Heavy gold views **actually refreshed and the job COMPLETED** (not just triggered) — `refresh-heavy` can run hours / time out on the prod 2-vCPU instance; confirm completion and that heavy views (`species_gallery`, `fossils_nearby`, `restoration_outcomes`, `river_health_score`) return rows for the new watershed
 - [ ] `/data-status/refresh` POST'd to bust the cache
 - [ ] Playwright UX smoke re-run against prod (`BASE_URL=https://riversignal-api-...run.app`)
 - [ ] `docs/helix/06-iterate/watershed-add/<slug>-verification-<date>.md` (Step 3) with the
