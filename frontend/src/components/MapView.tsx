@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Site } from '../pages/MapPage'
 import TimelineSlider from './TimelineSlider'
+import WatershedPicker from './WatershedPicker'
 
 interface MapViewProps {
   sites: Site[]
@@ -360,17 +361,7 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
         )}
       </div>
 
-      <div className="watershed-tabs">
-        {[...sites].sort((a, b) => a.watershed.localeCompare(b.watershed)).map(s => (
-          <button
-            key={s.watershed}
-            className={`ws-tab${selectedSite === s.watershed ? ' active' : ''}`}
-            onClick={() => onSelectSite(selectedSite === s.watershed ? null : s.watershed)}
-          >
-            {s.name.replace(' River', '').replace('Upper ', '')}
-          </button>
-        ))}
-      </div>
+      <WatershedPicker sites={sites} selectedSite={selectedSite} onSelectSite={onSelectSite} />
 
       <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 

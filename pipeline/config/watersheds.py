@@ -176,4 +176,30 @@ WATERSHEDS = {
             "west": -84.30,
         },
     },
+    "ipswich_river_ma": {
+        "name": "Ipswich River (MA)",
+        "description": (
+            "Ipswich River from headwaters near Burlington/Wilmington (MA) "
+            "through Middleton, Topsfield, and Hamilton to Plum Island Sound "
+            "/ Ipswich Bay at Ipswich. First New-England-coastal-region "
+            "watershed on the platform; predominantly freshwater inland "
+            "river (tidal influence capped at the Ipswich Mills head-of-tide "
+            "dam) — smallmouth and largemouth bass, stocked + holdover "
+            "trout, chain pickerel, panfish, and an anadromous river-herring "
+            "run. Well-documented summer low-flow / water-withdrawal stress "
+            "(American Rivers #8 Most Endangered River, 2021). Small estuary "
+            "striped-bass fishery at the mouth."
+        ),
+        # HUC8 01090001 (Merrimack region) — refined to the HUC10 Ipswich
+        # main-stem extent per STEP 0 Q1 (W-71.22/E-70.64/S42.50/N42.74) to
+        # avoid the Merrimack / Parker / Shawsheen overlap a HUC8 box pulls
+        # in. Small buffer; east bound includes the river mouth + lower
+        # Plum Island Sound without reaching far offshore.
+        "bbox": {
+            "north": 42.78,
+            "south": 42.46,
+            "east": -70.68,
+            "west": -71.25,
+        },
+    },
 }

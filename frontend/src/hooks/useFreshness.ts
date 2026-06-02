@@ -44,6 +44,7 @@ const SOURCE_LABELS: Record<string, string> = {
   washington: 'WDFW (Washington)',
   utah: 'UDWR (Utah)',
   virginia: 'VDGIF (Virginia)',
+  massachusetts: 'MassWildlife / MA DMF (Massachusetts)',
   west_virginia: 'WVDNR (West Virginia)',
   ohio_stocking: 'ODNR (Ohio)',
   wbd: 'USGS WBD',

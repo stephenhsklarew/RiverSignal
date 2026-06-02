@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectFirstWatershed, selectWatershed } from './helpers/picker';
 
 const BASE = 'http://localhost:5174';
 const API = 'http://localhost:8001/api/v1';
@@ -62,9 +63,11 @@ test.describe('RiverSignal', () => {
     await expect(page.locator('.obs-search-input')).toBeVisible();
   });
 
-  test('map renders with watershed tabs', async ({ page }) => {
+  test('map renders with watershed picker', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await expect(page.locator('.ws-tab')).toHaveCount(5);
+    await expect(page.locator('.wp-pill')).toBeVisible();
+    await page.locator('.wp-pill').click();
+    await expect(page.locator('.wp-state').first()).toBeVisible();
   });
 
   test('map shows KPI chips (observations, interventions)', async ({ page }) => {
@@ -75,7 +78,7 @@ test.describe('RiverSignal', () => {
 
   test('selecting a watershed opens SitePanel with 6 tabs', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     const tabs = await page.locator('.panel-tab').allTextContents();
     expect(tabs).toEqual(['overview', 'species', 'fishing', 'story', 'recs', 'ask']);
@@ -83,14 +86,14 @@ test.describe('RiverSignal', () => {
 
   test('barrier toggle appears when watershed selected', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await waitForData(page, 500);
     await expect(page.locator('.barrier-toggle')).toBeVisible();
   });
 
   test('alerts ticker appears when watershed selected', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await waitForData(page, 2500);
     const ticker = page.locator('.alerts-ticker');
     // Some watersheds may not have alerts
@@ -101,7 +104,7 @@ test.describe('RiverSignal', () => {
   // ── Overview Tab ──
   test('overview tab: KPI grid with water temp, DO, species, projects', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.kpi-grid').first()).toBeVisible({ timeout: 10000 });
     const kpiCount = await page.locator('.kpi-card').count();
     expect(kpiCount).toBeGreaterThanOrEqual(4); // key metrics + coverage
@@ -109,7 +112,7 @@ test.describe('RiverSignal', () => {
 
   test('overview tab: indicator species table', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.section-title', { hasText: 'Indicator Species' })).toBeVisible({ timeout: 10000 });
     const rows = await page.locator('.data-table tbody tr').count();
     expect(rows).toBeGreaterThanOrEqual(1);
@@ -117,7 +120,7 @@ test.describe('RiverSignal', () => {
 
   test('overview tab: What\'s Here Now photo grid', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await waitForData(page);
     const section = page.locator('.section-title', { hasText: "What's Here Now" });
     const visible = await section.count();
@@ -126,14 +129,14 @@ test.describe('RiverSignal', () => {
 
   test('overview tab: Stewardship section', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await waitForData(page);
     await expect(page.locator('.section-title', { hasText: 'Stewardship' })).toBeVisible();
   });
 
   test('overview tab: Seasonal planner (Best Time to Visit)', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await waitForData(page);
     const seasonal = page.locator('.section-title', { hasText: 'Best Time to Visit' });
     const visible = await seasonal.count();
@@ -143,7 +146,7 @@ test.describe('RiverSignal', () => {
   // ── Species Tab ──
   test('species tab: photo gallery renders', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'species' }).click();
     await waitForData(page);
@@ -154,7 +157,7 @@ test.describe('RiverSignal', () => {
   // ── Fishing Tab ──
   test('fishing tab: conditions display', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'fishing' }).click();
     await waitForData(page);
@@ -163,7 +166,7 @@ test.describe('RiverSignal', () => {
 
   test('fishing tab: stocking table', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'fishing' }).click();
     await waitForData(page);
@@ -172,7 +175,7 @@ test.describe('RiverSignal', () => {
 
   test('fishing tab: species by reach table', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'fishing' }).click();
     await waitForData(page);
@@ -181,7 +184,7 @@ test.describe('RiverSignal', () => {
 
   test('fishing tab: barriers table', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'fishing' }).click();
     await waitForData(page);
@@ -193,7 +196,7 @@ test.describe('RiverSignal', () => {
   // ── Story Tab ──
   test('story tab: health and timeline display', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'story' }).click();
     await waitForData(page);
@@ -204,7 +207,7 @@ test.describe('RiverSignal', () => {
   // ── Recs Tab ──
   test('recs tab: shows Field Recommendations header', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'recs' }).click();
     await expect(page.locator('.section-title', { hasText: 'Field Recommendations' })).toBeVisible();
@@ -213,7 +216,7 @@ test.describe('RiverSignal', () => {
   // ── Ask Tab ──
   test('ask tab: chat input and suggested questions', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').first().click();
+    await selectFirstWatershed(page);
     await expect(page.locator('.panel-tabs')).toBeVisible({ timeout: 10000 });
     await page.locator('.panel-tab', { hasText: 'ask' }).click();
     await expect(page.locator('.chat-input-row input')).toBeVisible();
@@ -222,7 +225,7 @@ test.describe('RiverSignal', () => {
   // ── Observation Search ──
   test('observation search returns results and shows count', async ({ page }) => {
     await page.goto(`${BASE}/riversignal`);
-    await page.locator('.ws-tab').nth(2).click(); // Deschutes
+    await selectWatershed(page, 'Deschutes');
     await waitForData(page, 1000);
     await page.locator('.obs-search-input').fill('salm');
     await page.locator('.obs-search-input').press('Enter');

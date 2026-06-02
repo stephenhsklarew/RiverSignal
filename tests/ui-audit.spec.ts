@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectFirstWatershed } from './helpers/picker';
 
 const BASE = 'http://localhost:5174';
 
@@ -48,8 +49,7 @@ test('RiverSignal: observation search bar exists', async ({ page }) => {
 test('RiverSignal: barrier toggle checkbox exists', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
   // Click a watershed tab to select it first
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   await page.waitForTimeout(500);
   const toggle = await page.locator('.barrier-toggle').count();
   expect(toggle).toBe(1);
@@ -57,8 +57,7 @@ test('RiverSignal: barrier toggle checkbox exists', async ({ page }) => {
 
 test('RiverSignal: clicking watershed shows SitePanel with tabs', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   await page.waitForSelector('.panel-tabs', { timeout: 10000 });
   const tabs = await page.locator('.panel-tab').allTextContents();
   expect(tabs).toContain('overview');
@@ -71,8 +70,7 @@ test('RiverSignal: clicking watershed shows SitePanel with tabs', async ({ page 
 
 test('RiverSignal: fishing alerts banner appears', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   // Wait for alerts to load
   await page.waitForTimeout(2000);
   // Alerts may or may not appear depending on data — check the element exists or not gracefully
@@ -83,8 +81,7 @@ test('RiverSignal: fishing alerts banner appears', async ({ page }) => {
 
 test('RiverSignal: fishing tab shows barriers table', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   await page.waitForSelector('.panel-tabs', { timeout: 10000 });
   await page.locator('.panel-tab', { hasText: 'fishing' }).click();
   await page.waitForTimeout(2000);
@@ -95,8 +92,7 @@ test('RiverSignal: fishing tab shows barriers table', async ({ page }) => {
 
 test('RiverSignal: recs tab shows recommendations', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   await page.waitForSelector('.panel-tabs', { timeout: 10000 });
   await page.locator('.panel-tab', { hasText: 'recs' }).click();
   await page.waitForTimeout(1000);
@@ -131,8 +127,7 @@ test('RiverPath: species photo cards render', async ({ page }) => {
 
 test('RiverPath: overview tab has What\'s Here Now', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   await page.waitForSelector('.panel-content', { timeout: 10000 });
   await page.waitForTimeout(2000);
   const whatsHere = await page.locator('.section-title', { hasText: "What's Here Now" }).count();
@@ -141,8 +136,7 @@ test('RiverPath: overview tab has What\'s Here Now', async ({ page }) => {
 
 test('RiverPath: overview tab has Stewardship section', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   await page.waitForSelector('.panel-content', { timeout: 10000 });
   await page.waitForTimeout(1000);
   const stewardship = await page.locator('.section-title', { hasText: 'Stewardship' }).count();
@@ -151,8 +145,7 @@ test('RiverPath: overview tab has Stewardship section', async ({ page }) => {
 
 test('RiverPath: overview tab has Seasonal Planner', async ({ page }) => {
   await page.goto(`${BASE}/riversignal`);
-  await page.waitForSelector('.ws-tab', { timeout: 10000 });
-  await page.locator('.ws-tab').first().click();
+  await selectFirstWatershed(page);
   await page.waitForSelector('.panel-content', { timeout: 10000 });
   await page.waitForTimeout(2000);
   const seasonal = await page.locator('.section-title', { hasText: 'Best Time to Visit' }).count();

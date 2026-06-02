@@ -1,7 +1,25 @@
 import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 const BASE = 'http://localhost:5174'
 const API = 'http://localhost:8001/api/v1'
+
+/** Select a watershed by short river name via the watershed picker. */
+async function selectWatershed(page: Page, riverName: string) {
+  await page.waitForSelector('.wp-pill', { timeout: 10000 })
+  await page.locator('.wp-pill').click()
+  const states = page.locator('.wp-state')
+  const n = await states.count()
+  for (let i = 0; i < n; i++) {
+    await states.nth(i).click()
+    const river = page.locator('.wp-river', { hasText: riverName })
+    if (await river.count() > 0) {
+      await river.first().click()
+      return
+    }
+  }
+  throw new Error(`Watershed not found in picker: ${riverName}`)
+}
 
 test.describe('Rocks tab → Fossil map pins (Green River)', () => {
 
@@ -10,11 +28,8 @@ test.describe('Rocks tab → Fossil map pins (Green River)', () => {
     await page.goto(`${BASE}/riversignal`)
     await page.waitForLoadState('networkidle')
 
-    // Click Green River watershed tab
-    const greenTab = page.locator('.ws-tab', { hasText: 'Green' })
-    if (await greenTab.isVisible()) {
-      await greenTab.click()
-    }
+    // Select Green River via the watershed picker
+    await selectWatershed(page, 'Green')
     await page.waitForTimeout(2000)
 
     // Click the Rocks tab in the panel
@@ -192,8 +207,7 @@ test.describe('Species tab uses observation pins (not fossil pins)', () => {
     await page.waitForLoadState('networkidle')
 
     // Select a watershed with observations
-    const mckTab = page.locator('.ws-tab', { hasText: 'McKenzie' })
-    if (await mckTab.isVisible()) await mckTab.click()
+    await selectWatershed(page, 'McKenzie')
     await page.waitForTimeout(2000)
 
     // Should default to overview or species tab
