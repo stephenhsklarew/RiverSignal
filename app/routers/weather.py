@@ -19,6 +19,7 @@ WS_COORDS = {
     "green_river": (40.50, -109.50),  # Dinosaur National Monument area
     "shenandoah": (38.92, -78.20),    # Shenandoah Valley centroid (between forks confluence and main stem)
     "mad_river_oh": (40.05, -83.85),  # Mad River basin centroid near the Eagle City gauge / C&R trout section
+    "ipswich_river_ma": (42.65, -70.95),  # Ipswich basin centroid (Topsfield/Middleton); NWS office BOX (Norton MA)
 }
 
 # USGS gauge station IDs per watershed (primary stations)
@@ -32,6 +33,7 @@ WS_GAUGES = {
     "green_river": ["09234500", "09315000"],   # Green River nr Greendale UT (Flaming Gorge tailwater), at Green River UT (Desolation/Gray)
     "shenandoah": ["01631000", "01634000", "01636500"],  # SF at Front Royal, NF at Strasburg, Main Stem at Millville WV
     "mad_river_oh": ["03267900", "03269500"],  # Mad R at Eagle City (upper/trout), Mad R nr Springfield (lower)
+    "ipswich_river_ma": ["01101500", "01102000"],  # Ipswich R at South Middleton (upper), nr Ipswich (lower)
 }
 
 # Simple in-memory cache: {key: (timestamp, data)}

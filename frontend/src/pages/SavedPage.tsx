@@ -36,6 +36,7 @@ const WATERSHED_LABELS: Record<string, string> = {
   metolius: 'Metolius River', klamath: 'Upper Klamath Basin', johnday: 'John Day River',
   skagit: 'Skagit River', shenandoah: 'Shenandoah River',
   mad_river_oh: 'Mad River (OH)',
+  ipswich_river_ma: 'Ipswich River (MA)',
 }
 
 interface UserObservation {

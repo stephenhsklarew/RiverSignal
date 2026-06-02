@@ -13,6 +13,7 @@ const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   johnday: { name: 'Grant Soil & Water Conservation District', url: 'https://grantswcd.org/' },
   shenandoah: { name: 'Friends of the Shenandoah River', url: 'https://www.fosr.org/' },
   mad_river_oh: { name: 'Tecumseh Land Trust', url: 'https://www.tecumsehlandtrust.org/' },
+  ipswich_river_ma: { name: 'Ipswich River Watershed Association', url: 'https://www.ipswichriver.org/' },
 }
 
 const CATEGORY_ICONS: Record<string, string> = {

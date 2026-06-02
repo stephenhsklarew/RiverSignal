@@ -27,6 +27,7 @@ WATERSHEDS = {
     'green_river': 'Green River',
     'shenandoah': 'Shenandoah River',
     'mad_river_oh': 'Mad River (Ohio)',  # disambiguate from Mad River CA/VT for the LLM prompt
+    'ipswich_river_ma': 'Ipswich River (Massachusetts)',  # disambiguate; New England coastal river
 }
 
 READING_LEVELS = ['adult', 'kids', 'expert']

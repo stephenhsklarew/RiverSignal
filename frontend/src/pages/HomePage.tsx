@@ -18,6 +18,7 @@ const PHOTOS: Record<string, string> = {
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=400&fit=crop',
   shenandoah: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // Blue Ridge / Shenandoah valley overlook
   mad_river_oh: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&h=600&fit=crop', // spring-fed forested stream — Mad River OH
+  ipswich_river_ma: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&h=600&fit=crop', // v0 placeholder (forested river/marsh) — needs Ipswich-specific photo
 }
 
 interface WatershedData {
@@ -68,9 +69,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: "Ohio's spring-fed brown-trout stream through carbonate country",
     narrative: 'The Mad River rises from cold springs near Campbell Hill — the highest point in Ohio — and runs spring-fed and limestone-influenced through Champaign and Clark counties to meet the Great Miami at Dayton. Glacial-outwash aquifers keep it cold and stable through summer, making it one of only two streams in Ohio that hold stocked brown trout: roughly 11,500 yearlings go in every October. Below Springfield it warms into a smallmouth bass river, and its Ordovician-through-Devonian carbonate bedrock carries a rich Paleozoic fossil record. It is the platform\'s first Midwest watershed.',
   },
+  ipswich_river_ma: {
+    tagline: 'New England\'s endangered river — smallmouth, herring runs, and a watershed that runs dry',
+    narrative: 'The Ipswich River winds some 35 miles from headwaters near Wilmington through the marshes of Middleton, Topsfield, and Hamilton to Plum Island Sound. It is a predominantly freshwater smallmouth-and-largemouth river — with stocked and holdover trout, chain pickerel, and an anadromous river-herring run — but it is best known for what stresses it: heavy municipal groundwater withdrawals supplying roughly 330,000 people, most outside the basin, draw stretches dry each summer and landed it on American Rivers\' Most Endangered Rivers list (#8, 2021). Below the Ipswich Mills head-of-tide dam, the estuary opens into a striped-bass fishery on Ipswich Bay. It is the platform\'s first New England watershed.',
+  },
 }
 
-const WATERSHED_ORDER = ['deschutes', 'green_river', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()
