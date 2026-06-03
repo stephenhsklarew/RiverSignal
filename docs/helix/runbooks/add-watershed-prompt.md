@@ -747,6 +747,13 @@ WATERSHED=<slug> BASE_URL=http://localhost:5173 \
 
 After prod deploy, re-run against prod with `BASE_URL=https://riversignal-api-...run.app`.
 
+**LOCAL smoke must use the DEV server (`:5173`), NOT the production `vite build`.** The
+production build bakes in `VITE_API_BASE=<prod URL>`, so a locally-served *built* SPA (e.g. the
+one FastAPI serves on `:8001`) calls the PROD API — and a brand-new watershed isn't on prod yet,
+so its pages render empty and the smoke fails with confusing prod 404s. Run `npx vite` (dev) on
+`:5173` (it defaults `API_BASE` to `http://localhost:8001/api/v1`) and point the spec at it:
+`WATERSHED=<slug> BASE_URL=http://localhost:5173 API_BASE=http://localhost:8001/api/v1`.
+
 What the spec asserts:
 - /path splash card has an image + tagline + narrative (catches missing `PHOTOS` /
   `WATERSHED_META` entries)
