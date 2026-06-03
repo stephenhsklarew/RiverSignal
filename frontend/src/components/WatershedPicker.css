@@ -1,7 +1,9 @@
 .wp {
   position: absolute;
   top: 12px;
-  right: 12px;
+  /* Top-LEFT: the MapLibre NavigationControl (zoom buttons) sits top-right,
+     so the picker was overlapping it. Moved left to clear the zoom controls. */
+  left: 12px;
   z-index: 5;
 }
 
@@ -31,7 +33,7 @@
 .wp-panel {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  left: 0;
   width: 340px;
   background: rgba(255, 255, 255, 0.99);
   border: 1px solid var(--border);
