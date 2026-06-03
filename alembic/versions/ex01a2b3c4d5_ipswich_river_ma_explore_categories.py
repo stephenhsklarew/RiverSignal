@@ -61,8 +61,8 @@ def upgrade() -> None:
             text("""
                 INSERT INTO fly_shops_guides
                     (name, type, watersheds, city, state, latitude, longitude, description)
-                SELECT :name, :type, ARRAY['ipswich_river_ma']::text[],
-                       :city, 'MA', :lat, :lon, :desc
+                SELECT :name::text, :type::text, ARRAY['ipswich_river_ma']::text[],
+                       :city::text, 'MA', :lat::double precision, :lon::double precision, :desc::text
                 WHERE NOT EXISTS (
                     SELECT 1 FROM fly_shops_guides
                     WHERE name = :name AND 'ipswich_river_ma' = ANY(watersheds)
