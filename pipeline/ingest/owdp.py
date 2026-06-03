@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import httpx
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 
 from pipeline.ingest.base import IngestionAdapter, console
@@ -41,9 +42,26 @@ class OWDPAdapter(IngestionAdapter):
         bbox = site.bbox
         last_sync = self.get_last_sync()
 
-        if last_sync:
+        # Self-heal: if last_sync is set but this site has NO WQ rows, last_sync
+        # was poisoned by a prior run that advanced it without landing data
+        # (e.g. a transient WQP outage before the raise-on-failure fix). Ignore
+        # it and pull the full window so the back-fill actually happens — lets
+        # prod recover on the next cron with no manual last_sync reset.
+        # (RiverSignal-06b25aed)
+        existing_rows = self.session.execute(
+            select(func.count()).select_from(TimeSeries).where(
+                TimeSeries.site_id == self.site_id,
+                TimeSeries.source_type == "owdp",
+            )
+        ).scalar() or 0
+
+        if last_sync and existing_rows > 0:
             start_date = last_sync.strftime("%m-%d-%Y")
         else:
+            if last_sync and existing_rows == 0:
+                console.print(
+                    "    [yellow]owdp: last_sync set but 0 WQ rows — forcing full back-fill window[/yellow]"
+                )
             start_date = (datetime.now() - timedelta(days=365 * 5)).strftime(
                 "%m-%d-%Y"
             )
