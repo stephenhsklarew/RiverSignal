@@ -106,20 +106,25 @@ def cold_water_refuges(watershed: str):
 def list_sites():
     """List all configured watersheds/sites.
 
-    Only returns the index-level fields needed by `/riversignal`'s map
-    (id, name, watershed, bbox). Per-site counts used to be inlined here
-    via three correlated COUNT(*) subqueries (observations,
-    time_series, interventions), but with shenandoah's 434k iNat rows +
-    the unindexable `COALESCE(data_payload->>'visibility','public')`
-    filter, each request was timing out at 30s — and the `/riversignal`
-    MapPage never reads those count fields anyway. Callers who want
-    per-site rollups should use `/sites/{watershed}` which reads the
-    pre-aggregated `gold.watershed_scorecard` MV instead.
+    Returns index-level fields (id, name, watershed, bbox) plus per-site
+    observation + intervention totals for the `/riversignal` map KPI bar.
+
+    The counts come from the pre-aggregated `gold.watershed_scorecard` MV via
+    a cheap LEFT JOIN — NOT the three correlated COUNT(*) subqueries this
+    endpoint used to run, which timed out at 30s on shenandoah's 434k iNat
+    rows + the unindexable `data_payload->>'visibility'` filter. The MV is one
+    small row per watershed, so the join is fast. COALESCE to 0 so a watershed
+    without a scorecard row (e.g. freshly onboarded, pre-refresh) returns 0
+    rather than NULL (the frontend KPI summed NULL -> 'NaN interventions').
     """
     with engine.connect() as conn:
         rows = conn.execute(text("""
-            SELECT s.id, s.name, s.watershed, s.bbox
-            FROM sites s ORDER BY s.name
+            SELECT s.id, s.name, s.watershed, s.bbox,
+                   COALESCE(sc.total_observations, 0)  AS observations,
+                   COALESCE(sc.total_interventions, 0) AS interventions
+            FROM sites s
+            LEFT JOIN gold.watershed_scorecard sc ON sc.watershed = s.watershed
+            ORDER BY s.name
         """)).fetchall()
 
     return [
@@ -128,6 +133,8 @@ def list_sites():
             "name": r[1],
             "watershed": r[2],
             "bbox": r[3],
+            "observations": r[4],
+            "interventions": r[5],
         }
         for r in rows
     ]
