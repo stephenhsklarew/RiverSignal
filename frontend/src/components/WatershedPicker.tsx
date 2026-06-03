@@ -16,7 +16,7 @@ const WATERSHED_STATES: Record<string, string> = {
   klamath: 'Oregon',
   johnday: 'Oregon',
   skagit: 'Washington',
-  green_river: 'Washington',
+  green_river: 'Utah',
   shenandoah: 'Virginia',
   mad_river_oh: 'Ohio',
   ipswich_river_ma: 'Massachusetts',
