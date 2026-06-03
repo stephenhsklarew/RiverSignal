@@ -174,7 +174,9 @@
 
 .map-kpis {
   position: absolute;
-  top: 12px;
+  /* Bottom-left: the watershed picker now sits top-left, so the KPI stats
+     moved to the bottom to avoid stacking on top of (behind) the picker. */
+  bottom: 12px;
   left: 12px;
   display: flex;
   gap: 6px;

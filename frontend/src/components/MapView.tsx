@@ -333,20 +333,28 @@ export default function MapView({ sites, selectedSite, onSelectSite, observation
     }
   }, [])
 
-  const totalObs = sites.reduce((a, s) => a + s.observations, 0)
+  // Guard with ?? 0 — the slimmed /sites list endpoint no longer returns
+  // per-site observations/interventions counts, so summing the raw field
+  // produced NaN. Render each KPI chip only when it has a real total.
+  const totalObs = sites.reduce((a, s) => a + (s.observations ?? 0), 0)
+  const totalInterventions = sites.reduce((a, s) => a + (s.interventions ?? 0), 0)
   const obsFeatures = observationOverlay?.features || []
 
   return (
     <div className="map-container">
       <div className="map-kpis">
-        <div className="kpi-chip">
-          <span className="kpi-value">{totalObs.toLocaleString()}</span>
-          <span className="kpi-label">observations</span>
-        </div>
-        <div className="kpi-chip">
-          <span className="kpi-value">{sites.reduce((a, s) => a + s.interventions, 0).toLocaleString()}</span>
-          <span className="kpi-label">interventions</span>
-        </div>
+        {totalObs > 0 && (
+          <div className="kpi-chip">
+            <span className="kpi-value">{totalObs.toLocaleString()}</span>
+            <span className="kpi-label">observations</span>
+          </div>
+        )}
+        {totalInterventions > 0 && (
+          <div className="kpi-chip">
+            <span className="kpi-value">{totalInterventions.toLocaleString()}</span>
+            <span className="kpi-label">interventions</span>
+          </div>
+        )}
         {observationOverlay && observationOverlay.features?.length > 0 && (
           <div className="kpi-chip" style={{ background: 'rgba(230,81,0,0.12)', borderColor: '#e65100' }}>
             <span className="kpi-value" style={{ color: '#e65100' }}>{observationOverlay.features.length}</span>
