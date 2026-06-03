@@ -154,6 +154,9 @@ class WQPBugsAdapter(IngestionAdapter):
 
             reader = csvmod.DictReader(io.StringIO(csv_text))
             rows_list = list(reader)
+            # Sample mode (local staging): cap how many records we parse.
+            if self.sample_limit is not None:
+                rows_list = rows_list[: self.sample_limit]
             console.print(f"    {len(rows_list)} raw biological records")
 
             with engine.connect() as conn:

@@ -19,6 +19,7 @@ const PHOTOS: Record<string, string> = {
   shenandoah: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // Blue Ridge / Shenandoah valley overlook
   mad_river_oh: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&h=600&fit=crop', // spring-fed forested stream — Mad River OH
   ipswich_river_ma: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&h=600&fit=crop', // v0 placeholder (forested river/marsh) — needs Ipswich-specific photo
+  clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop', // v0 (Appalachian forested river) — needs Clinch-specific photo
 }
 
 interface WatershedData {
@@ -73,9 +74,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: 'New England\'s endangered river — smallmouth, herring runs, and a watershed that runs dry',
     narrative: 'The Ipswich River winds some 35 miles from headwaters near Wilmington through the marshes of Middleton, Topsfield, and Hamilton to Plum Island Sound. It is a predominantly freshwater smallmouth-and-largemouth river — with stocked and holdover trout, chain pickerel, and an anadromous river-herring run — but it is best known for what stresses it: heavy municipal groundwater withdrawals supplying roughly 330,000 people, most outside the basin, draw stretches dry each summer and landed it on American Rivers\' Most Endangered Rivers list (#8, 2021). Below the Ipswich Mills head-of-tide dam, the estuary opens into a striped-bass fishery on Ipswich Bay. It is the platform\'s first New England watershed.',
   },
+  clinch_river_va: {
+    tagline: 'Appalachia\'s rarest river — smallmouth, muskie, and the continent\'s richest mussel fauna',
+    narrative: 'The Clinch River flows southwest from headwaters near Tazewell through the limestone valleys and coalfields of southwest Virginia to the Tennessee line near Clinchport. Its warm main stem is a trophy smallmouth-bass, muskellunge, and walleye fishery, while cold tributaries like Big Cedar and Indian creeks hold trout. But the Clinch is globally renowned for what lives beneath the surface — the most diverse and imperiled freshwater-mussel fauna in North America (some 46 species) plus the endemic Clinch dace — making it a top global freshwater-biodiversity hotspot. Both main-stem gauges (Cleveland and Dungannon) report live water temperature. It is the platform\'s first Tennessee-River-basin watershed.',
+  },
 }
 
-const WATERSHED_ORDER = ['deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()

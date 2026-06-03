@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
+from pipeline.ingest.sample import cap_records, clamp_page
 from pipeline.models import Site
 
 # EPA ATTAINS Assessment GIS service (303d impaired waters)
@@ -46,6 +47,8 @@ def _insert_with_optional_geom(conn, sql_no_geom, sql_with_geom, params, geojson
 
 def _arcgis_query(client, url, bbox, extra_params=None, max_records=2000):
     """Generic ArcGIS REST query with bbox."""
+    # Sample mode (local staging): clamp how many features we ask for.
+    max_records = clamp_page(max_records)
     params = {
         "geometry": f"{bbox['west']},{bbox['south']},{bbox['east']},{bbox['north']}",
         "geometryType": "esriGeometryEnvelope",
@@ -70,7 +73,7 @@ def _arcgis_query(client, url, bbox, extra_params=None, max_records=2000):
             resp = client.get(url, params=params)
             if resp.status_code == 200:
                 try:
-                    return resp.json().get("features", [])
+                    return cap_records(resp.json().get("features", []))
                 except ValueError:
                     # 200 with an HTML/error body (service overloaded) — retry
                     last_err = "non-JSON 200 body"

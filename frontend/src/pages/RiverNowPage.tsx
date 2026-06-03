@@ -34,6 +34,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   shenandoah: [-78.20, 38.92],
   mad_river_oh: [-83.85, 40.05],
   ipswich_river_ma: [-71.02, 42.64],
+  clinch_river_va: [-82.30, 36.88],
   skagit: [-121.50, 48.45],
 }
 
@@ -63,7 +64,7 @@ export default function RiverNowPage() {
 
 import logo from '../assets/riverpath-logo.svg'
 
-const WATERSHED_ORDER = ['deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
 const PHOTOS: Record<string, string> = {
   deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop',
@@ -74,6 +75,7 @@ const PHOTOS: Record<string, string> = {
   shenandoah: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
   mad_river_oh: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&h=600&fit=crop',
   ipswich_river_ma: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&h=600&fit=crop',
+  clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {
@@ -86,6 +88,7 @@ const TAGLINES: Record<string, string> = {
   shenandoah: 'Blue Ridge headwaters, limestone springs, and smallmouth main stem',
   mad_river_oh: "Ohio's spring-fed brown-trout stream through carbonate country",
   ipswich_river_ma: "New England's endangered river — smallmouth, herring runs, and summer low flows",
+  clinch_river_va: "Appalachia's rarest river — smallmouth, muskie, and the continent's richest mussel fauna",
   skagit: 'All five salmon species in the shadow of the North Cascades',
 }
 
@@ -191,6 +194,7 @@ const WS_STATE_SOURCES: Record<string, { fishing: string[]; stocking: string[]; 
   shenandoah:  { fishing: ['virginia', 'west_virginia'],    stocking: ['virginia', 'west_virginia'],    access: ['recreation', 'virginia', 'west_virginia'],    attribution: 'VDGIF / WVDNR' },
   mad_river_oh:{ fishing: ['ohio_stocking'],                stocking: ['ohio_stocking'],                access: ['recreation', 'ohio_stocking'],                attribution: 'ODNR' },
   ipswich_river_ma:{ fishing: ['massachusetts'],           stocking: ['massachusetts'],                access: ['recreation', 'massachusetts'],                attribution: 'MassWildlife / MA DMF' },
+  clinch_river_va:{ fishing: ['virginia'],                 stocking: ['virginia'],                     access: ['recreation', 'virginia'],                     attribution: 'VA DWR' },
 }
 const DEFAULT_STATE_SOURCES = { fishing: ['fishing'], stocking: ['fishing'], access: ['recreation'], attribution: 'ODFW' }
 

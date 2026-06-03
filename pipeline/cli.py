@@ -6,6 +6,7 @@ from rich.table import Table
 
 from pipeline.config.watersheds import WATERSHEDS
 from pipeline.db import engine, get_session
+from pipeline.ingest.sample import DEFAULT_SAMPLE_MAX, set_sample
 from pipeline.models import Observation, Site, TimeSeries
 
 console = Console()
@@ -52,7 +53,22 @@ def main():
          "Used for backfill runs. Without this, each adapter uses its built-in "
          "delta-sync logic (last_sync timestamp).",
 )
-def ingest(source: str, watershed: str, from_date):
+@click.option(
+    "--sample",
+    is_flag=True,
+    default=False,
+    help="LOCAL STAGING ONLY: cap each source to a small subset of records "
+         "(see --sample-max) instead of the full volume, to verify a new "
+         "watershed's adapters/views/UI quickly. Never use in prod jobs.",
+)
+@click.option(
+    "--sample-max",
+    type=int,
+    default=None,
+    help="Per-source record cap when --sample is set "
+         f"(default: {DEFAULT_SAMPLE_MAX}).",
+)
+def ingest(source: str, watershed: str, from_date, sample: bool, sample_max):
     """Run ingestion pipeline for a data source."""
     from pipeline.ingest.biodata import BioDataAdapter
     from pipeline.ingest.fish_passage import FishPassageAdapter
@@ -120,6 +136,14 @@ def ingest(source: str, watershed: str, from_date):
     from_date_arg = from_date.date() if from_date else None
     if from_date_arg:
         console.print(f"[yellow]Backfill mode: from {from_date_arg}[/yellow]")
+
+    if sample:
+        cap = sample_max if sample_max is not None else DEFAULT_SAMPLE_MAX
+        set_sample(cap)
+        console.print(
+            f"[yellow]SAMPLE MODE: capping each source to ~{cap} records "
+            f"(local staging only — NOT for prod)[/yellow]"
+        )
 
     session = get_session()
     try:

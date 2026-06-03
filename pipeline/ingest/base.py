@@ -7,6 +7,7 @@ from datetime import date, datetime, timezone
 from rich.console import Console
 from sqlalchemy.orm import Session
 
+from pipeline.ingest.sample import sample_limit
 from pipeline.models import DataSource, IngestionJob
 
 console = Console()
@@ -32,6 +33,11 @@ class IngestionAdapter(ABC):
         self.session = session
         self.site_id = site_id
         self.from_date = from_date
+        # Per-source record cap for local sample-mode staging (None = full
+        # ingest). Set process-globally by the CLI's --sample flag; captured
+        # here so method-based adapters can consult self.sample_limit. See
+        # pipeline/ingest/sample.py. Never set in the prod Cloud Run jobs.
+        self.sample_limit = sample_limit()
 
     def get_last_sync(self) -> datetime | None:
         ds = (

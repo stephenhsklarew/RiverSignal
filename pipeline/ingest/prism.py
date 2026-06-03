@@ -63,6 +63,11 @@ class PRISMAdapter(IngestionAdapter):
 
         end = (datetime.now() - timedelta(days=2)).date()  # PRISM has ~1 day lag
 
+        # Sample mode (local staging): a few recent days proves the adapter +
+        # raster-sampling path without ~5.6 GB of raster downloads per watershed.
+        if self.sample_limit is not None:
+            start = max(start, end - timedelta(days=3))
+
         # Generate grid of sample points within the bbox (every ~0.05 degrees = ~5km)
         points = []
         step = 0.05

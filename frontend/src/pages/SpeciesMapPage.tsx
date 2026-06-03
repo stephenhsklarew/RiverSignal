@@ -26,6 +26,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   shenandoah: [-78.20, 38.92],
   mad_river_oh: [-83.85, 40.05],
   ipswich_river_ma: [-70.95, 42.65],
+  clinch_river_va: [-82.30, 36.88],
 }
 
 interface ObsFeature {

@@ -37,6 +37,7 @@ const WATERSHED_LABELS: Record<string, string> = {
   skagit: 'Skagit River', shenandoah: 'Shenandoah River',
   mad_river_oh: 'Mad River',
   ipswich_river_ma: 'Ipswich River',
+  clinch_river_va: 'Clinch River',
 }
 
 interface UserObservation {

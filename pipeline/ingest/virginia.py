@@ -99,6 +99,53 @@ def _is_shenandoah_water(waterbody: str, county: str) -> bool:
     return False
 
 
+# Clinch River (VA), HUC8 06010205. Warm-water main stem + a few cold tributaries.
+# GEOGRAPHY CAVEAT: the Clinch MOUNTAIN WMA waters (Big/Little Tumbling Creek,
+# Laurel Bed Lake) are named for the ridge but actually drain NORTH to the North
+# Fork Holston (Saltville) — they are NOT Clinch River basin and are deliberately
+# excluded. Likewise "Clinch Mountain [FFA]" in the DWR schedule is that Holston-
+# draining FFA, not the Clinch. Unambiguous waters match by substring; ambiguous
+# names (common across VA) only count inside a Clinch-drainage county.
+CLINCH_WATERS: tuple[str, ...] = (
+    "clinch river",
+    "big cedar creek",   # Russell Co — true Clinch tributary (The Channels)
+    "indian creek",      # Tazewell Co — Clinch headwaters tributary
+    "copper creek",      # Scott/Russell — Clinch tributary
+)
+CLINCH_AMBIGUOUS: tuple[str, ...] = (
+    # Multiple VA streams share these names — only attribute to Clinch inside a
+    # Clinch-drainage county. "Little River" → Clinch headwaters near Tazewell
+    # (but also a New trib in Floyd/Montgomery); "Big Stony Creek" → Clinch trib
+    # in Scott (Fort Blackmore) but a New trib in Giles.
+    "little river", "big stony creek",
+)
+CLINCH_COUNTIES: tuple[str, ...] = (
+    "tazewell", "russell", "wise", "scott",
+)
+
+
+def _is_clinch_water(waterbody: str, county: str) -> bool:
+    """Return True if this stocking row should be attributed to Clinch River (VA)."""
+    w = waterbody.lower()
+    c = county.lower().replace(" county", "").strip()
+    for name in CLINCH_WATERS:
+        if name in w:
+            return True
+    for name in CLINCH_AMBIGUOUS:
+        if name in w and c in CLINCH_COUNTIES:
+            return True
+    return False
+
+
+# Per-watershed stocking attribution. VA DWR publishes ONE statewide schedule;
+# each watershed gets only its own waters. Add a predicate when onboarding a new
+# VA watershed (see runbook §2.2).
+STOCKING_ATTRIBUTORS = {
+    "shenandoah": _is_shenandoah_water,
+    "clinch_river_va": _is_clinch_water,
+}
+
+
 # ── Adapter ─────────────────────────────────────────────────────────────────
 
 class VirginiaDataAdapter(IngestionAdapter):
@@ -127,8 +174,8 @@ class VirginiaDataAdapter(IngestionAdapter):
 
         # Only run for VA watersheds. Add new VA watersheds to this tuple
         # when onboarding them (see runbook §2.2 step 9 — watershed-scoping
-        # caveat). shenandoah is the v0 VA watershed.
-        if site.watershed not in ("shenandoah",):
+        # caveat).
+        if site.watershed not in ("shenandoah", "clinch_river_va"):
             console.print(f"    virginia: skipping {site.watershed} (not a VA watershed)")
             return 0, 0
 
@@ -160,6 +207,12 @@ class VirginiaDataAdapter(IngestionAdapter):
         so a follow-on bead must extend `gold.stocking_schedule` to UNION
         va_dwr rows too).
         """
+        # Pick the per-watershed attribution predicate. No predicate → this
+        # watershed has no stocking rules yet, so claim nothing.
+        is_our_water = STOCKING_ATTRIBUTORS.get(site.watershed)
+        if is_our_water is None:
+            return 0
+
         resp = client.get(VA_DWR_STOCKING_URL)
         resp.raise_for_status()
         html = resp.text
@@ -224,7 +277,7 @@ class VirginiaDataAdapter(IngestionAdapter):
             if not species_list:
                 continue
 
-            if not _is_shenandoah_water(waterbody, county):
+            if not is_our_water(waterbody, county):
                 continue
 
             started_at = None

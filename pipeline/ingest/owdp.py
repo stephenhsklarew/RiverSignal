@@ -154,7 +154,12 @@ class OWDPAdapter(IngestionAdapter):
 
             console.print(f"    parsing {len(lines) - 1} water quality records...")
 
-            for line in lines[1:]:
+            data_lines = lines[1:]
+            # Sample mode (local staging): cap how many WQP rows we parse.
+            if self.sample_limit is not None:
+                data_lines = data_lines[: self.sample_limit]
+
+            for line in data_lines:
                 fields = _parse_csv_line(line)
                 if len(fields) <= max(station_col, char_col, value_col, date_col):
                     continue
