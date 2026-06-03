@@ -33,7 +33,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   metolius: [-121.57, 44.50],
   shenandoah: [-78.20, 38.92],
   mad_river_oh: [-83.85, 40.05],
-  ipswich_river_ma: [-70.95, 42.65],
+  ipswich_river_ma: [-71.02, 42.64],
   skagit: [-121.50, 48.45],
 }
 

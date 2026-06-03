@@ -31,7 +31,7 @@ const WATERSHEDS = [
   { id: 'mad_river_oh', name: 'Mad River (OH)', lat: 40.05, lon: -83.85,
     photo: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&h=400&fit=crop',
     caption: 'Ordovician–Devonian carbonate fossils & glacial erratics' },
-  { id: 'ipswich_river_ma', name: 'Ipswich River (MA)', lat: 42.65, lon: -70.95,
+  { id: 'ipswich_river_ma', name: 'Ipswich River (MA)', lat: 42.64, lon: -71.02,
     photo: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&h=400&fit=crop',
     caption: 'Avalon/Nashoba-terrane granite & gneiss; glacial drumlins & salt marsh' },
   { id: 'skagit', name: 'Skagit River', lat: 48.45, lon: -121.50,
