@@ -22,8 +22,8 @@ const WATERSHEDS = [
   { value: 'skagit',      label: 'Skagit' },
   { value: 'green_river', label: 'Green River' },
   { value: 'shenandoah',  label: 'Shenandoah' },
-  { value: 'mad_river_oh', label: 'Mad River (OH)' },
-  { value: 'ipswich_river_ma', label: 'Ipswich River (MA)' },
+  { value: 'mad_river_oh', label: 'Mad River' },
+  { value: 'ipswich_river_ma', label: 'Ipswich River' },
 ]
 
 function wsLabel(value: string): string {

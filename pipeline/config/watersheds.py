@@ -177,7 +177,7 @@ WATERSHEDS = {
         },
     },
     "ipswich_river_ma": {
-        "name": "Ipswich River (MA)",
+        "name": "Ipswich River",
         "description": (
             "Ipswich River from headwaters near Burlington/Wilmington (MA) "
             "through Middleton, Topsfield, and Hamilton to Plum Island Sound "
