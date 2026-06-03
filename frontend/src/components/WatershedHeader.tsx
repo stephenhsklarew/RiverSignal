@@ -10,8 +10,8 @@ const WATERSHED_LABELS: Record<string, string> = {
   klamath: 'Upper Klamath Basin', johnday: 'John Day River', skagit: 'Skagit River',
   green_river: 'Green River',
   shenandoah: 'Shenandoah River',
-  mad_river_oh: 'Mad River (OH)',
-  ipswich_river_ma: 'Ipswich River (MA)',
+  mad_river_oh: 'Mad River',
+  ipswich_river_ma: 'Ipswich River',
 }
 
 export const WS_STORAGE_KEY = 'riverpath-selected-watershed'

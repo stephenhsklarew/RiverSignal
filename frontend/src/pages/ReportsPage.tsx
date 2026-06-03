@@ -15,8 +15,8 @@ const WATERSHEDS = [
   { id: 'klamath', name: 'Upper Klamath Basin' },
   { id: 'johnday', name: 'John Day River' },
   { id: 'shenandoah', name: 'Shenandoah River' },
-  { id: 'mad_river_oh', name: 'Mad River (OH)' },
-  { id: 'ipswich_river_ma', name: 'Ipswich River (MA)' },
+  { id: 'mad_river_oh', name: 'Mad River' },
+  { id: 'ipswich_river_ma', name: 'Ipswich River' },
   { id: 'skagit', name: 'Skagit River' },
 ]
 
