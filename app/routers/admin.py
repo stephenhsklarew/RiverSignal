@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from app.lib.admin_auth import get_current_admin
+from pipeline.config.watersheds import WATERSHEDS
 from pipeline.db import engine
 
 
@@ -39,13 +40,13 @@ router = APIRouter(tags=["admin"])
 # can do a single OR-style match without NULL semantics.
 GLOBAL_WATERSHED = '*'
 
-# Allowlist used by the watershed-scope selector; mirrors WATERSHEDS in
-# pipeline/config/watersheds.py. Kept in code so a malformed query string
-# can't insert a row with an arbitrary watershed value.
-VALID_WATERSHEDS = {
-    'mckenzie', 'deschutes', 'metolius', 'klamath', 'johnday',
-    'skagit', 'green_river', 'shenandoah', 'mad_river_oh',
-}
+# Allowlist used by the watershed-scope selector — still rejects arbitrary
+# query-string values, but DERIVED from pipeline/config/watersheds.py rather
+# than a hand-maintained copy, so newly-onboarded watersheds (e.g.
+# ipswich_river_ma) are accepted automatically and never 404 the admin photo
+# editor again. (A hand-maintained mirror drifted and broke /admin/photos for
+# Ipswich.)
+VALID_WATERSHEDS = set(WATERSHEDS)
 
 
 def _validate_watershed(watershed: str) -> str:
