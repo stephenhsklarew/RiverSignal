@@ -100,8 +100,12 @@ class OWDPAdapter(IngestionAdapter):
                     break
 
             if resp is None or resp.status_code != 200:
-                console.print("    [yellow]WQP API unavailable, skipping[/yellow]")
-                return 0, 0
+                # RAISE (don't return 0,0) so run() marks the job failed and
+                # last_sync is NOT advanced. Returning here let a transient WQP
+                # outage advance last_sync to "now", so every later run did an
+                # empty incremental window and never back-filled — the root
+                # cause of the ipswich_river_ma wqp=0 bead (RiverSignal-06b25aed).
+                raise RuntimeError("WQP API unavailable after retries; not advancing last_sync")
 
             lines = resp.text.strip().split("\n")
             if len(lines) < 2:
@@ -183,9 +187,11 @@ class OWDPAdapter(IngestionAdapter):
                         "unit": stmt.excluded.unit,
                     },
                 )
-                result = self.session.execute(stmt)
-                if result.rowcount > 0:
-                    created += 1
+                self.session.execute(stmt)
+                # rowcount is unreliable for ON CONFLICT upserts (the driver may
+                # report -1), which made every run log "0 created" even when
+                # thousands of rows landed. Count rows written instead.
+                created += 1
 
             self.session.flush()
 
