@@ -38,7 +38,9 @@ from datetime import datetime, timezone
 import httpx
 from sqlalchemy import text
 
+from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
+from pipeline.ingest.geology import _arcgis_query_paginated, _esri_rings_to_geojson
 from pipeline.models import Site
 
 
@@ -46,6 +48,12 @@ from pipeline.models import Site
 
 MA_DFW_STOCKING_URL = "https://www.mass.gov/info-details/trout-stocking-report"
 MA_DMF_HERRING_URL  = "https://www.mass.gov/info-details/diadromous-fisheries-project"
+# MassGIS 1:24k Surficial Geology overlay (glacial drift / till / outwash /
+# shallow-bedrock units) — queryable ArcGIS MapServer on the state's own server.
+# Surficial (not bedrock) is the high-value layer here: the Ipswich basin is a
+# glacially-shaped New-England landscape (drumlins, outwash, salt marsh).
+# License: MassGIS open public data, commercial:true.
+MASSGIS_SURFGEO_URL = "https://arcgisserver.digital.mass.gov/arcgisserver/rest/services/AGOL/SurfGeo24k/MapServer/0/query"
 
 # Browser-like UA — mass.gov 403s the default httpx UA. Even with this, the
 # stocking report is JS-rendered, so a static fetch will usually find no table;
@@ -101,6 +109,7 @@ class MassachusettsDataAdapter(IngestionAdapter):
     SUB_SOURCES: list[tuple[str, str]] = [
         ("MassWildlife Stocking", "_ingest_dfw_stocking"),
         ("MA DMF Herring",        "_ingest_dmf_herring"),
+        ("MassGIS Surficial Geology", "_ingest_massgis_geology"),
     ]
 
     def ingest(self) -> tuple[int, int]:
@@ -250,3 +259,72 @@ class MassachusettsDataAdapter(IngestionAdapter):
         """
         console.print("      [dim]_ingest_dmf_herring: not yet implemented (scaffold)[/dim]")
         return 0
+
+    def _ingest_massgis_geology(self, client, site) -> int:
+        """MassGIS 1:24k surficial-geology polygons in the watershed bbox.
+
+        Mirrors the VGS/DOGAMI pattern (ArcGIS REST polygons -> geologic_units).
+        SurfGeo24k has no numeric ages (it's Quaternary surficial cover), so
+        age_min_ma/age_max_ma/period stay NULL like DOGAMI/VGS rows. Fields:
+        LABEL/SYMBOL (unit code), TYPE (unit type), NOTES (description).
+        """
+        bbox = site.bbox
+        if not bbox:
+            return 0
+        features = _arcgis_query_paginated(client, MASSGIS_SURFGEO_URL, bbox, max_per_page=1000)
+        if not features:
+            return 0
+
+        SQL = text("""
+            INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                geometry, data_payload)
+            VALUES (gen_random_uuid(), 'massgis', :source_id, :unit_name, :formation,
+                :rock_type, :lithology, NULL, NULL, NULL, :description,
+                ST_GeomFromGeoJSON(:geojson), CAST(:payload AS jsonb))
+            ON CONFLICT DO NOTHING
+        """)
+        SQL_NO_GEOM = text("""
+            INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                data_payload)
+            VALUES (gen_random_uuid(), 'massgis', :source_id, :unit_name, :formation,
+                :rock_type, :lithology, NULL, NULL, NULL, :description,
+                CAST(:payload AS jsonb))
+            ON CONFLICT DO NOTHING
+        """)
+
+        existing_ids = {
+            row[0] for row in self.session.execute(
+                text("SELECT source_id FROM geologic_units WHERE source = 'massgis'")
+            )
+        }
+
+        created = 0
+        with engine.connect() as conn:
+            for f in features:
+                attrs = f.get("attributes", {}) or {}
+                source_id = str(attrs.get("OBJECTID", ""))
+                if not source_id or source_id in existing_ids:
+                    continue
+                geojson = _esri_rings_to_geojson(f.get("geometry"))
+                unit_code = (attrs.get("LABEL") or attrs.get("SYMBOL") or "")[:255]
+                unit_type = (attrs.get("TYPE") or "")[:255]
+                description = attrs.get("NOTES") or ""
+                params = {
+                    "source_id": source_id,
+                    "unit_name": unit_code,
+                    "formation": unit_type,
+                    "rock_type": unit_type[:100],
+                    "lithology": "",
+                    "description": description,
+                    "payload": json.dumps(attrs),
+                }
+                if geojson:
+                    params["geojson"] = geojson
+                    conn.execute(SQL, params)
+                else:
+                    conn.execute(SQL_NO_GEOM, params)
+                created += 1
+            conn.commit()
+        return created
