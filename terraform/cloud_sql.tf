@@ -55,6 +55,15 @@ resource "google_sql_database_instance" "db" {
   deletion_protection = true
 
   depends_on = [google_service_networking_connection.private_vpc]
+
+  lifecycle {
+    # disk_autoresize=true means Cloud SQL grows the disk automatically; the
+    # configured disk_size is only a floor. Ignore it so an auto-grown disk
+    # (observed 31 -> 37 GB) never reads as a shrink that FORCES A
+    # DESTROY/RECREATE of the prod instance. A `terraform plan` on 2026-06-03
+    # wanted to replace google_sql_database_instance.db for exactly this reason.
+    ignore_changes = [settings[0].disk_size]
+  }
 }
 
 resource "google_sql_database" "app" {
