@@ -25,6 +25,7 @@ from sqlalchemy import text
 
 from app.lib.phone_crypto import decrypt_phone
 from app.lib.telnyx import send_sms
+from pipeline.config.watersheds import watershed_name
 from pipeline.db import engine
 
 
@@ -57,33 +58,26 @@ class UserSend:
     matches: list[Match]
 
 
-WATERSHED_DISPLAY = {
-    "mckenzie":    "McKenzie",
-    "deschutes":   "Deschutes",
-    "metolius":    "Metolius",
-    "klamath":     "Klamath",
-    "johnday":     "John Day",
-    "skagit":      "Skagit",
-    "green_river": "Green River",
-}
-
-
 def compose_body(matches: list[Match]) -> str:
     """Single SMS body for one user — handles digest mode for multi-watershed.
 
     Single match: "Deschutes is forecast Excellent for Saturday (TQS 85). Open: <link>"
     Multi-match:  "Excellent conditions: Deschutes Sat (85), Metolius Sun (82). Open: <link>"
+
+    Watershed display names come from the canonical registry (watershed_name)
+    so newly-onboarded watersheds never fall back to a raw key like
+    "mad_river_oh" in user-facing copy.
     """
     weekday = lambda d: d.strftime("%a")
     if len(matches) == 1:
         m = matches[0]
-        name = WATERSHED_DISPLAY.get(m.watershed, m.watershed)
+        name = watershed_name(m.watershed)
         return (
             f"{name} is forecast Excellent for {weekday(m.target_date)} (TQS {m.tqs}). "
             f"Open RiverPath: {SHORT_LINK_BASE}/{m.watershed}"
         )
     parts = [
-        f"{WATERSHED_DISPLAY.get(m.watershed, m.watershed)} {weekday(m.target_date)} ({m.tqs})"
+        f"{watershed_name(m.watershed)} {weekday(m.target_date)} ({m.tqs})"
         for m in matches
     ]
     return (

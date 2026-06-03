@@ -22,6 +22,7 @@ from app.lib.telnyx import (
     verify_webhook_signature,
 )
 from app.routers.auth import get_current_user
+from pipeline.config.watersheds import VALID_WATERSHEDS
 from pipeline.db import engine
 
 
@@ -132,19 +133,23 @@ def post_confirm_verification(
     if not ok:
         raise HTTPException(400, "Verification code is incorrect or expired")
 
-    # Persist encrypted phone + verification timestamp.
+    # Persist encrypted phone + a deterministic, key-bound hash for inbound
+    # STOP lookups (AES-GCM ciphertext is non-deterministic, so it can't be
+    # queried by; the hash can) + verification timestamp.
     encrypted = encrypt_phone(body.phone)
+    phone_hash = hash_phone_for_lookup(body.phone)
     with engine.connect() as conn:
         with conn.begin():
             conn.execute(
                 text("""
                     UPDATE users
                     SET phone_number_e164_encrypted = :enc,
+                        phone_hash = :phash,
                         phone_verified_at = now(),
                         sms_paused = false
                     WHERE id = :uid
                 """),
-                {"enc": encrypted, "uid": user["id"]},
+                {"enc": encrypted, "phash": phone_hash, "uid": user["id"]},
             )
     return {"verified": True}
 
@@ -167,9 +172,7 @@ class SubscriptionPayload(BaseModel):
     def _w(cls, v: list[str]) -> list[str]:
         if not v:
             raise ValueError("at least one watershed is required")
-        valid = {"mckenzie", "deschutes", "metolius", "klamath",
-                 "johnday", "skagit", "green_river"}
-        bad = [w for w in v if w not in valid]
+        bad = [w for w in v if w not in VALID_WATERSHEDS]
         if bad:
             raise ValueError(f"unknown watershed(s): {bad}")
         return v
@@ -313,25 +316,16 @@ async def inbound_webhook(request: Request):
 
     cmd = body_text.split()[0] if body_text else ""
     if cmd in {"STOP", "STOPALL", "UNSUBSCRIBE", "QUIT", "CANCEL", "END"}:
-        # Look up user by deterministic phone hash; flip sms_paused atomically.
+        # Pause only the sender: match the deterministic, key-bound phone hash
+        # stored at confirm-verification. (Telnyx also enforces STOP at the
+        # messaging-profile level; this keeps our own state consistent.)
         phone_hash = hash_phone_for_lookup(from_e164)
         with engine.connect() as conn:
             with conn.begin():
                 conn.execute(
-                    text("""
-                        UPDATE users
-                        SET sms_paused = true
-                        WHERE digest(encode(phone_number_e164_encrypted, 'escape'), 'sha256') = :h
-                           OR phone_number_e164_encrypted IS NOT NULL
-                           -- Fallback: we'll iterate verified users below if hash doesn't match.
-                    """),
+                    text("UPDATE users SET sms_paused = true WHERE phone_hash = :h"),
                     {"h": phone_hash},
                 )
-        # NB: the proper deterministic lookup uses phone_hash_for_lookup which
-        # was hashed at register time; we don't currently store it. A small
-        # follow-up: add phone_hash column populated at confirm-verification
-        # and use here. For MVP we trust the carrier's STOP enforcement (Telnyx
-        # auto-marks the number opted-out at the messaging-profile level).
         return {"ok": True}
 
     if cmd in {"HELP", "INFO"}:
