@@ -23,6 +23,7 @@ const WATERSHEDS: Record<string, string> = {
   shenandoah:  'Shenandoah',
   mad_river_oh: 'Mad River',
   ipswich_river_ma: 'Ipswich River',
+  clinch_river_va: 'Clinch River',
 }
 const READING_LEVELS = ['kids', 'adult', 'expert'] as const
 

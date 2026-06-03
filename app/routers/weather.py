@@ -20,6 +20,7 @@ WS_COORDS = {
     "shenandoah": (38.92, -78.20),    # Shenandoah Valley centroid (between forks confluence and main stem)
     "mad_river_oh": (40.05, -83.85),  # Mad River basin centroid near the Eagle City gauge / C&R trout section
     "ipswich_river_ma": (42.65, -70.95),  # Ipswich basin centroid (Topsfield/Middleton); NWS office BOX (Norton MA)
+    "clinch_river_va": (36.88, -82.30),  # VA Clinch corridor centroid (Russell Co, between Cleveland and Dungannon); NWS office RNK (Blacksburg)
 }
 
 # USGS gauge station IDs per watershed (primary stations)
@@ -34,6 +35,7 @@ WS_GAUGES = {
     "shenandoah": ["01631000", "01634000", "01636500"],  # SF at Front Royal, NF at Strasburg, Main Stem at Millville WV
     "mad_river_oh": ["03267900", "03269500"],  # Mad R at Eagle City (upper/trout), Mad R nr Springfield (lower)
     "ipswich_river_ma": ["01101500", "01102000"],  # Ipswich R at South Middleton (upper), nr Ipswich (lower)
+    "clinch_river_va": ["03524000", "03524740"],  # Clinch at Cleveland (flow+temp), at Dungannon (temp+conductance+pH, no discharge)
 }
 
 # Simple in-memory cache: {key: (timestamp, data)}
