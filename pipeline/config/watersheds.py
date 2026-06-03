@@ -205,6 +205,35 @@ WATERSHEDS = {
             "west": -71.25,
         },
     },
+    "clinch_river_va": {
+        "name": "Clinch River",
+        "description": (
+            "Clinch River from headwaters near Tazewell, VA (Little River "
+            "forks) flowing southwest through Russell, Wise, and Scott "
+            "counties to the Tennessee state line near Clinchport. The "
+            "platform's first Tennessee-River-basin watershed (HUC8 06010205, "
+            "Upper Clinch). Warm-water main-stem fishery — smallmouth bass, "
+            "muskellunge, walleye/sauger, rock bass and sunfish — with stocked "
+            "and wild trout in the cold Clinch Mountain freestone tributaries. "
+            "Globally significant aquatic biodiversity: the most imperiled "
+            "freshwater-mussel fauna in North America plus the endemic Clinch "
+            "dace. Both main-stem gauges (03524000 Cleveland, 03524740 "
+            "Dungannon) report water temperature."
+        ),
+        # HUC8 06010205 (Upper Clinch), refined to the VA Clinch main-stem
+        # corridor (Tazewell → TN line near Clinchport) + ~0.05° buffer. East
+        # bound pulled to -81.48 to trim the eastward bleed into the Russell
+        # Fork / Bluestone (Big Sandy / New basins); west bound clears
+        # Clinchport. Keeps both main-stem gauges (03524000 Cleveland @
+        # 36.945,-82.155; 03524740 Dungannon @ 36.831,-82.462) and Tazewell.
+        # Does NOT cross into TN (Clinch continues to Norris Lake, out of scope).
+        "bbox": {
+            "north": 37.18,
+            "south": 36.58,
+            "east": -81.48,
+            "west": -82.85,
+        },
+    },
 }
 
 
