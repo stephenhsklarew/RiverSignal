@@ -99,25 +99,28 @@ def _is_shenandoah_water(waterbody: str, county: str) -> bool:
     return False
 
 
-# Clinch River (VA), HUC8 06010205. Warm-water main stem + cold Clinch Mountain
-# freestone trout tributaries (Clinch Mtn WMA). Unambiguous waters match by
-# substring; ambiguous names (common across VA) only count inside a Clinch-
-# drainage county — mirrors the Mill Creek guard above. Add waters as DWR
-# review identifies them.
+# Clinch River (VA), HUC8 06010205. Warm-water main stem + a few cold tributaries.
+# GEOGRAPHY CAVEAT: the Clinch MOUNTAIN WMA waters (Big/Little Tumbling Creek,
+# Laurel Bed Lake) are named for the ridge but actually drain NORTH to the North
+# Fork Holston (Saltville) — they are NOT Clinch River basin and are deliberately
+# excluded. Likewise "Clinch Mountain [FFA]" in the DWR schedule is that Holston-
+# draining FFA, not the Clinch. Unambiguous waters match by substring; ambiguous
+# names (common across VA) only count inside a Clinch-drainage county.
 CLINCH_WATERS: tuple[str, ...] = (
     "clinch river",
-    "big tumbling creek", "little tumbling creek",
-    "laurel bed creek", "laurel bed lake",
-    "big cedar creek", "indian creek", "copper creek",
+    "big cedar creek",   # Russell Co — true Clinch tributary (The Channels)
+    "indian creek",      # Tazewell Co — Clinch headwaters tributary
+    "copper creek",      # Scott/Russell — Clinch tributary
 )
 CLINCH_AMBIGUOUS: tuple[str, ...] = (
-    # Multiple VA streams share these names (e.g. Little River → New basin in
-    # Floyd/Montgomery; Big Stony Creek → New basin in Giles; Roaring Fork in
-    # several WMAs) — only attribute to Clinch inside a Clinch county.
-    "little river", "big stony creek", "roaring fork",
+    # Multiple VA streams share these names — only attribute to Clinch inside a
+    # Clinch-drainage county. "Little River" → Clinch headwaters near Tazewell
+    # (but also a New trib in Floyd/Montgomery); "Big Stony Creek" → Clinch trib
+    # in Scott (Fort Blackmore) but a New trib in Giles.
+    "little river", "big stony creek",
 )
 CLINCH_COUNTIES: tuple[str, ...] = (
-    "tazewell", "russell", "wise", "scott", "smyth",
+    "tazewell", "russell", "wise", "scott",
 )
 
 
