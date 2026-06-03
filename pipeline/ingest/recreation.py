@@ -21,6 +21,7 @@ from rich.console import Console
 from sqlalchemy import text
 
 from pipeline.ingest.base import IngestionAdapter
+from pipeline.ingest.sample import cap_records, clamp_page
 from pipeline.models import Site
 
 console = Console()
@@ -66,6 +67,8 @@ def _arcgis_bbox_query(client, url, bbox, extra_params=None, max_records=2000):
 
     bbox can be a dict {west, south, east, north} or a list [west, south, east, north].
     """
+    # Sample mode (local staging): clamp how many features we ask for.
+    max_records = clamp_page(max_records)
     if isinstance(bbox, dict):
         geom_str = f"{bbox['west']},{bbox['south']},{bbox['east']},{bbox['north']}"
     else:
@@ -89,7 +92,7 @@ def _arcgis_bbox_query(client, url, bbox, extra_params=None, max_records=2000):
             resp = client.get(url, params=params, timeout=30)
             if resp.status_code == 200:
                 data = resp.json()
-                return data.get("features", [])
+                return cap_records(data.get("features", []))
         except (httpx.ConnectError, httpx.ReadTimeout):
             time.sleep(3)
     return []

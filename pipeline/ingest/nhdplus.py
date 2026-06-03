@@ -13,6 +13,7 @@ from sqlalchemy import text
 
 from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
+from pipeline.ingest.sample import should_stop
 from pipeline.models import Site
 
 # NHDPlus HR ArcGIS REST service (richer attributes than standard NHD)
@@ -143,6 +144,9 @@ class NHDPlusAdapter(IngestionAdapter):
                     conn.commit()
 
                 if not data.get("exceededTransferLimit") and len(features) < 2000:
+                    break
+                # Sample mode (local staging): one page of flowlines is enough.
+                if should_stop(created):
                     break
                 offset += 2000
 

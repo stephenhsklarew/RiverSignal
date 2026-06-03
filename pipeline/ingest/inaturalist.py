@@ -9,6 +9,7 @@ from sqlalchemy import text
 
 from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
+from pipeline.ingest.sample import should_stop
 from pipeline.models import Site
 
 API_BASE = "https://api.inaturalist.org/v1"
@@ -162,6 +163,11 @@ class INaturalistAdapter(IngestionAdapter):
                     )
 
                 if len(results) < PAGE_SIZE:
+                    break
+
+                # Sample mode (local staging): stop once the cap is reached.
+                if should_stop(created):
+                    console.print(f"\n    [yellow]sample cap reached ({created} obs)[/yellow]")
                     break
 
                 time.sleep(RATE_LIMIT_DELAY)

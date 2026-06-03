@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
+from pipeline.ingest.sample import cap_records, clamp_page, sample_limit, should_stop
 from pipeline.models import Site
 
 # Macrostrat API — geologic units with full GeoJSON geometry
@@ -66,6 +67,8 @@ def _esri_rings_to_geojson(geom: dict) -> str | None:
 
 def _arcgis_query_paginated(client, url, bbox, extra_params=None, max_per_page=1000):
     """ArcGIS REST query with pagination via resultOffset."""
+    # Sample mode (local staging): shrink the page and stop after one page.
+    max_per_page = clamp_page(max_per_page)
     all_features = []
     offset = 0
     while True:
@@ -91,6 +94,9 @@ def _arcgis_query_paginated(client, url, bbox, extra_params=None, max_per_page=1
                     data = resp.json()
                     features = data.get("features", [])
                     all_features.extend(features)
+                    # Sample mode: one page is enough for local staging.
+                    if sample_limit() is not None:
+                        return cap_records(all_features)
                     # Check if more pages
                     if len(features) < max_per_page or data.get("exceededTransferLimit") is False:
                         return all_features
@@ -170,8 +176,13 @@ class GeologicUnitsAdapter(IngestionAdapter):
 
         with httpx.Client(timeout=30) as client, engine.connect() as conn:
             for lat_i in range(lat_steps):
+                # Sample mode (local staging): stop sweeping the grid once capped.
+                if should_stop(created):
+                    break
                 lat = bbox["south"] + (lat_i + 0.5) * (bbox["north"] - bbox["south"]) / lat_steps
                 for lon_i in range(lon_steps):
+                    if should_stop(created):
+                        break
                     lon = bbox["west"] + (lon_i + 0.5) * (bbox["east"] - bbox["west"]) / lon_steps
 
                     for attempt in range(3):
@@ -289,7 +300,8 @@ class PBDBFossilAdapter(IngestionAdapter):
                 "latmin": bbox["south"],
                 "latmax": bbox["north"],
                 "show": "coords,class,loc,time,ref",
-                "limit": "all",
+                # Sample mode (local staging): a numeric cap instead of "all".
+                "limit": str(sample_limit()) if sample_limit() is not None else "all",
             }
 
             resp = client.get(PBDB_URL, params=params)
@@ -297,7 +309,7 @@ class PBDBFossilAdapter(IngestionAdapter):
                 raise ValueError(f"PBDB API returned {resp.status_code}")
 
             data = resp.json()
-            records = data.get("records", [])
+            records = cap_records(data.get("records", []))
             console.print(f"    received {len(records)} fossil occurrences")
 
             if not records:
@@ -426,9 +438,13 @@ class BLMLandOwnershipAdapter(IngestionAdapter):
                         time.sleep(5)
                 else:
                     break
+                # Sample mode (local staging): one page is enough.
+                if sample_limit() is not None:
+                    break
                 if not features or len(features) < 1000:
                     break
 
+            all_features = cap_records(all_features)
             console.print(f"    received {len(all_features)} land ownership records")
 
             if not all_features:
@@ -845,6 +861,9 @@ class MRDSAdapter(IngestionAdapter):
 
                 if batch_count < 500:
                     break
+                # Sample mode (local staging): one page is enough.
+                if should_stop(created):
+                    break
                 offset += batch_count
 
         # Post-insert image enrichment: propagate image_url from any row
@@ -989,6 +1008,9 @@ class IDigBioFossilAdapter(IngestionAdapter):
                     conn.commit()
 
                 if len(items) < page_size:
+                    break
+                # Sample mode (local staging): one page is enough.
+                if should_stop(created):
                     break
                 offset += len(items)
                 time.sleep(0.5)  # Rate limiting

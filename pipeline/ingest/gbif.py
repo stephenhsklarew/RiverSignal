@@ -14,6 +14,7 @@ from sqlalchemy import text
 
 from pipeline.db import engine
 from pipeline.ingest.base import IngestionAdapter, console
+from pipeline.ingest.sample import cap_records, sample_limit
 from pipeline.models import Site
 
 GBIF_URL = "https://api.gbif.org/v1/occurrence/search"
@@ -91,10 +92,14 @@ class GBIFFossilAdapter(IngestionAdapter):
 
                     if data.get("endOfRecords", True) or len(results) < limit:
                         break
+                    # Sample mode (local staging): one page is enough.
+                    if sample_limit() is not None:
+                        break
                     offset += limit
                     if offset > 5000:  # safety cap
                         break
 
+            all_records = cap_records(all_records)
             console.print(f"    {len(all_records)} GBIF fossil specimens")
 
             if not all_records:

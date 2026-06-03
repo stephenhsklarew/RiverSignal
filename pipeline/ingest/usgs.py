@@ -80,6 +80,12 @@ class USGSAdapter(IngestionAdapter):
 
                 values_list = ts.get("values", [{}])[0].get("value", [])
 
+                # Sample mode (local staging): keep the most-recent N daily
+                # values PER station so every gauge stays represented (flow
+                # bands / TQS need each reach's gauge), just with less history.
+                if self.sample_limit is not None:
+                    values_list = values_list[-self.sample_limit:]
+
                 for v in values_list:
                     try:
                         val = float(v.get("value", ""))

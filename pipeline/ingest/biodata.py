@@ -106,6 +106,10 @@ class BioDataAdapter(IngestionAdapter):
                 console.print("    no biological records")
                 return 0, 0
 
+            # Sample mode (local staging): cap how many records we parse.
+            if self.sample_limit is not None:
+                rows_list = rows_list[: self.sample_limit]
+
             console.print(f"    parsing {len(rows_list)} biological records...")
 
             with engine.connect() as conn:

@@ -25,7 +25,7 @@ Before running, supply these values:
 | Var | Example | Notes |
 |---|---|---|
 | `WATERSHED_SLUG` | `yellowstone_upper` | snake_case; used in DB rows, file paths, route params |
-| `WATERSHED_DISPLAY` | `Upper Yellowstone River` | shown in UI |
+| `WATERSHED_DISPLAY` | `Upper Yellowstone River` | shown in UI; **no state-acronym suffix** (e.g. "New River", not "New River (VA)") — see §2.1 |
 | `WATERSHED_STATES` | `MT,WY` | comma-separated USPS codes |
 | `HEADWATERS_DESCRIPTION` | `Yellowstone Lake outflow in Yellowstone NP` | one sentence |
 | `MOUTH_DESCRIPTION` | `Confluence with Missouri at Buford, ND` | one sentence; if confluence is into another tracked watershed, name the existing slug |
@@ -402,6 +402,16 @@ Add an entry to `pipeline/config/watersheds.py`:
 
 Bbox must be the refined value from §1.2, not the user-supplied `BBOX_HINT`.
 
+**Display name must NOT carry a state-acronym suffix.** Use `"name": "New River"`,
+`"Clinch River"`, `"Ipswich River"` — never `"New River (VA)"`, `"Ipswich River (MA)"`,
+`"Mad River (OH)"`. The slug still encodes the state (`new_river_va`); only the
+human-facing `name` must be suffix-free. The `/riversignal` picker reads `site.name`
+(stripping " River"), so a suffix surfaces as e.g. "Ipswich (MA)". This is a standing
+user preference — corrected twice. Carry the suffix-free name through consistently:
+`watersheds.py` `name`, the seeded `sites.name` (§2.4 Phase-1 migration), and the
+frontend `WATERSHED_LABELS` (§2.6). If a stale suffix already reached the DB, it needs an
+`UPDATE sites SET name=...` migration — a config/frontend edit alone won't reach the row.
+
 ### 2.2 New state-agency adapters (only when §1.3 flagged `NEW adapter required`)
 
 **ADR-008 requirement.** Every new adapter MUST declare a license + commercial-use flag, per
@@ -467,7 +477,37 @@ Each adapter ships as its own commit.
 
 ### 2.3 Run all applicable existing adapters scoped to the new watershed
 
-In this order (each command is one commit-worthy log entry; failures are captured but don't halt):
+**LOCAL STAGING USES SAMPLE MODE — do not pull the full source volume locally.**
+The point of the local run is to confirm every adapter, medallion view, API endpoint,
+and UI surface *works* for the new watershed before it ships; it is NOT to mirror prod's
+full dataset on your laptop. A full local pull is wasteful and slow — iNaturalist alone
+has run to 260k+ observations for a single bbox, NHDPlus to 100k+ flowlines, and PRISM's
+default 6-month seed is ~5.6 GB of raster downloads per watershed.
+
+Pass **`--sample`** to every local `ingest` command (optionally `--sample-max N`, default
+~400 records/features per source). It caps each source to a small representative subset
+(well under 10% of real volume) — enough to exercise every parse/write path and light up
+each surface. The cap is enforced in `pipeline/ingest/sample.py` and consulted by the
+high-volume adapters (iNaturalist, USGS, NHDPlus, macrostrat, PBDB, GBIF, iDigBio, MRDS,
+BLM, WBD/wetlands/impaired, recreation, WQP, biodata, wqp_bugs, PRISM) and the shared
+ArcGIS helpers. Smaller adapters (snotel, mtbs, restoration) are already fast and a no-op
+under sampling. So the local commands look like:
+
+```
+python -m pipeline.cli ingest wbd          -w <WATERSHED_SLUG> --sample
+python -m pipeline.cli ingest usgs         -w <WATERSHED_SLUG> --sample
+python -m pipeline.cli ingest inaturalist  -w <WATERSHED_SLUG> --sample
+...                                                            # --sample on EVERY line
+```
+
+**`--sample` is a local-staging convenience ONLY. NEVER add it to the Cloud Run job args
+(`terraform/cloud_run_jobs.tf`) — prod must always ingest the full source.** The prod
+one-shot ingests at §2.8 Gate 2 run WITHOUT `--sample`, which is what gives the new
+watershed its real data. Note that with sampling, the §3.1 local row counts will be small
+by design — verify presence (count > 0) and that each surface renders, not McKenzie-scale
+totals; the real volumes land after the Gate 2 prod ingest.
+
+In this order (each command is one commit-worthy log entry; failures are captured but don't halt; append `--sample` to each for the local run):
 
 ```
 python -m pipeline.cli ingest wbd          -w <WATERSHED_SLUG>
