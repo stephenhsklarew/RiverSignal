@@ -209,7 +209,10 @@ test.describe(`Watershed ${WS} — DeepTrail /trail`, () => {
     // + whitespace so parenthesized display labels (e.g. "Mad River (OH)" for
     // the mad_river_oh slug) still match the slug-derived expected label.
     const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
-    const expectedLabel = WS.replace(/_/g, ' ');
+    // Display labels carry NO state-acronym suffix (runbook §2.1), so strip a
+    // trailing 2-letter state code from the slug before matching: e.g.
+    // clinch_river_va → "clinch river", ipswich_river_ma → "ipswich river".
+    const expectedLabel = WS.replace(/_/g, ' ').replace(/ (va|ma|oh|wa|ut|wv|or|wy|mt|ca|tn|ny)$/, '');
     expect(norm(body),
       `/trail picker is missing ${expectedLabel}. ` +
       `Add it to DeepTrailContext / DeepTrailPage watershed dicts.`
