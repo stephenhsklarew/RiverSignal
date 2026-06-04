@@ -151,3 +151,28 @@ resource "google_cloud_scheduler_job" "fossil_images" {
 
   depends_on = [google_project_service.apis]
 }
+
+resource "google_cloud_scheduler_job" "data_status_refresh" {
+  name             = "${var.app_name}-data-status-refresh"
+  region           = var.region
+  schedule         = "0 5 * * *" # daily 05:00, after the 02:00 daily ingest
+  time_zone        = var.scheduler_timezone
+  description      = "Daily: refresh cached /data-status so /status reflects current tables, counts, and curated coverage"
+  attempt_deadline = "320s" # recompute counts on large tables can take ~80s+
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "${google_cloud_run_v2_service.api.uri}/api/v1/data-status/refresh"
+
+    oidc_token {
+      service_account_email = google_service_account.scheduler.email
+      audience              = google_cloud_run_v2_service.api.uri
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}

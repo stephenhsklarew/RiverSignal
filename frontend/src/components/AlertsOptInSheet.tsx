@@ -15,7 +15,7 @@ import useSWR from 'swr'
 import { API_BASE } from '../config'
 import './AlertsOptInSheet.css'
 
-const WATERSHEDS = [
+export const WATERSHEDS = [
   { id: 'mckenzie',    name: 'McKenzie' },
   { id: 'deschutes',   name: 'Deschutes' },
   { id: 'metolius',    name: 'Metolius' },

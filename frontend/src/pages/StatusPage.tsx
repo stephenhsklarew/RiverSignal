@@ -114,6 +114,12 @@ const GOLD_DESCRIPTIONS: Record<string, string> = {
   water_quality_monthly: 'Monthly water parameter aggregates',
   watershed_scorecard: 'Cross-watershed comparison metrics',
   whats_alive_now: 'Species observed in current month',
+  // ML forecast outputs (stored as gold_* tables, not matviews)
+  catch_forecast: 'ML-predicted catch probability by species, reach, and date',
+  hatch_emergence_forecast: 'ML-predicted insect hatch emergence windows',
+  health_anomaly: 'ML-detected anomalies in river health signals',
+  restoration_forecast: 'ML-projected restoration outcomes for interventions',
+  species_distribution_shifts: 'ML-projected species range shifts under changing conditions',
 }
 
 const ENRICHMENT_SOURCES: Record<string, { description: string; upstream: string; refresh: string }> = {
