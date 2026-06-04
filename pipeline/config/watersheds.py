@@ -234,6 +234,38 @@ WATERSHEDS = {
             "west": -82.85,
         },
     },
+    "new_river_va": {
+        "name": "New River",
+        "description": (
+            "New River from the North Carolina line near Galax / Mouth of "
+            "Wilson, VA, flowing NORTH through Grayson, Carroll, Wythe, "
+            "Pulaski, Montgomery, and Giles counties — through Claytor Lake — "
+            "to the West Virginia line at Glen Lyn. One of the oldest rivers in "
+            "North America and the platform's second Tennessee/Ohio-basin "
+            "watershed (Kanawha/Ohio basin, HUC8 05050001 Upper New + 05050002 "
+            "Middle New). A large warm-water river (3,770 mi² at Glen Lyn): "
+            "marquee smallmouth bass plus trophy muskellunge and walleye, with "
+            "striped / hybrid striped bass, largemouth, and crappie in Claytor "
+            "Lake. Crayfish / hellgrammite / baitfish forage base rather than a "
+            "mayfly-hatch fishery. NOTE: no main-stem USGS gauge reports water "
+            "temperature, so the temperature sub-score shows 'no data'. The WV "
+            "New River Gorge downstream is a separate fishery, out of scope."
+        ),
+        # HUC8 05050001 + 05050002, refined to the VA New main-stem corridor
+        # (NC line near Galax → WV line at Glen Lyn) + buffer. North bound
+        # 37.42 stops just past Glen Lyn to exclude the WV Bluestone / East
+        # River bleed; south 36.56 clears the NC line; west -81.15 trims the
+        # far-west tribs; east -80.50 keeps Radford (the easternmost gauge).
+        # Covers all 5 main-stem gauges: 03164000 Galax (36.647,-80.979),
+        # 03165500 Ivanhoe, 03168000 Allisonia (Claytor inflow), 03171000
+        # Radford (37.142,-80.569), 03176500 Glen Lyn (37.373,-80.861).
+        "bbox": {
+            "north": 37.42,
+            "south": 36.56,
+            "east": -80.50,
+            "west": -81.15,
+        },
+    },
 }
 
 

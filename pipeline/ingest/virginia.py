@@ -137,12 +137,44 @@ def _is_clinch_water(waterbody: str, county: str) -> bool:
     return False
 
 
+# New River (VA), HUC8 05050001 + 05050002 (Kanawha/Ohio basin). Large warm-water
+# main stem + Claytor Lake + cold tributaries. Unambiguous waters match by
+# substring; cross-basin names ("Little River" → New in Floyd/Montgomery but
+# Clinch near Tazewell; "Big Stony Creek" → New in Giles but Clinch in Scott)
+# only count inside a New-drainage county.
+NEW_RIVER_WATERS: tuple[str, ...] = (
+    "new river", "claytor lake",
+    "reed creek", "walker creek", "wolf creek", "chestnut creek",
+    "cripple creek", "stewarts creek", "peak creek",
+)
+NEW_RIVER_AMBIGUOUS: tuple[str, ...] = (
+    "little river", "big stony creek",
+)
+NEW_RIVER_COUNTIES: tuple[str, ...] = (
+    "grayson", "carroll", "wythe", "pulaski", "montgomery", "giles", "floyd", "bland",
+)
+
+
+def _is_new_river_water(waterbody: str, county: str) -> bool:
+    """Return True if this stocking row should be attributed to New River (VA)."""
+    w = waterbody.lower()
+    c = county.lower().replace(" county", "").strip()
+    for name in NEW_RIVER_WATERS:
+        if name in w:
+            return True
+    for name in NEW_RIVER_AMBIGUOUS:
+        if name in w and c in NEW_RIVER_COUNTIES:
+            return True
+    return False
+
+
 # Per-watershed stocking attribution. VA DWR publishes ONE statewide schedule;
 # each watershed gets only its own waters. Add a predicate when onboarding a new
 # VA watershed (see runbook §2.2).
 STOCKING_ATTRIBUTORS = {
     "shenandoah": _is_shenandoah_water,
     "clinch_river_va": _is_clinch_water,
+    "new_river_va": _is_new_river_water,
 }
 
 
@@ -175,7 +207,7 @@ class VirginiaDataAdapter(IngestionAdapter):
         # Only run for VA watersheds. Add new VA watersheds to this tuple
         # when onboarding them (see runbook §2.2 step 9 — watershed-scoping
         # caveat).
-        if site.watershed not in ("shenandoah", "clinch_river_va"):
+        if site.watershed not in ("shenandoah", "clinch_river_va", "new_river_va"):
             console.print(f"    virginia: skipping {site.watershed} (not a VA watershed)")
             return 0, 0
 
