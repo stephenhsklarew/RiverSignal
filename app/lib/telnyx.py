@@ -80,12 +80,16 @@ def confirm_verification(verification_id: str, code: str) -> bool:
     """
     with httpx.Client(timeout=15.0) as client:
         resp = client.post(
-            f"{API_BASE}/verifications/by_verification_id/{verification_id}/actions/verify",
+            f"{API_BASE}/verifications/{verification_id}/actions/verify",
             headers=_headers(),
             json={"code": code},
         )
-        if resp.status_code == 404:
-            return False
+        # A wrong/expired code on an existing verification comes back 200 with
+        # response_code != "accepted" (handled below). A 404 means the route or
+        # verification id was not found — Telnyx returns the same 10005
+        # "Resource not found" for a bad URL and a missing record, so we can't
+        # tell a routing mistake from a purged verification. Raise rather than
+        # silently reporting "incorrect code", so misroutes surface as errors.
         resp.raise_for_status()
         return resp.json()["data"]["response_code"] == "accepted"
 
