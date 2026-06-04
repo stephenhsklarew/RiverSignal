@@ -10,7 +10,7 @@
  * On success → subscriptions are created and onClose(true) fires.
  * If the user already has a verified phone, steps 1–2 are skipped.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { API_BASE } from '../config'
 import './AlertsOptInSheet.css'
@@ -80,14 +80,22 @@ export default function AlertsOptInSheet({ open, onClose, preselectWatershed }: 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Seed step + preselected watershed when sheet opens / data loads.
+  // Seed the starting step ONCE per open, after subs has loaded. Keying this
+  // on subs?.phone_verified (as it used to) re-ran on every /sms/subscriptions
+  // refetch — including the mutate() after saving and SWR's revalidate-on-focus
+  // — which clobbered the user's manual progress back to 'watersheds' (e.g.
+  // hiding the 'done' confirmation after they picked a threshold).
+  const seeded = useRef(false)
   useEffect(() => {
-    if (!open) return
+    if (!open) { seeded.current = false; return }
+    if (preselectWatershed) setSelected(new Set([preselectWatershed]))
+  }, [open, preselectWatershed])
+
+  useEffect(() => {
+    if (!open || seeded.current || subs === undefined) return  // wait for first load
+    seeded.current = true
     setStep(subs?.phone_verified ? 'watersheds' : 'phone')
-    if (preselectWatershed) {
-      setSelected(new Set([preselectWatershed]))
-    }
-  }, [open, subs?.phone_verified, preselectWatershed])
+  }, [open, subs])
 
   const phoneE164 = useMemo(() => {
     const digits = phoneDisplay.replace(/\D/g, '')
@@ -295,10 +303,20 @@ export default function AlertsOptInSheet({ open, onClose, preselectWatershed }: 
 
         {step === 'done' && (
           <>
-            <h2>You&apos;re set</h2>
+            <h2>✓ Alerts are on</h2>
             <p className="alerts-sub">
-              We&apos;ll text {phoneDisplay || 'your verified number'} when one of your
-              watersheds hits {threshold === 80 ? 'Excellent (≥80)' : 'Good or better (≥70)'} in the next 3 days.
+              SMS alerts are now enabled for:
+            </p>
+            <ul className="alerts-done-list">
+              {[...selected].map(id => (
+                <li key={id}>{WATERSHEDS.find(w => w.id === id)?.name ?? id}</li>
+              ))}
+            </ul>
+            <p className="alerts-sub">
+              We&apos;ll text {phoneDisplay || 'your verified number'} when any of these hits{' '}
+              <strong>{threshold === 80 ? 'Excellent (Go Score ≥ 80)' : 'Good or better (Go Score ≥ 70)'}</strong>{' '}
+              within the next 3 days — at most 3 texts per week, with a 48-hour cooldown per watershed.
+              Reply STOP to any text to turn alerts off.
             </p>
             <button className="alerts-cta" onClick={() => onClose(true)}>Done</button>
           </>
