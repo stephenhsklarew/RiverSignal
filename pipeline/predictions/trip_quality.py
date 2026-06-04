@@ -312,7 +312,34 @@ def _load_recent_discharge_by_station(conn, station_ids: list[str],
     return out
 
 
-def _proxy_cfs_from_history(
+def _load_recent_water_temp_by_station(conn, station_ids: list[str],
+                                       window_days: int = 14) -> dict[str, dict[date, float]]:
+    """Bulk-load USGS water-temperature readings (°C) for many stations.
+
+    Mirrors _load_recent_discharge_by_station but for parameter='temperature'.
+    Returns {station_id: {date: temp_c}}. Stations without a temperature gauge
+    (e.g. New River VA, Ipswich River MA) simply won't appear in the result,
+    so the caller falls back to the climatology proxy for those reaches.
+    """
+    if not station_ids:
+        return {}
+    rows = conn.execute(text("""
+        SELECT station_id, timestamp::date AS day, value
+        FROM time_series
+        WHERE station_id = ANY(:stations)
+          AND parameter = 'temperature'
+          AND value IS NOT NULL
+          AND timestamp >= now() - make_interval(days => :win)
+        ORDER BY station_id, timestamp DESC
+    """), {"stations": list(station_ids), "win": window_days}).fetchall()
+    out: dict[str, dict[date, float]] = {}
+    for r in rows:
+        sid, d, v = r[0], r[1], float(r[2])
+        out.setdefault(sid, {})[d] = v
+    return out
+
+
+def _recent_reading_at_or_before(
     history: dict[str, dict[date, float]],
     station_id: str | None,
     target_date: date,
@@ -479,6 +506,7 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
         # of round-tripping to Postgres thousands of times.
         gauge_ids = sorted({r[5] for r in reaches if r[5]})
         discharge_history = _load_recent_discharge_by_station(conn, gauge_ids, window_days=14)
+        water_temp_history = _load_recent_water_temp_by_station(conn, gauge_ids, window_days=14)
 
         d = start_date
         while d <= end_date:
@@ -499,8 +527,17 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                 if ws not in hatch_by_ws:
                     hatch_by_ws[ws] = _load_hatch_windows(conn, ws)
 
-                # Sub-scores
-                wt_f = proxy_water_temp_f(d, lat)
+                # Sub-scores. Prefer a measured gauge reading (°C → °F) when
+                # one exists for this reach's station; fall back to the
+                # latitude+month climatology proxy when it doesn't (ungauged
+                # reaches like New River VA / Ipswich River MA).
+                measured_c = _recent_reading_at_or_before(water_temp_history, r[5], d)
+                if measured_c is not None:
+                    wt_f = measured_c * 9 / 5 + 32
+                    wt_source = "measured"
+                else:
+                    wt_f = proxy_water_temp_f(d, lat)
+                    wt_source = "proxy_seasonal"
                 wt = water_temp_score(wt_f, is_warm)
 
                 band = flow_bands.get(rid)
@@ -511,7 +548,7 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                     # available for this gauge.
                     # r[5] is primary_usgs_site_id from _load_reaches().
                     usgs_site = r[5]
-                    proxy_cfs = _proxy_cfs_from_history(discharge_history, usgs_site, d)
+                    proxy_cfs = _recent_reading_at_or_before(discharge_history, usgs_site, d)
                     if proxy_cfs is None:
                         proxy_cfs = (band[1] + band[2]) / 2.0
                     fl = flow_score(proxy_cfs, *band)
@@ -568,7 +605,7 @@ def compute_trip_quality_daily(start_date: date, end_date: date) -> list[TQSRow]
                     },
                     "water": {
                         "temp_f": wt_f,
-                        "source": "proxy_seasonal",
+                        "source": wt_source,
                     },
                     "flow": (
                         {"cfs": proxy_cfs, "source": "ideal_band_midpoint"}

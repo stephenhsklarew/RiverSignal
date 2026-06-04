@@ -1265,6 +1265,12 @@ function CatchProbabilityCard({
         <span className={`rnow-catch-score ${data.overall_level}`}>{data.overall_score}</span>
       </div>
 
+      {data.water_temp_c == null && (
+        <div className="rnow-catch-note">
+          No water-temperature gauge on this river — scores are based on season, hatch, and habitat only, and don't factor in water temperature.
+        </div>
+      )}
+
       <div className="rnow-catch-species">
         {visible.map((s: any, i: number) => (
           <div key={`${start + i}-${s.species}`} className="rnow-catch-row">

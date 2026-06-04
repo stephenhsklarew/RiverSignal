@@ -349,6 +349,11 @@
 .rnow-catch-score.fair { background: #fff3e0; color: #e65100; }
 .rnow-catch-score.poor { background: #fce4ec; color: #c62828; }
 
+.rnow-catch-note {
+  font-size: 11px; line-height: 1.4; color: #8a6d3b;
+  background: #fdf6e3; border: 1px solid #f0e3c0; border-radius: 8px;
+  padding: 8px 10px; margin-bottom: 10px;
+}
 .rnow-catch-species { display: flex; flex-direction: column; gap: 6px; }
 .rnow-catch-row { display: flex; align-items: center; gap: 8px; }
 .rnow-catch-name { font-size: 12px; width: 90px; flex-shrink: 0; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
