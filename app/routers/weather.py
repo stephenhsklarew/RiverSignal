@@ -21,6 +21,7 @@ WS_COORDS = {
     "mad_river_oh": (40.05, -83.85),  # Mad River basin centroid near the Eagle City gauge / C&R trout section
     "ipswich_river_ma": (42.65, -70.95),  # Ipswich basin centroid (Topsfield/Middleton); NWS office BOX (Norton MA)
     "clinch_river_va": (36.88, -82.30),  # VA Clinch corridor centroid (Russell Co, between Cleveland and Dungannon); NWS office RNK (Blacksburg)
+    "new_river_va": (37.05, -80.72),  # VA New River corridor centroid (Pulaski/Claytor area); NWS office RNK (Blacksburg)
 }
 
 # USGS gauge station IDs per watershed (primary stations)
@@ -36,6 +37,7 @@ WS_GAUGES = {
     "mad_river_oh": ["03267900", "03269500"],  # Mad R at Eagle City (upper/trout), Mad R nr Springfield (lower)
     "ipswich_river_ma": ["01101500", "01102000"],  # Ipswich R at South Middleton (upper), nr Ipswich (lower)
     "clinch_river_va": ["03524000", "03524740"],  # Clinch at Cleveland (flow+temp), at Dungannon (temp+conductance+pH, no discharge)
+    "new_river_va": ["03164000", "03165500", "03168000", "03171000", "03176500"],  # Galax, Ivanhoe, Allisonia, Radford, Glen Lyn (all discharge-only, NO temp)
 }
 
 # Simple in-memory cache: {key: (timestamp, data)}
