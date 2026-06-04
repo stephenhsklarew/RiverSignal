@@ -15,7 +15,7 @@ import useSWR from 'swr'
 import { API_BASE } from '../config'
 import './AlertsOptInSheet.css'
 
-const WATERSHEDS = [
+export const WATERSHEDS = [
   { id: 'mckenzie',    name: 'McKenzie' },
   { id: 'deschutes',   name: 'Deschutes' },
   { id: 'metolius',    name: 'Metolius' },
@@ -26,6 +26,7 @@ const WATERSHEDS = [
   { id: 'ipswich_river_ma', name: 'Ipswich River' },
   { id: 'clinch_river_va', name: 'Clinch River' },
   { id: 'new_river_va', name: 'New River' },
+  { id: 'chattahoochee', name: 'Chattahoochee River' },
   { id: 'skagit',      name: 'Skagit' },
   { id: 'green_river', name: 'Green River' },
 ]

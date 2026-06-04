@@ -30,6 +30,7 @@ WATERSHEDS = {
     'ipswich_river_ma': 'Ipswich River (Massachusetts)',  # disambiguate; New England coastal river
     'clinch_river_va': 'Clinch River (Virginia)',  # disambiguate; SW VA, Tennessee River basin
     'new_river_va': 'New River (Virginia)',  # disambiguate; SW VA, Kanawha/Ohio basin (not New R. NC/WV gorge)
+    'chattahoochee': 'Chattahoochee River (Georgia)',  # urban; Buford Dam tailwater trout + Atlanta
 }
 
 READING_LEVELS = ['adult', 'kids', 'expert']

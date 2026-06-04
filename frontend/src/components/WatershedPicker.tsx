@@ -22,6 +22,7 @@ const WATERSHED_STATES: Record<string, string> = {
   ipswich_river_ma: 'Massachusetts',
   clinch_river_va: 'Virginia',
   new_river_va: 'Virginia',
+  chattahoochee: 'Georgia',
 }
 
 const stateOf = (watershed: string) => WATERSHED_STATES[watershed] || 'Other'

@@ -9,7 +9,7 @@ import useSWR, { mutate } from 'swr'
 import { API_BASE } from '../config'
 import { useAuth } from '../components/AuthContext'
 import LoginModal from '../components/LoginModal'
-import AlertsOptInSheet from '../components/AlertsOptInSheet'
+import AlertsOptInSheet, { WATERSHEDS } from '../components/AlertsOptInSheet'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import './AlertsPage.css'
 
@@ -258,11 +258,10 @@ interface SmsSubscriptionsResp {
   }>
 }
 
-const WATERSHED_DISPLAY: Record<string, string> = {
-  mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius',
-  klamath: 'Klamath',   johnday: 'John Day',    skagit: 'Skagit',
-  green_river: 'Green River',
-}
+// Derived from the single canonical watershed list in AlertsOptInSheet so it
+// covers all watersheds and can't go stale when new ones are onboarded.
+const WATERSHED_DISPLAY: Record<string, string> =
+  Object.fromEntries(WATERSHEDS.map(w => [w.id, w.name]))
 
 function SmsTab() {
   const url = `${API_BASE}/sms/subscriptions`

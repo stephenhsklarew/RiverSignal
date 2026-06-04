@@ -30,6 +30,7 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "massachusetts": 168,      # MassWildlife stocking + MA DMF herring (Ipswich River MA)
     "west_virginia": 168,      # WV DNR stocking + regulations
     "ohio_stocking": 168,      # ODNR Div. of Wildlife trout stocking (Mad River OH)
+    "ga_trout": 168,           # GA DNR-WRD weekly trout stocking (Chattahoochee)
     # Monthly ingestion (1st @ 05:00 PT)
     "biodata": 720,
     "wqp_bugs": 720,
@@ -45,6 +46,7 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "blm_sma": 8760,
     "dogami": 8760,
     "odgs": 8760,                # ODNR Bedrock Geology 24K (Mad River OH)
+    "ga_geology": 8760,          # GA geology via UGA ITOS (Chattahoochee)
     "mrds": 8760,
     "mtbs": 4380,  # quarterly
     "nhdplus": 8760,
@@ -119,11 +121,9 @@ def compute_data_status(conn: Connection) -> dict:
         # migrations / spatial / status cache / registries / config
         'alembic_version', 'spatial_ref_sys', 'data_status_cache',
         'ingestion_jobs', 'data_sources', 'sites',
-        # ML predictions + gold-tier output tables (internal, not raw ingest)
+        # ML predictions (internal, not raw ingest). gold_* output tables are
+        # excluded by the gold_ prefix check below and shown in the Gold section.
         'predictions', 'prediction_outcomes',
-        'gold_catch_forecast', 'gold_hatch_emergence_forecast',
-        'gold_health_anomaly', 'gold_restoration_forecast',
-        'gold_species_distribution_shifts',
         # user / auth / sms application tables (not ingested data)
         'users', 'user_observations', 'user_personas_catalog',
         'user_reach_watches', 'user_settings', 'user_trip_feedback',
@@ -136,7 +136,7 @@ def compute_data_status(conn: Connection) -> dict:
         r[0] for r in conn.execute(text(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
         )).fetchall()
-        if r[0] not in NON_BRONZE_TABLES
+        if r[0] not in NON_BRONZE_TABLES and not r[0].startswith('gold_')
     ]
     bronze_tables = {}
     for tbl in bronze_table_names:
@@ -161,6 +161,22 @@ def compute_data_status(conn: Connection) -> dict:
             silver_views[r[1]] = cnt
         else:
             gold_views[r[1]] = cnt
+
+    # Gold-tier ML forecast outputs live as plain `gold_*` tables (not
+    # matviews), so the pg_matviews query above misses them. Enumerate them
+    # dynamically and fold them into the Gold section (displayed as
+    # gold.<name> with the gold_ prefix stripped) so new model outputs appear
+    # automatically.
+    gold_ml_rows = conn.execute(text(
+        r"SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'gold\_%' ORDER BY tablename"
+    )).fetchall()
+    for r in gold_ml_rows:
+        name = r[0]
+        try:
+            gold_views[name[len('gold_'):]] = conn.execute(text(f"SELECT count(*) FROM {name}")).scalar()
+        except Exception:
+            conn.rollback()
+            gold_views[name[len('gold_'):]] = 0
 
     curated = []
     try:

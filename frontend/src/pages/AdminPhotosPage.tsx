@@ -26,6 +26,7 @@ const WATERSHEDS = [
   { value: 'ipswich_river_ma', label: 'Ipswich River' },
   { value: 'clinch_river_va', label: 'Clinch River' },
   { value: 'new_river_va', label: 'New River' },
+  { value: 'chattahoochee', label: 'Chattahoochee River' },
 ]
 
 function wsLabel(value: string): string {

@@ -266,6 +266,36 @@ WATERSHEDS = {
             "west": -81.15,
         },
     },
+    "chattahoochee": {
+        "name": "Chattahoochee River",
+        "description": (
+            "Upper Chattahoochee River from Blue Ridge Mountain headwaters "
+            "near Helen, GA (Chattahoochee–Oconee National Forest; Brasstown "
+            "Bald area, White/Union counties) through Lake Sidney Lanier "
+            "(Buford Dam) and the metro-Atlanta corridor (Chattahoochee River "
+            "National Recreation Area, 15 NPS units) to West Point Lake at the "
+            "GA/AL state line. The platform's first urban and first Southeast-US "
+            "watershed. Cold-water tailwater rainbow + brown trout below Buford "
+            "Dam (a safety-sensitive hydropower release reach), striped + spotted "
+            "bass in Lake Lanier, smallmouth + redeye bass in headwater "
+            "tributaries. Dahlonega Gold Belt mining geology on the basin's "
+            "eastern flank. NOTE: live dam-release safety data is deferred to a "
+            "Phase-B follow-on (RiverSignal-c8155522); the tailwater reach ships "
+            "with a static USACE-schedule safety banner."
+        ),
+        # HUC8 03130001 (Upper Chattahoochee) + 0.05° buffer. Covers Blue Ridge
+        # headwaters → Lake Sidney Lanier → metro-Atlanta CRNRA corridor → West
+        # Point Lake at the GA/AL line. ~9 active USGS gauges incl. 02334430
+        # Buford Dam tailwater (the trout-fishery + safety reach). First urban
+        # watershed → densest iNaturalist volume yet (~445k/5y); use --sample for
+        # local staging (prod firehose mitigation deferred — see inventory §1.4).
+        "bbox": {
+            "north": 34.65,
+            "south": 33.10,
+            "east": -83.55,
+            "west": -84.95,
+        },
+    },
 }
 
 

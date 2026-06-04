@@ -19,6 +19,7 @@ PARAM_CODES = {
     "00065": ("gage_height", "ft"),
     "00400": ("ph", "std_units"),
     "00095": ("specific_conductance", "uS/cm"),
+    "99407": ("ecoli", "MPN/100mL"),  # USGS BacteriALERT E. coli (urban swim-safety; Chattahoochee)
 }
 
 

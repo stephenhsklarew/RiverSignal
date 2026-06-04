@@ -37,7 +37,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "odgs", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "massachusetts", "west_virginia", "ohio_stocking", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "odgs", "ga_geology", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "massachusetts", "west_virginia", "ohio_stocking", "ga_trout", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -73,8 +73,9 @@ def ingest(source: str, watershed: str, from_date, sample: bool, sample_max):
     from pipeline.ingest.biodata import BioDataAdapter
     from pipeline.ingest.fish_passage import FishPassageAdapter
     from pipeline.ingest.fishing import FishingDataAdapter
+    from pipeline.ingest.georgia import GATroutStockingAdapter
     from pipeline.ingest.geology import (
-        BLMLandOwnershipAdapter, DOGAMIAdapter, GeologicUnitsAdapter,
+        BLMLandOwnershipAdapter, DOGAMIAdapter, GAGeologyAdapter, GeologicUnitsAdapter,
         IDigBioFossilAdapter, MRDSAdapter, ODGSAdapter, PBDBFossilAdapter,
     )
     from pipeline.ingest.inaturalist import INaturalistAdapter
@@ -118,6 +119,7 @@ def ingest(source: str, watershed: str, from_date, sample: bool, sample_max):
         "blm_sma": BLMLandOwnershipAdapter,
         "dogami": DOGAMIAdapter,
         "odgs": ODGSAdapter,
+        "ga_geology": GAGeologyAdapter,
         "mrds": MRDSAdapter,
         "idigbio": IDigBioFossilAdapter,
         "gbif": GBIFFossilAdapter,
@@ -129,6 +131,7 @@ def ingest(source: str, watershed: str, from_date, sample: bool, sample_max):
         "washington": WashingtonDataAdapter,
         "west_virginia": WestVirginiaDataAdapter,
         "ohio_stocking": OhioStockingAdapter,
+        "ga_trout": GATroutStockingAdapter,
     }
 
     watersheds = list(WATERSHEDS.keys()) if watershed == "all" else [watershed]

@@ -38,6 +38,8 @@ const SOURCE_META: Record<string, { description: string; upstream: string; refre
   west_virginia: { description: 'West Virginia state data — WV DNR stocked-trout-streams registry, regulations, WVGES geology, WV state parks', upstream: 'Varies', refresh: 'Weekly', license: 'Public Records (WV Code §29B-1)', commercial: true },
   ohio_stocking: { description: 'Ohio DNR Division of Wildlife — trout stocking (Mad River OH put-and-take + brown trout)', upstream: 'Weekly', refresh: 'Weekly', license: 'Public Records (ORC §149.43)', commercial: true },
   odgs: { description: 'Ohio DNR Division of Geological Survey — Bedrock Geology 24K unit polygons (Mad River OH)', upstream: 'Annual', refresh: 'Annual', license: 'Public Records (ORC §149.43)', commercial: true },
+  ga_trout: { description: 'Georgia DNR Wildlife Resources Division — weekly trout stocking (Chattahoochee tailwater + headwaters)', upstream: 'Weekly', refresh: 'Weekly', license: 'Open Records (OCGA §50-18-70)', commercial: true },
+  ga_geology: { description: 'Georgia geology unit polygons via UGA ITOS (1976 GA Geologic Survey map basis) (Chattahoochee)', upstream: 'Annual', refresh: 'Annual', license: 'Public Domain (state-published)', commercial: true },
   nws: { description: 'National Weather Service observations (daily roll-ups per watershed gridpoint)', upstream: 'Daily', refresh: 'Daily', license: 'Public Domain', commercial: true },
   nws_forecast: { description: 'NWS 7-day weather forecast captured daily per watershed', upstream: 'Hourly', refresh: 'Daily', license: 'Public Domain', commercial: true },
 }
@@ -114,6 +116,12 @@ const GOLD_DESCRIPTIONS: Record<string, string> = {
   water_quality_monthly: 'Monthly water parameter aggregates',
   watershed_scorecard: 'Cross-watershed comparison metrics',
   whats_alive_now: 'Species observed in current month',
+  // ML forecast outputs (stored as gold_* tables, not matviews)
+  catch_forecast: 'ML-predicted catch probability by species, reach, and date',
+  hatch_emergence_forecast: 'ML-predicted insect hatch emergence windows',
+  health_anomaly: 'ML-detected anomalies in river health signals',
+  restoration_forecast: 'ML-projected restoration outcomes for interventions',
+  species_distribution_shifts: 'ML-projected species range shifts under changing conditions',
 }
 
 const ENRICHMENT_SOURCES: Record<string, { description: string; upstream: string; refresh: string }> = {

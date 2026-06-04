@@ -10,6 +10,7 @@ import { useWatershed } from '../hooks/useWatershed'
 import { tempF } from '../utils/temp'
 import InfoTooltip from '../components/InfoTooltip'
 import TripQualityCard from '../components/TripQualityCard'
+import TailwaterSafetyCard from '../components/TailwaterSafetyCard'
 import TappablePhoto from '../components/TappablePhoto'
 import TripFeedbackPrompt, { type FeedbackTarget } from '../components/TripFeedbackPrompt'
 import { useAuth } from '../components/AuthContext'
@@ -36,6 +37,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   ipswich_river_ma: [-71.02, 42.64],
   clinch_river_va: [-82.30, 36.88],
   new_river_va: [-80.72, 37.05],
+  chattahoochee: [-84.30, 34.00],
   skagit: [-121.50, 48.45],
 }
 
@@ -65,7 +67,7 @@ export default function RiverNowPage() {
 
 import logo from '../assets/riverpath-logo.svg'
 
-const WATERSHED_ORDER = ['clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
 const PHOTOS: Record<string, string> = {
   deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop',
@@ -78,6 +80,7 @@ const PHOTOS: Record<string, string> = {
   ipswich_river_ma: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&h=600&fit=crop',
   clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop',
   new_river_va: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=900&h=600&fit=crop',
+  chattahoochee: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {
@@ -92,6 +95,7 @@ const TAGLINES: Record<string, string> = {
   ipswich_river_ma: "New England's endangered river — smallmouth, herring runs, and summer low flows",
   clinch_river_va: "Appalachia's rarest river — smallmouth, muskie, and the continent's richest mussel fauna",
   new_river_va: "One of Earth's oldest rivers, flowing north — trophy smallmouth, muskie, and walleye",
+  chattahoochee: "Atlanta's urban tailwater — Buford Dam trout, shoal bass, and Dahlonega gold",
   skagit: 'All five salmon species in the shadow of the North Cascades',
 }
 
@@ -199,6 +203,7 @@ const WS_STATE_SOURCES: Record<string, { fishing: string[]; stocking: string[]; 
   ipswich_river_ma:{ fishing: ['massachusetts'],           stocking: ['massachusetts'],                access: ['recreation', 'massachusetts'],                attribution: 'MassWildlife / MA DMF' },
   clinch_river_va:{ fishing: ['virginia'],                 stocking: ['virginia'],                     access: ['recreation', 'virginia'],                     attribution: 'VA DWR' },
   new_river_va:{ fishing: ['virginia'],                    stocking: ['virginia'],                     access: ['recreation', 'virginia'],                     attribution: 'VA DWR' },
+  chattahoochee:{ fishing: ['ga_trout'],                   stocking: ['ga_trout'],                     access: ['recreation', 'ga_trout'],                    attribution: 'GA DNR-WRD' },
 }
 const DEFAULT_STATE_SOURCES = { fishing: ['fishing'], stocking: ['fishing'], access: ['recreation'], attribution: 'ODFW' }
 
@@ -448,6 +453,8 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
       {site && (
         <>
+          {/* ── Dam-release safety banner (above everything for dam-controlled tailwaters) ── */}
+          <TailwaterSafetyCard watershed={watershed} />
           {/* ── TQS Card (above hero) ── */}
           <TripQualityCard watershed={watershed} />
           <FeedbackPromptFromQuery />
