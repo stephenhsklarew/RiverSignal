@@ -65,6 +65,7 @@
 .ws-modal {
   background: var(--surface); border-radius: 16px 16px 0 0;
   width: 100%; max-width: 600px; padding: 20px 16px 32px;
+  max-height: 85vh; display: flex; flex-direction: column;
   animation: ws-slide-up 0.2s ease-out;
 }
 @keyframes ws-slide-up {
@@ -79,7 +80,11 @@
   background: none; border: none; font-size: 18px; cursor: pointer;
   color: var(--text-muted); padding: 4px 8px;
 }
-.ws-modal-list { display: flex; flex-direction: column; gap: 4px; }
+.ws-modal-list {
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto; min-height: 0; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .ws-modal-item {
   display: block; width: 100%; text-align: left; padding: 14px 16px;
   border: 1px solid var(--border); border-radius: 10px; background: var(--bg);

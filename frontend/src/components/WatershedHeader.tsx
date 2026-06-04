@@ -16,6 +16,10 @@ const WATERSHED_LABELS: Record<string, string> = {
   new_river_va: 'New River',
 }
 
+const WATERSHED_SORTED = [...WATERSHED_ORDER].sort((a, b) =>
+  (WATERSHED_LABELS[a] || a).localeCompare(WATERSHED_LABELS[b] || b)
+)
+
 export const WS_STORAGE_KEY = 'riverpath-selected-watershed'
 
 export function getSelectedWatershed(): string | null {
@@ -85,7 +89,7 @@ export default function WatershedHeader({ watershed, basePath, onSettingsClick }
               <button className="ws-modal-close" onClick={() => setShowPicker(false)}>✕</button>
             </div>
             <div className="ws-modal-list">
-              {WATERSHED_ORDER.map(ws => (
+              {WATERSHED_SORTED.map(ws => (
                 <button
                   key={ws}
                   className={`ws-modal-item${ws === watershed ? ' active' : ''}`}
