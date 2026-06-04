@@ -16,6 +16,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import useSWR from 'swr'
 import { API_BASE } from '../config'
 import './AdminPhotosPage.css'
+import './AdminRiverStoriesPage.css'
 
 const WATERSHEDS = [
   { value: '*',           label: 'Global default (all watersheds)' },
@@ -103,10 +104,25 @@ interface WatershedInsect {
   curated: 'specific' | 'global' | 'none'
 }
 
-/** Which curation table the editor/list targets:
+/** Which curation table the photo editor/list targets:
  *  'fish'   → gold.curated_species_photos  (Fish Present)
  *  'insect' → gold.curated_insect_photos   (What Fish Are Eating Now) */
 type PhotoKind = 'fish' | 'insect'
+
+/** Tabs on the per-watershed view. 'story' is the River Story narrative
+ *  editor (river_stories table), not a photo kind. */
+type WatershedTab = PhotoKind | 'story'
+
+const READING_LEVELS = ['kids', 'adult', 'expert'] as const
+
+interface RiverStoryRow {
+  watershed: string
+  reading_level: string
+  narrative: string | null
+  narrative_length: number
+  updated_at: string | null
+  has_audio: boolean
+}
 
 /** Passed to the editor via router state so iNat search is usable
  *  immediately when no curated row exists yet for this item. */
@@ -125,21 +141,25 @@ export default function AdminPhotosPage() {
   const { species_key } = useParams<{ species_key: string }>()
   const [params] = useSearchParams()
   const watershed = params.get('watershed')
-  const kind: PhotoKind = params.get('type') === 'insect' ? 'insect' : 'fish'
+  const typeParam = params.get('type')
+  const tab: WatershedTab = typeParam === 'insect' ? 'insect' : typeParam === 'story' ? 'story' : 'fish'
   if (species_key) {
+    // The photo editor only handles fish/insect; story has its own route.
+    const kind: PhotoKind = tab === 'insect' ? 'insect' : 'fish'
     return <AdminPhotoEditor speciesKey={species_key} watershed={watershed || '*'} kind={kind} />
   }
   if (watershed) {
     return watershed === '*'
       ? <GlobalDefaultsList />
-      : <WatershedView watershed={watershed} kind={kind} />
+      : <WatershedView watershed={watershed} tab={tab} />
   }
   return <WatershedPicker />
 }
 
-// ─── Per-watershed view with Fish / Eating-Now tabs ────────────────
+// ─── Per-watershed view: Fish / Eating-Now / River Story tabs ──────
 
-function WatershedView({ watershed, kind }: { watershed: string; kind: PhotoKind }) {
+function WatershedView({ watershed, tab }: { watershed: string; tab: WatershedTab }) {
+  const base = `/admin/photos?watershed=${encodeURIComponent(watershed)}`
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -149,19 +169,16 @@ function WatershedView({ watershed, kind }: { watershed: string; kind: PhotoKind
       </header>
 
       <nav className="admin-tabs">
-        <Link
-          to={`/admin/photos?watershed=${encodeURIComponent(watershed)}`}
-          className={`admin-tab ${kind === 'fish' ? 'on' : ''}`}
-        >🐟 Fish Present</Link>
-        <Link
-          to={`/admin/photos?watershed=${encodeURIComponent(watershed)}&type=insect`}
-          className={`admin-tab ${kind === 'insect' ? 'on' : ''}`}
-        >🪰 What Fish Are Eating Now</Link>
+        <Link to={base} className={`admin-tab ${tab === 'fish' ? 'on' : ''}`}>🐟 Fish Present</Link>
+        <Link to={`${base}&type=insect`} className={`admin-tab ${tab === 'insect' ? 'on' : ''}`}>🪰 What Fish Are Eating Now</Link>
+        <Link to={`${base}&type=story`} className={`admin-tab ${tab === 'story' ? 'on' : ''}`}>📖 River Story</Link>
       </nav>
 
-      {kind === 'insect'
-        ? <WatershedInsectList watershed={watershed} />
-        : <WatershedFishList watershed={watershed} />}
+      {tab === 'story'
+        ? <WatershedStoryList watershed={watershed} />
+        : tab === 'insect'
+          ? <WatershedInsectList watershed={watershed} />
+          : <WatershedFishList watershed={watershed} />}
     </div>
   )
 }
@@ -173,17 +190,16 @@ function WatershedPicker() {
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <h1>Photos by watershed</h1>
+        <h1>Watershed admin</h1>
         <div className="admin-header-actions">
-          <Link to="/admin/river-stories" className="admin-nav-link">→ River Stories</Link>
           <RevokeAdminButton />
         </div>
       </header>
 
       <p className="admin-hint" style={{ marginBottom: 16 }}>
-        Pick a watershed, then configure photos for <strong>Fish Present</strong>{' '}
-        or <strong>What Fish Are Eating Now</strong> — see the current images and
-        find/select replacements from iNaturalist.
+        Pick a watershed, then manage its <strong>Fish Present</strong> photos,{' '}
+        <strong>What Fish Are Eating Now</strong> photos, or edit and record its{' '}
+        <strong>River Story</strong> narrative.
       </p>
 
       <ul className="admin-grid">
@@ -391,6 +407,66 @@ function WatershedInsectList({ watershed }: { watershed: string }) {
           </li>
         ))}
       </ul>
+    </>
+  )
+}
+
+// ─── River Story narratives for a watershed ────────────────────────
+
+function WatershedStoryList({ watershed }: { watershed: string }) {
+  const { data, error } = useSWR<RiverStoryRow[]>(`${API_BASE}/admin/river-stories`, fetcher)
+
+  const byLevel = useMemo(() => {
+    const m: Record<string, RiverStoryRow> = {}
+    for (const r of (data || []).filter(r => r.watershed === watershed)) {
+      m[r.reading_level] = r
+    }
+    return m
+  }, [data, watershed])
+
+  return (
+    <>
+      <div className="admin-scope-banner">
+        <span className="admin-inat-hint">
+          The /path/now narrative for each reading level. Open one to edit the
+          text and (re)record the OpenAI audio.
+        </span>
+      </div>
+
+      {error && <div className="admin-error">Failed to load: {String(error)}</div>}
+      {!data && !error && <div className="admin-empty">Loading…</div>}
+
+      <div className="rs-level-row">
+        {READING_LEVELS.map(lvl => {
+          const row = byLevel[lvl]
+          return (
+            <Link
+              key={lvl}
+              to={`/admin/river-stories/${encodeURIComponent(watershed)}/${encodeURIComponent(lvl)}`}
+              className={`rs-level-card ${row ? '' : 'rs-level-card-empty'}`}
+            >
+              <div className="rs-level-label">{lvl}</div>
+              {row ? (
+                <>
+                  <div className="rs-level-meta">
+                    {row.narrative_length.toLocaleString()} chars · {row.has_audio ? '🔊 audio' : '🔇 no audio'}
+                  </div>
+                  <div className="rs-level-snippet">
+                    {(row.narrative || '').slice(0, 140)}…
+                  </div>
+                  {row.updated_at && (
+                    <div className="rs-level-updated">
+                      Updated {new Date(row.updated_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rs-level-empty">No narrative yet — open to write one.</div>
+              )}
+            </Link>
+          )
+        })}
+      </div>
     </>
   )
 }
