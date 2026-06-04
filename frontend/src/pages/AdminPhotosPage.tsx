@@ -94,8 +94,22 @@ interface WatershedFish {
   curated: 'specific' | 'global' | 'none'
 }
 
+interface WatershedInsect {
+  species_key: string
+  common_name: string
+  scientific_name: string | null
+  insect_order: string | null
+  photo_url: string | null
+  curated: 'specific' | 'global' | 'none'
+}
+
+/** Which curation table the editor/list targets:
+ *  'fish'   → gold.curated_species_photos  (Fish Present)
+ *  'insect' → gold.curated_insect_photos   (What Fish Are Eating Now) */
+type PhotoKind = 'fish' | 'insect'
+
 /** Passed to the editor via router state so iNat search is usable
- *  immediately when no curated row exists yet for this fish. */
+ *  immediately when no curated row exists yet for this item. */
 interface EditorSeed {
   scientificName?: string | null
   commonName?: string | null
@@ -111,15 +125,45 @@ export default function AdminPhotosPage() {
   const { species_key } = useParams<{ species_key: string }>()
   const [params] = useSearchParams()
   const watershed = params.get('watershed')
+  const kind: PhotoKind = params.get('type') === 'insect' ? 'insect' : 'fish'
   if (species_key) {
-    return <AdminPhotoEditor speciesKey={species_key} watershed={watershed || '*'} />
+    return <AdminPhotoEditor speciesKey={species_key} watershed={watershed || '*'} kind={kind} />
   }
   if (watershed) {
     return watershed === '*'
       ? <GlobalDefaultsList />
-      : <WatershedFishList watershed={watershed} />
+      : <WatershedView watershed={watershed} kind={kind} />
   }
   return <WatershedPicker />
+}
+
+// ─── Per-watershed view with Fish / Eating-Now tabs ────────────────
+
+function WatershedView({ watershed, kind }: { watershed: string; kind: PhotoKind }) {
+  return (
+    <div className="admin-page">
+      <header className="admin-header">
+        <Link to="/admin/photos" className="admin-back">← All watersheds</Link>
+        <h1>{wsLabel(watershed)}</h1>
+        <RevokeAdminButton />
+      </header>
+
+      <nav className="admin-tabs">
+        <Link
+          to={`/admin/photos?watershed=${encodeURIComponent(watershed)}`}
+          className={`admin-tab ${kind === 'fish' ? 'on' : ''}`}
+        >🐟 Fish Present</Link>
+        <Link
+          to={`/admin/photos?watershed=${encodeURIComponent(watershed)}&type=insect`}
+          className={`admin-tab ${kind === 'insect' ? 'on' : ''}`}
+        >🪰 What Fish Are Eating Now</Link>
+      </nav>
+
+      {kind === 'insect'
+        ? <WatershedInsectList watershed={watershed} />
+        : <WatershedFishList watershed={watershed} />}
+    </div>
+  )
 }
 
 // ─── Watershed picker (entry point) ────────────────────────────────
@@ -129,7 +173,7 @@ function WatershedPicker() {
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <h1>Fish photos by watershed</h1>
+        <h1>Photos by watershed</h1>
         <div className="admin-header-actions">
           <Link to="/admin/river-stories" className="admin-nav-link">→ River Stories</Link>
           <RevokeAdminButton />
@@ -137,8 +181,9 @@ function WatershedPicker() {
       </header>
 
       <p className="admin-hint" style={{ marginBottom: 16 }}>
-        Pick a watershed to see the fish present there and their current
-        images, then find and select replacements from iNaturalist.
+        Pick a watershed, then configure photos for <strong>Fish Present</strong>{' '}
+        or <strong>What Fish Are Eating Now</strong> — see the current images and
+        find/select replacements from iNaturalist.
       </p>
 
       <ul className="admin-grid">
@@ -203,15 +248,8 @@ function WatershedFishList({ watershed }: { watershed: string }) {
   }
 
   return (
-    <div className="admin-page">
-      <header className="admin-header">
-        <Link to="/admin/photos" className="admin-back">← All watersheds</Link>
-        <h1>{wsLabel(watershed)}</h1>
-        <RevokeAdminButton />
-      </header>
-
+    <>
       <div className="admin-scope-banner">
-        <span className="admin-scope-chip specific">📍 {wsLabel(watershed)}</span>
         <span className="admin-inat-hint">
           Fish present in this watershed and their current images. Tap a fish
           to find/select a photo from iNaturalist.
@@ -262,7 +300,98 @@ function WatershedFishList({ watershed }: { watershed: string }) {
           </li>
         ))}
       </ul>
-    </div>
+    </>
+  )
+}
+
+// ─── "What Fish Are Eating Now" prey in a watershed ────────────────
+
+function WatershedInsectList({ watershed }: { watershed: string }) {
+  const navigate = useNavigate()
+  const { data, error } = useSWR<{ watershed: string; insects: WatershedInsect[] }>(
+    `${API_BASE}/admin/watersheds/${encodeURIComponent(watershed)}/insects`,
+    fetcher,
+  )
+  const [filter, setFilter] = useState('')
+
+  const insects = useMemo(() => {
+    const list = data?.insects || []
+    if (!filter.trim()) return list
+    const q = filter.toLowerCase()
+    return list.filter(i =>
+      i.common_name.toLowerCase().includes(q)
+      || (i.scientific_name || '').toLowerCase().includes(q))
+  }, [data, filter])
+
+  function openEditor(i: WatershedInsect) {
+    const seed: EditorSeed = {
+      scientificName: i.scientific_name,
+      commonName: i.common_name,
+      photoUrl: i.photo_url,
+    }
+    navigate(
+      `/admin/photos/${encodeURIComponent(i.species_key)}?watershed=${encodeURIComponent(watershed)}&type=insect`,
+      { state: seed },
+    )
+  }
+
+  return (
+    <>
+      <div className="admin-scope-banner">
+        <span className="admin-inat-hint">
+          Aquatic-insect &amp; prey items fish key on in this watershed (from the
+          hatch chart). Tap one to find/select a photo from iNaturalist.
+        </span>
+      </div>
+
+      <div className="admin-toolbar">
+        <input
+          type="search"
+          placeholder="Filter prey by name…"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          className="admin-filter"
+        />
+      </div>
+
+      {error && <div className="admin-error">Failed to load: {String(error)}</div>}
+      {!data && !error && <div className="admin-empty">Loading…</div>}
+      {data && insects.length === 0 && (
+        <div className="admin-empty">
+          No hatch-chart prey defined for this watershed yet.
+        </div>
+      )}
+
+      <ul className="admin-grid">
+        {insects.map(i => (
+          <li key={i.species_key}>
+            <button type="button" className="admin-card admin-card-button" onClick={() => openEditor(i)}>
+              <div className="admin-card-thumb">
+                {i.photo_url
+                  ? <img src={i.photo_url} alt={i.common_name} loading="lazy" />
+                  : <div className="admin-card-placeholder">🪰</div>}
+              </div>
+              <div className="admin-card-body">
+                <div className="admin-card-name">{i.common_name}</div>
+                {i.scientific_name && <div className="admin-card-sci">{i.scientific_name}</div>}
+                <div className="admin-card-chips">
+                  {i.curated === 'specific' && (
+                    <span className="admin-scope-chip specific">📍 Custom photo</span>
+                  )}
+                  {i.curated === 'global' && (
+                    <span className="admin-scope-chip global">🌐 Global default</span>
+                  )}
+                  {i.curated === 'none' && (
+                    <span className="admin-source-chip">iNat auto</span>
+                  )}
+                  {i.insect_order && <span className="admin-source-chip">{i.insect_order}</span>}
+                </div>
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
 
@@ -355,11 +484,20 @@ function GlobalDefaultsList() {
 
 // ─── Editor view ───────────────────────────────────────────────────
 
-function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; watershed: string }) {
+function AdminPhotoEditor(
+  { speciesKey, watershed, kind }: { speciesKey: string; watershed: string; kind: PhotoKind },
+) {
   const navigate = useNavigate()
   const location = useLocation()
   const seed = (location.state as EditorSeed | null) || null
-  const url = `${API_BASE}/admin/curated-photos/${encodeURIComponent(speciesKey)}?watershed=${encodeURIComponent(watershed)}`
+  const isInsect = kind === 'insect'
+  const resource = isInsect ? 'curated-insect-photos' : 'curated-photos'
+  const typeQ = isInsect ? '&type=insect' : ''
+  // Where the back link / post-delete redirect returns to.
+  const listUrl = watershed === '*'
+    ? '/admin/photos?watershed=*'
+    : `/admin/photos?watershed=${encodeURIComponent(watershed)}${typeQ}`
+  const url = `${API_BASE}/admin/${resource}/${encodeURIComponent(speciesKey)}?watershed=${encodeURIComponent(watershed)}`
   const { data, mutate, error } = useSWR<CuratedDetail>(url, fetcher)
 
   // Editable fields
@@ -404,8 +542,10 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
 
   // iNat search — pass the watershed so the proxy can filter to its bbox
   // (gives editorially-relevant candidates instead of generic global hits).
-  // Proxy returns up to 50; the grid shows 12 per page.
-  const inatUrl = scientificName.trim() && scientificName.includes(' ')
+  // Proxy returns up to 50; the grid shows 12 per page. Fish require a
+  // binomial; insects allow genus-only (hatch entries are often genus-level).
+  const nameReady = isInsect ? scientificName.trim() !== '' : scientificName.includes(' ')
+  const inatUrl = nameReady
     ? `${API_BASE}/admin/inat/photos?scientific_name=${encodeURIComponent(scientificName.trim())}&watershed=${encodeURIComponent(watershed)}`
     : null
   const [searchEnabled, setSearchEnabled] = useState(false)
@@ -456,7 +596,8 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
       const target = watershed === '*'
         ? 'all watersheds'
         : `/path/now/${watershed}`
-      setMsg(`Saved to ${target}. The public page caches Fish Present for 24h client-side — open it in a fresh tab or hard-refresh to see the new photo immediately.`)
+      const feature = isInsect ? 'What Fish Are Eating Now' : 'Fish Present'
+      setMsg(`Saved to ${target}. The public page caches ${feature} for 24h client-side — open it in a fresh tab or hard-refresh to see the new photo immediately.`)
       setSelectedObs(null)
     } catch (e: unknown) {
       setMsg(`Error: ${(e as Error).message}`)
@@ -471,7 +612,7 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
     try {
       const r = await fetch(url, { method: 'DELETE', credentials: 'include' })
       if (!r.ok) throw new Error(`Delete failed: ${r.status}`)
-      navigate('/admin/photos', { replace: true })
+      navigate(listUrl, { replace: true })
     } catch (e: unknown) {
       setMsg(`Error: ${(e as Error).message}`)
       setBusy(false)
@@ -487,11 +628,10 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <Link
-          to={watershed === '*' ? '/admin/photos?watershed=*' : `/admin/photos?watershed=${encodeURIComponent(watershed)}`}
-          className="admin-back"
-        >
-          {watershed === '*' ? '← Global defaults' : `← ${wsLabel(watershed)} fish`}
+        <Link to={listUrl} className="admin-back">
+          {watershed === '*'
+            ? '← Global defaults'
+            : `← ${wsLabel(watershed)} ${isInsect ? 'prey' : 'fish'}`}
         </Link>
         <h1>{commonName || speciesKey}</h1>
         <RevokeAdminButton />
@@ -501,11 +641,15 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
         <span className={`admin-scope-chip ${watershed === '*' ? 'global' : 'specific'}`}>
           {watershed === '*' ? '🌐 Global default — applies to all watersheds' : `📍 ${wsLabel(watershed)} only`}
         </span>
-        {watershed === '*' && (
+        <span className="admin-source-chip">{isInsect ? '🪰 Fish food' : '🐟 Fish'}</span>
+        {watershed === '*' && !isInsect && (
           <SpecializeForWatershed speciesKey={speciesKey} />
         )}
         {watershed !== '*' && (
-          <Link to={`/admin/photos/${encodeURIComponent(speciesKey)}?watershed=*`} className="admin-scope-link">
+          <Link
+            to={`/admin/photos/${encodeURIComponent(speciesKey)}?watershed=*${typeQ}`}
+            className="admin-scope-link"
+          >
             View global default →
           </Link>
         )}
@@ -521,8 +665,10 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
       )}
       {!data.species.exists && !data.global_fallback && (
         <div className="admin-prefill-hint">
-          No global default for <code>{speciesKey}</code> yet — enter a binomial
-          (e.g. <code>Salmo trutta</code>) below to enable iNat search.
+          No curated photo for <code>{speciesKey}</code> yet — enter a{' '}
+          {isInsect ? 'genus or binomial' : 'binomial'} (e.g.{' '}
+          <code>{isInsect ? 'Baetis' : 'Salmo trutta'}</code>) below to enable
+          iNat search.
         </div>
       )}
 
@@ -542,11 +688,11 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
           <label>Common name
             <input type="text" value={commonName} onChange={e => setCommonName(e.target.value)} />
           </label>
-          <label>Scientific name (binomial)
+          <label>Scientific name ({isInsect ? 'genus or binomial' : 'binomial'})
             <input
               type="text" value={scientificName}
               onChange={e => setScientificName(e.target.value)}
-              placeholder="Genus species"
+              placeholder={isInsect ? 'Genus (or Genus species)' : 'Genus species'}
             />
           </label>
           <label>Photo URL (paste Wikimedia or any URL)
@@ -568,7 +714,7 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
           type="button"
           className="admin-inat-search"
           onClick={() => setSearchEnabled(true)}
-          disabled={!scientificName.trim() || !scientificName.includes(' ')}
+          disabled={!nameReady}
         >
           {inatLoading
             ? 'Searching iNat…'
@@ -581,8 +727,10 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
             ? 'Searches iNat worldwide — pick a photo that represents the species broadly.'
             : `Restricted to research-grade observations inside the ${wsLabel(watershed)} watershed bbox.`}
         </span>
-        {!scientificName.includes(' ') && (
-          <div className="admin-hint">Enter a binomial (Genus species) above to search.</div>
+        {!nameReady && (
+          <div className="admin-hint">
+            Enter a {isInsect ? 'genus or binomial' : 'binomial (Genus species)'} above to search.
+          </div>
         )}
         {inatData?.error && <div className="admin-error">{inatData.error}</div>}
         {inatData?.candidates && inatData.candidates.length === 0 && (
@@ -673,7 +821,10 @@ function AdminPhotoEditor({ speciesKey, watershed }: { speciesKey: string; water
               ))}
               {data.recent_changes.length === 0 && <li className="admin-empty">No changes yet.</li>}
             </ul>
-            <Link to={`/admin/photos/${encodeURIComponent(speciesKey)}/history`} className="admin-full-history">
+            <Link
+              to={`/admin/photos/${encodeURIComponent(speciesKey)}/history?watershed=${encodeURIComponent(watershed)}${typeQ}`}
+              className="admin-full-history"
+            >
               View full history →
             </Link>
           </>

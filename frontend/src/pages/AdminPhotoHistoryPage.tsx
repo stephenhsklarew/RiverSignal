@@ -2,7 +2,7 @@
  * /admin/photos/:species_key/history — full chronological audit timeline
  * for a curated species photo. Newest first.
  */
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
 import { API_BASE } from '../config'
 import './AdminPhotosPage.css'
@@ -26,15 +26,23 @@ const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then(r =
 
 export default function AdminPhotoHistoryPage() {
   const { species_key = '' } = useParams<{ species_key: string }>()
-  const { data, error } = useSWR<{ species_key: string; events: HistoryEvent[] }>(
-    `${API_BASE}/admin/curated-photos/${encodeURIComponent(species_key)}/history`,
-    fetcher,
-  )
+  const [params] = useSearchParams()
+  const watershed = params.get('watershed')
+  const isInsect = params.get('type') === 'insect'
+  const resource = isInsect ? 'curated-insect-photos' : 'curated-photos'
+  const typeQ = isInsect ? '&type=insect' : ''
+  const wsQ = watershed ? `?watershed=${encodeURIComponent(watershed)}` : ''
+  const historyUrl = `${API_BASE}/admin/${resource}/${encodeURIComponent(species_key)}/history${wsQ}`
+  const { data, error } = useSWR<{ species_key: string; events: HistoryEvent[] }>(historyUrl, fetcher)
+
+  const backUrl = `/admin/photos/${encodeURIComponent(species_key)}${
+    watershed ? `?watershed=${encodeURIComponent(watershed)}${typeQ}` : ''
+  }`
 
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <Link to={`/admin/photos/${encodeURIComponent(species_key)}`} className="admin-back">← {species_key}</Link>
+        <Link to={backUrl} className="admin-back">← {species_key}</Link>
         <h1>Full history</h1>
       </header>
 

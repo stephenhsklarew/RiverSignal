@@ -376,6 +376,24 @@ def species_spotter(watershed: str):
                 if photo:
                     photo_lookup[name] = {"photo_url": photo[0], "observer": photo[1]}
 
+        # 4b. Admin-curated insect photo overrides (gold.curated_insect_photos),
+        #     keyed by common_name and scientific_name (both lower-cased).
+        #     Watershed-specific rows win over the global '*' default; both
+        #     win over the gallery genus match above. Edited via /admin/photos
+        #     ("What Fish Are Eating Now").
+        insect_overrides: dict[str, dict] = {}
+        for cr in conn.execute(text("""
+            SELECT species_key, scientific_name, photo_url, inat_user_handle, watershed
+            FROM gold.curated_insect_photos
+            WHERE watershed IN (:ws, '*')
+            ORDER BY CASE WHEN watershed = '*' THEN 0 ELSE 1 END
+        """), {"ws": watershed}).fetchall():
+            info = {"photo_url": cr[2], "observer": cr[3]}
+            if cr[0]:
+                insect_overrides[cr[0].lower()] = info
+            if cr[1]:
+                insect_overrides[cr[1].lower()] = info
+
         # Current hatch for context
         hatch = conn.execute(text("""
             SELECT pattern_insect_name, observation_count
@@ -383,6 +401,13 @@ def species_spotter(watershed: str):
             WHERE watershed = :ws AND obs_month = :m
             ORDER BY observation_count DESC LIMIT 3
         """), {"ws": watershed, "m": month}).fetchall()
+
+    def _curated_override(common_name: str | None, taxon_name: str | None):
+        """Return {photo_url, observer} if an admin-curated override exists."""
+        return (
+            insect_overrides.get((common_name or "").lower())
+            or insect_overrides.get((taxon_name or "").lower())
+        )
 
     # Build scored results — fish food first
     scored = []
@@ -395,7 +420,7 @@ def species_spotter(watershed: str):
             continue
         seen.add(name)
         is_peak = month in (r[5] or [])
-        photo_info = photo_lookup.get(r[1], {})
+        photo_info = _curated_override(name, r[1]) or photo_lookup.get(r[1], {})
         scored.append({
             "common_name": name,
             "taxon_name": r[1],
@@ -413,12 +438,13 @@ def species_spotter(watershed: str):
         if name in seen:
             continue
         seen.add(name)
+        override = _curated_override(name, r[0])
         scored.append({
             "common_name": name,
             "taxon_name": r[0],
             "group": "Aquatic Insect",
-            "photo_url": r[4],
-            "observer": None,
+            "photo_url": override["photo_url"] if override else r[4],
+            "observer": override["observer"] if override else None,
             "probability": min(85, 50 + (r[2] or 0) // 3),
             "fish_food": True,
             "note": f"{r[2]} observations · {r[3]}",
@@ -430,12 +456,13 @@ def species_spotter(watershed: str):
         if name in seen:
             continue
         seen.add(name)
+        override = _curated_override(name, sp[1])
         scored.append({
             "common_name": name,
             "taxon_name": sp[1],
             "group": sp[2] or "Invertebrate",
-            "photo_url": sp[3],
-            "observer": sp[4],
+            "photo_url": override["photo_url"] if override else sp[3],
+            "observer": override["observer"] if override else sp[4],
             "probability": 60,
             "fish_food": True,
             "note": "Aquatic food source",
