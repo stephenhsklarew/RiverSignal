@@ -16,6 +16,7 @@ PUT    /admin/curated-photos/{species_key}?watershed=...           upsert; write
 DELETE /admin/curated-photos/{species_key}?watershed=...           delete; writes audit row
 GET    /admin/curated-photos/{species_key}/history?watershed=...   full audit timeline (omit ws → all scopes)
 GET    /admin/inat/photos?scientific_name=...                      iNat search proxy (1h LRU cache)
+GET    /admin/watersheds/{watershed}/fish                          fish present in a watershed + curation status
 POST   /admin/self/revoke                                          self-service admin revocation (OF-6)
 """
 from __future__ import annotations
@@ -470,6 +471,64 @@ def inat_search(
 
     _INAT_CACHE[key] = candidates
     return {"candidates": candidates, "cached": False, "watershed": ws}
+
+
+# ── Watershed-first photo workflow ────────────────────────────────
+
+@router.get("/admin/watersheds/{watershed}/fish")
+def list_watershed_fish(
+    watershed: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """Every fish present in this watershed with its current photo and
+    whether that photo is a per-watershed curated override, a global
+    curated default, or an automatic iNat/gallery fallback.
+
+    Powers the watershed-first admin flow: pick a watershed, see its
+    current fish images, then find/select replacements from iNaturalist.
+    Reuses the public Fish Present builder so the list (dedup, aliasing,
+    photo precedence) matches exactly what the public page renders.
+    """
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+
+    from app.routers.fishing import fishing_species
+    present = fishing_species(ws)
+
+    with engine.connect() as conn:
+        spec_rows = conn.execute(text(
+            "SELECT species_key, scientific_name FROM gold.curated_species_photos "
+            "WHERE watershed = :ws"
+        ), {"ws": ws}).fetchall()
+        glob_rows = conn.execute(text(
+            "SELECT species_key, scientific_name FROM gold.curated_species_photos "
+            "WHERE watershed = '*'"
+        )).fetchall()
+
+    spec_keys = {(r[0] or "").lower() for r in spec_rows}
+    spec_sci = {(r[1] or "").lower() for r in spec_rows if r[1]}
+    glob_keys = {(r[0] or "").lower() for r in glob_rows}
+    glob_sci = {(r[1] or "").lower() for r in glob_rows if r[1]}
+
+    fish: list[dict[str, Any]] = []
+    for f in present:
+        species_key = (f.get("common_name") or "").lower().strip()
+        sci = (f.get("scientific_name") or "").lower().strip()
+        if species_key in spec_keys or (sci and sci in spec_sci):
+            curated = "specific"
+        elif species_key in glob_keys or (sci and sci in glob_sci):
+            curated = "global"
+        else:
+            curated = "none"
+        fish.append({
+            "species_key":     species_key,
+            "common_name":     f.get("common_name"),
+            "scientific_name": f.get("scientific_name"),
+            "photo_url":       f.get("photo_url"),
+            "curated":         curated,
+        })
+    return {"watershed": ws, "fish": fish}
 
 
 # ── River-story narrative editor + audio regeneration ─────────────
