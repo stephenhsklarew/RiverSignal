@@ -110,14 +110,36 @@ def compute_data_status(conn: Connection) -> dict:
         GROUP BY schemaname ORDER BY schemaname
     """)).fetchall()
 
+    # Bronze = raw ingested data tables. Enumerate dynamically from the DB
+    # (everything in `public` minus app/infra/curated/ML tables) so data tables
+    # added when a new watershed is onboarded — e.g. state-specific tables like
+    # utah_impaired_waters — show up automatically instead of needing this list
+    # hand-edited every time. Curated datasets are surfaced in their own section.
+    NON_BRONZE_TABLES = {
+        # migrations / spatial / status cache / registries / config
+        'alembic_version', 'spatial_ref_sys', 'data_status_cache',
+        'ingestion_jobs', 'data_sources', 'sites',
+        # ML predictions + gold-tier output tables (internal, not raw ingest)
+        'predictions', 'prediction_outcomes',
+        'gold_catch_forecast', 'gold_hatch_emergence_forecast',
+        'gold_health_anomaly', 'gold_restoration_forecast',
+        'gold_species_distribution_shifts',
+        # user / auth / sms application tables (not ingested data)
+        'users', 'user_observations', 'user_personas_catalog',
+        'user_reach_watches', 'user_settings', 'user_trip_feedback',
+        'user_alert_deliveries', 'sms_alert_history',
+        'sms_alert_subscriptions', 'sms_send_log',
+        # hand-curated datasets — shown in the Curated section instead
+        'fly_shops_guides', 'mineral_shops', 'fly_tying_videos',
+    }
+    bronze_table_names = [
+        r[0] for r in conn.execute(text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
+        )).fetchall()
+        if r[0] not in NON_BRONZE_TABLES
+    ]
     bronze_tables = {}
-    for tbl in ['observations', 'time_series', 'interventions', 'fire_perimeters',
-                'stream_flowlines', 'impaired_waters', 'wetlands', 'watershed_boundaries',
-                'geologic_units', 'fossil_occurrences', 'mineral_deposits', 'land_ownership',
-                'recreation_sites', 'curated_hatch_chart', 'deep_time_stories',
-                'rockhounding_sites', 'river_stories',
-                'wa_salmonscape', 'wa_fish_stocking', 'wa_surface_geology',
-                'wa_srfb_projects', 'wa_state_parks']:
+    for tbl in bronze_table_names:
         try:
             bronze_tables[tbl] = conn.execute(text(f"SELECT count(*) FROM {tbl}")).scalar()
         except Exception:
@@ -155,11 +177,14 @@ def compute_data_status(conn: Connection) -> dict:
 
     try:
         shop_count = conn.execute(text("SELECT count(*) FROM fly_shops_guides")).scalar()
+        shop_ws = conn.execute(text(
+            "SELECT count(DISTINCT w) FROM fly_shops_guides, unnest(watersheds) w"
+        )).scalar()
         curated.append({
             "name": "Fly Shops & Guide Services",
             "table": "fly_shops_guides",
             "records": shop_count,
-            "description": "Oregon fly shops and guide services with contact info, websites, and coordinates per watershed",
+            "description": f"Fly shops and guide services with contact info, websites, and coordinates, curated across {shop_ws} watersheds in multiple states",
             "source": "Hand-curated from web research (verified businesses)",
         })
     except Exception:
@@ -167,11 +192,14 @@ def compute_data_status(conn: Connection) -> dict:
 
     try:
         mineral_shop_count = conn.execute(text("SELECT count(*) FROM mineral_shops")).scalar()
+        mineral_shop_ws = conn.execute(text(
+            "SELECT count(DISTINCT w) FROM mineral_shops, unnest(watersheds) w"
+        )).scalar()
         curated.append({
             "name": "Mineral & Rock Shops",
             "table": "mineral_shops",
             "records": mineral_shop_count,
-            "description": "Oregon mineral shops, rock ranches, and paleontology museums with contact info and coordinates",
+            "description": f"Mineral shops, rock ranches, and paleontology museums with contact info and coordinates, curated across {mineral_shop_ws} watersheds",
             "source": "Hand-curated from web research (verified businesses)",
         })
     except Exception:
@@ -179,11 +207,14 @@ def compute_data_status(conn: Connection) -> dict:
 
     try:
         rock_count = conn.execute(text("SELECT count(*) FROM rockhounding_sites")).scalar()
+        rock_ws = conn.execute(text(
+            "SELECT count(DISTINCT w) FROM rockhounding_sites, unnest(watersheds) w"
+        )).scalar()
         curated.append({
             "name": "Rockhounding Sites",
             "table": "rockhounding_sites",
             "records": rock_count,
-            "description": "Oregon rockhounding and collecting locations — thundereggs, agates, obsidian, sunstone, petrified wood, opal, jasper with coordinates, land ownership, and collecting rules",
+            "description": f"Rockhounding and collecting locations — thundereggs, agates, obsidian, sunstone, petrified wood, opal, jasper — with coordinates, land ownership, and collecting rules, across {rock_ws} watersheds",
             "source": "Hand-curated from rockhounding guides, BLM records, and community knowledge",
         })
     except Exception:
@@ -261,11 +292,12 @@ def compute_data_status(conn: Connection) -> dict:
 
     try:
         hatch_count = conn.execute(text("SELECT count(*) FROM curated_hatch_chart")).scalar()
+        hatch_ws = conn.execute(text("SELECT count(DISTINCT watershed) FROM curated_hatch_chart")).scalar()
         curated.append({
             "name": "Expert Hatch Chart",
             "table": "curated_hatch_chart",
             "records": hatch_count,
-            "description": "Month-by-month aquatic insect emergence timing with fly pattern recommendations for 6 Pacific NW watersheds",
+            "description": f"Month-by-month aquatic insect emergence timing with fly pattern recommendations for {hatch_ws} watersheds",
             "source": "Compiled from Western Hatches, The Caddis Fly Shop, Westfly.com, The Fly Fisher's Place",
         })
     except Exception:
