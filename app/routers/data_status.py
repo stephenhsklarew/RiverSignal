@@ -30,6 +30,7 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "massachusetts": 168,      # MassWildlife stocking + MA DMF herring (Ipswich River MA)
     "west_virginia": 168,      # WV DNR stocking + regulations
     "ohio_stocking": 168,      # ODNR Div. of Wildlife trout stocking (Mad River OH)
+    "ga_trout": 168,           # GA DNR-WRD weekly trout stocking (Chattahoochee)
     # Monthly ingestion (1st @ 05:00 PT)
     "biodata": 720,
     "wqp_bugs": 720,

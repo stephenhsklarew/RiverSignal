@@ -547,6 +547,10 @@ DOGAMI_URL = "https://gis.dogami.oregon.gov/arcgis/rest/services/Public/OGDC6/Ma
 # License: Public Records (ORC §149.43), commercial:true.
 ODGS_URL = "https://gis.ohiodnr.gov/arcgis/rest/services/DGS_Services/Bedrock_Geology_24K_AGOL/FeatureServer/10/query"
 
+# Georgia geology — UGA ITOS PhysicalGeography (statewide, derived from the 1976
+# GA Geologic Survey map). 169 units; fields OBJECTID/GEOLCODE/SYMBOL/DESCRIPTION.
+GA_GEOLOGY_URL = "https://maps.itos.uga.edu/arcgis/rest/services/FrameWork/PhysicalGeography/MapServer/1/query"
+
 # USGS MRDS — mineral deposit locations (WFS)
 MRDS_URL = "https://mrdata.usgs.gov/services/mrds"
 
@@ -727,6 +731,97 @@ class ODGSAdapter(IngestionAdapter):
                         "lithology": rock_type,
                         "period": str(period)[:100] if period else None,
                         "description": str(description),
+                        "payload": json.dumps(attrs),
+                    }
+                    if geojson:
+                        params["geojson"] = geojson
+                        conn.execute(SQL, params)
+                    else:
+                        conn.execute(SQL_NO_GEOM, params)
+                    created += 1
+                conn.commit()
+
+        return created, 0
+
+
+class GAGeologyAdapter(IngestionAdapter):
+    """Georgia geology — UGA ITOS PhysicalGeography unit polygons.
+
+    Source: https://maps.itos.uga.edu/arcgis/rest/services/FrameWork/PhysicalGeography/MapServer/1
+    License: Public Domain (state-published derivative of the 1976 GA Geologic Survey map),
+             commercial:true.
+    Attribution: "Geology from the Georgia Geologic Survey (1976), via UGA ITOS".
+
+    Mirrors ODGS/DOGAMI — ArcGIS REST polygons → geologic_units (source='ga_geology').
+    Fields: OBJECTID, GEOLCODE (unit code), SYMBOL, DESCRIPTION (lithology). No age
+    field, so age_min/max + period stay NULL (same posture as ODGS/DOGAMI/VGS).
+    GA-only service; scope to GA watersheds to avoid needless calls.
+    """
+    source_type = "ga_geology"
+
+    def ingest(self) -> tuple[int, int]:
+        site = self.session.get(Site, self.site_id)
+        if not site or not site.bbox:
+            raise ValueError(f"Site {self.site_id} not found or no bbox")
+
+        # GA-only service. Add new GA watersheds here when onboarding them.
+        if site.watershed not in ("chattahoochee",):
+            console.print(f"    ga_geology: skipping {site.watershed} (not a GA watershed)")
+            return 0, 0
+
+        created = 0
+        with httpx.Client(timeout=120) as client:
+            console.print("    fetching GA (UGA ITOS) geologic units...")
+            features = _arcgis_query_paginated(client, GA_GEOLOGY_URL, site.bbox, max_per_page=1000)
+            console.print(f"    received {len(features)} GA geology polygons")
+
+            if not features:
+                return 0, 0
+
+            SQL = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    geometry, data_payload)
+                VALUES (gen_random_uuid(), 'ga_geology', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, NULL, NULL, NULL, :description,
+                    ST_GeomFromGeoJSON(:geojson), CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+            SQL_NO_GEOM = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    data_payload)
+                VALUES (gen_random_uuid(), 'ga_geology', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, NULL, NULL, NULL, :description,
+                    CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+
+            existing = {
+                r[0] for r in self.session.execute(
+                    text("SELECT source_id FROM geologic_units WHERE source = 'ga_geology'")
+                )
+            }
+
+            with engine.connect() as conn:
+                for f in features:
+                    attrs = f.get("attributes", {}) or {}
+                    source_id = str(attrs.get("OBJECTID", ""))
+                    if not source_id or source_id in existing:
+                        continue
+                    geojson = _esri_rings_to_geojson(f.get("geometry"))
+
+                    desc = (attrs.get("DESCRIPTION") or "")
+                    code = (attrs.get("GEOLCODE") or "")
+                    rock_type = _extract_rock_type(desc) or (desc[:100] if desc else None)
+
+                    params = {
+                        "source_id": source_id,
+                        "unit_name": str(desc)[:255],
+                        "formation": str(code)[:255],
+                        "rock_type": rock_type[:100] if rock_type else None,
+                        "lithology": str(desc)[:255] if desc else None,
+                        "description": str(desc),
                         "payload": json.dumps(attrs),
                     }
                     if geojson:
