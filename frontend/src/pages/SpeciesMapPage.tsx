@@ -28,6 +28,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   ipswich_river_ma: [-70.95, 42.65],
   clinch_river_va: [-82.30, 36.88],
   new_river_va: [-80.72, 37.05],
+  chattahoochee: [-84.30, 34.00],
 }
 
 interface ObsFeature {

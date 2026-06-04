@@ -21,6 +21,7 @@ const PHOTOS: Record<string, string> = {
   ipswich_river_ma: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&h=600&fit=crop', // v0 placeholder (forested river/marsh) — needs Ipswich-specific photo
   clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop', // v0 (Appalachian forested river) — needs Clinch-specific photo
   new_river_va: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=900&h=600&fit=crop', // v0 (Appalachian river) — needs New River-specific photo
+  chattahoochee: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // v0 placeholder (Blue Ridge) — needs Chattahoochee-specific photo
 }
 
 interface WatershedData {
@@ -83,9 +84,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: 'One of Earth\'s oldest rivers, flowing north — trophy smallmouth, muskie, and walleye',
     narrative: 'Defying convention, Virginia\'s New River flows NORTH through the Blue Ridge and Valley & Ridge of southwest Virginia — from the North Carolina line near Galax, through Claytor Lake, to the West Virginia line at Glen Lyn. Paradoxically named, it is one of the oldest rivers in North America. A large warm-water river (3,770 mi² at Glen Lyn) and one of the South\'s premier smallmouth-bass fisheries, it also produces trophy muskellunge and walleye, with striped and hybrid striped bass, largemouth, and crappie in Claytor Lake. The 57-mile New River Trail State Park shadows its banks. Its forage base is crayfish, hellgrammites, and baitfish rather than mayfly hatches. No main-stem gauge reports water temperature, so the temperature sub-score shows "no data". It is the platform\'s second Tennessee/Ohio-basin watershed.',
   },
+  chattahoochee: {
+    tagline: 'An urban tailwater trout river through the heart of Atlanta',
+    narrative: 'The Chattahoochee runs from Blue Ridge headwaters near Helen through Lake Sidney Lanier and the Buford Dam tailwater — a cold rainbow and brown trout fishery released from the bottom of the lake — then through metro Atlanta and the Chattahoochee River National Recreation Area toward West Point Lake. It is the first urban and first Southeast-US watershed on the platform: striped and spotted bass in Lanier, tailwater trout below Buford Dam, smallmouth and shoal bass downstream, and the historic Dahlonega Gold Belt on the eastern flank. SAFETY: Buford Dam hydropower releases raise the tailwater several feet within minutes — always check the USACE release schedule before wading.',
+  },
 }
 
-const WATERSHED_ORDER = ['clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()

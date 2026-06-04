@@ -39,6 +39,7 @@ const WATERSHED_LABELS: Record<string, string> = {
   ipswich_river_ma: 'Ipswich River',
   clinch_river_va: 'Clinch River',
   new_river_va: 'New River',
+  chattahoochee: 'Chattahoochee River',
 }
 
 interface UserObservation {

@@ -22,6 +22,7 @@ WS_COORDS = {
     "ipswich_river_ma": (42.65, -70.95),  # Ipswich basin centroid (Topsfield/Middleton); NWS office BOX (Norton MA)
     "clinch_river_va": (36.88, -82.30),  # VA Clinch corridor centroid (Russell Co, between Cleveland and Dungannon); NWS office RNK (Blacksburg)
     "new_river_va": (37.05, -80.72),  # VA New River corridor centroid (Pulaski/Claytor area); NWS office RNK (Blacksburg)
+    "chattahoochee": (34.00, -84.30),  # Buford tailwater / metro-Atlanta corridor; NWS office FFC (Peachtree City)
 }
 
 # USGS gauge station IDs per watershed (primary stations)
@@ -38,6 +39,7 @@ WS_GAUGES = {
     "ipswich_river_ma": ["01101500", "01102000"],  # Ipswich R at South Middleton (upper), nr Ipswich (lower)
     "clinch_river_va": ["03524000", "03524740"],  # Clinch at Cleveland (flow+temp), at Dungannon (temp+conductance+pH, no discharge)
     "new_river_va": ["03164000", "03165500", "03168000", "03171000", "03176500"],  # Galax, Ivanhoe, Allisonia, Radford, Glen Lyn (all discharge-only, NO temp)
+    "chattahoochee": ["02334430", "02336000", "02331600", "02335000", "02338000"],  # Buford tailwater (temp), Atlanta (temp), Cornelia headwaters, Norcross, Whitesburg
 }
 
 # Simple in-memory cache: {key: (timestamp, data)}
