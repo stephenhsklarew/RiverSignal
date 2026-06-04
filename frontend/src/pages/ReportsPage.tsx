@@ -18,6 +18,7 @@ const WATERSHEDS = [
   { id: 'mad_river_oh', name: 'Mad River' },
   { id: 'ipswich_river_ma', name: 'Ipswich River' },
   { id: 'clinch_river_va', name: 'Clinch River' },
+  { id: 'new_river_va', name: 'New River' },
   { id: 'skagit', name: 'Skagit River' },
 ]
 

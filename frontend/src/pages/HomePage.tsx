@@ -20,6 +20,7 @@ const PHOTOS: Record<string, string> = {
   mad_river_oh: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&h=600&fit=crop', // spring-fed forested stream — Mad River OH
   ipswich_river_ma: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&h=600&fit=crop', // v0 placeholder (forested river/marsh) — needs Ipswich-specific photo
   clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop', // v0 (Appalachian forested river) — needs Clinch-specific photo
+  new_river_va: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=900&h=600&fit=crop', // v0 (Appalachian river) — needs New River-specific photo
 }
 
 interface WatershedData {
@@ -78,9 +79,13 @@ const WATERSHED_META: Record<string, { tagline: string; narrative: string }> = {
     tagline: 'Appalachia\'s rarest river — smallmouth, muskie, and the continent\'s richest mussel fauna',
     narrative: 'The Clinch River flows southwest from headwaters near Tazewell through the limestone valleys and coalfields of southwest Virginia to the Tennessee line near Clinchport. Its warm main stem is a trophy smallmouth-bass, muskellunge, and walleye fishery, while cold tributaries like Big Cedar and Indian creeks hold trout. But the Clinch is globally renowned for what lives beneath the surface — the most diverse and imperiled freshwater-mussel fauna in North America (some 46 species) plus the endemic Clinch dace — making it a top global freshwater-biodiversity hotspot. Both main-stem gauges (Cleveland and Dungannon) report live water temperature. It is the platform\'s first Tennessee-River-basin watershed.',
   },
+  new_river_va: {
+    tagline: 'One of Earth\'s oldest rivers, flowing north — trophy smallmouth, muskie, and walleye',
+    narrative: 'Defying convention, Virginia\'s New River flows NORTH through the Blue Ridge and Valley & Ridge of southwest Virginia — from the North Carolina line near Galax, through Claytor Lake, to the West Virginia line at Glen Lyn. Paradoxically named, it is one of the oldest rivers in North America. A large warm-water river (3,770 mi² at Glen Lyn) and one of the South\'s premier smallmouth-bass fisheries, it also produces trophy muskellunge and walleye, with striped and hybrid striped bass, largemouth, and crappie in Claytor Lake. The 57-mile New River Trail State Park shadows its banks. Its forage base is crayfish, hellgrammites, and baitfish rather than mayfly hatches. No main-stem gauge reports water temperature, so the temperature sub-score shows "no data". It is the platform\'s second Tennessee/Ohio-basin watershed.',
+  },
 }
 
-const WATERSHED_ORDER = ['clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()

@@ -167,7 +167,7 @@ resource "google_cloud_run_v2_job" "pipeline_weekly" {
       containers {
         image   = local.image
         command = ["/bin/bash", "-c"]
-        args    = ["python -m pipeline.cli ingest fishing -w all && python -m pipeline.cli ingest wqp -w all && python -m pipeline.cli ingest washington -w all && python -m pipeline.cli ingest utah -w green_river && python -m pipeline.cli ingest virginia -w shenandoah && python -m pipeline.cli ingest west_virginia -w shenandoah && python -m pipeline.cli ingest ohio_stocking -w mad_river_oh && python -m pipeline.cli ingest massachusetts -w ipswich_river_ma && python -m pipeline.cli ingest virginia -w clinch_river_va"]
+        args    = ["python -m pipeline.cli ingest fishing -w all && python -m pipeline.cli ingest wqp -w all && python -m pipeline.cli ingest washington -w all && python -m pipeline.cli ingest utah -w green_river && python -m pipeline.cli ingest virginia -w shenandoah && python -m pipeline.cli ingest west_virginia -w shenandoah && python -m pipeline.cli ingest ohio_stocking -w mad_river_oh && python -m pipeline.cli ingest massachusetts -w ipswich_river_ma && python -m pipeline.cli ingest virginia -w clinch_river_va && python -m pipeline.cli ingest virginia -w new_river_va"]
 
         resources {
           limits = {

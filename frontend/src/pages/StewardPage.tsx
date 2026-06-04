@@ -15,6 +15,7 @@ const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   mad_river_oh: { name: 'Tecumseh Land Trust', url: 'https://www.tecumsehlandtrust.org/' },
   ipswich_river_ma: { name: 'Ipswich River Watershed Association', url: 'https://www.ipswichriver.org/' },
   clinch_river_va: { name: 'Upper Tennessee River Roundtable', url: 'https://www.uppertnriver.org/' },
+  new_river_va: { name: 'New River Conservancy', url: 'https://www.newriverconservancy.org/' },
 }
 
 const CATEGORY_ICONS: Record<string, string> = {

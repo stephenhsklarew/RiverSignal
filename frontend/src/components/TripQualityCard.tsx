@@ -32,6 +32,7 @@ const WS_FISHING_SOURCE: Record<string, string[]> = {
   mad_river_oh: ['ohio_stocking'],
   ipswich_river_ma: ['massachusetts'],
   clinch_river_va: ['virginia'],
+  new_river_va: ['virginia'],
 }
 const DEFAULT_FISHING_SOURCE = ['fishing']
 const TQS_TOOLTIP =
