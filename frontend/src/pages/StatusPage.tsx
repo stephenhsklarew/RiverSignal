@@ -144,6 +144,9 @@ export default function StatusPage() {
   const [curated, setCurated] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [totalRecords, setTotalRecords] = useState(0)
+  // Per-source sync status (keyed by source_type) from /data-status, kept in
+  // state so non-ingest sections (enrichment) can reflect real status too.
+  const [syncStatus, setSyncStatus] = useState<Record<string, { last_sync: string; failed: number }>>({})
 
   useEffect(() => {
     document.title = 'Liquid Marble'
@@ -174,6 +177,11 @@ export default function StatusPage() {
   // navigation, refreshes when user returns to the tab).
   const { data: dsData, error: dsError } = useSWR<any>('/data-status', { dedupingInterval: 60_000 })
 
+  // Watershed count comes from /sites (one unfiltered row per configured
+  // watershed) so the stat tracks the roster automatically instead of a
+  // hardcoded literal that goes stale when watersheds are added.
+  const { data: sitesData } = useSWR<any[]>('/sites', { dedupingInterval: 60_000 })
+
   useEffect(() => {
     if (dsError) { setLoading(false); return }
     if (!dsData) return
@@ -181,16 +189,31 @@ export default function StatusPage() {
     for (const p of (dsData.pipelines || [])) {
       syncMap[p.source] = { last_sync: p.last_sync, failed: p.failed }
     }
-    setSources(Object.entries(SOURCE_META).map(([key, meta]) => ({
-      source_type: key,
-      description: meta.description,
-      upstream_frequency: meta.upstream,
-      refresh_schedule: meta.refresh,
-      last_sync: syncMap[key]?.last_sync || null,
-      status: syncMap[key] ? (syncMap[key].failed > 0 ? 'warning' : 'healthy') : 'unknown',
-      license: meta.license,
-      commercial: meta.commercial,
-    })))
+    setSyncStatus(syncMap)
+    const meta = SOURCE_META as Record<string, { description: string; upstream: string; refresh: string; license?: string; commercial?: boolean }>
+    const enrichmentKeys = new Set(Object.keys(ENRICHMENT_SOURCES))
+    // Render the union of the documented catalog and every DB-tracked
+    // pipeline source. A source that runs ingestion jobs but isn't yet in
+    // SOURCE_META still surfaces here (with placeholder metadata) instead of
+    // silently vanishing — the failure mode the hardcoded watershed count had.
+    const ingestKeys = [
+      ...Object.keys(SOURCE_META),
+      ...Object.keys(syncMap).filter(k => !meta[k] && !enrichmentKeys.has(k)),
+    ]
+    setSources(ingestKeys.map(key => {
+      const m = meta[key]
+      const sync = syncMap[key]
+      return {
+        source_type: key,
+        description: m?.description ?? '— (not yet documented in SOURCE_META)',
+        upstream_frequency: m?.upstream ?? '—',
+        refresh_schedule: m?.refresh ?? '—',
+        last_sync: sync?.last_sync || null,
+        status: sync ? (sync.failed > 0 ? 'warning' : 'healthy') : 'unknown',
+        license: m?.license,
+        commercial: m?.commercial,
+      }
+    }))
     setBronzeTables(dsData.bronze?.tables || {})
     setSilverTables(dsData.silver?.tables || {})
     setGoldTables(dsData.gold?.tables || {})
@@ -213,6 +236,7 @@ export default function StatusPage() {
   const enrichmentCount = Object.keys(ENRICHMENT_SOURCES).length
   const sourceCount = sources.length + enrichmentCount + LIVE_SOURCES.length + curated.length
   const viewCount = Object.keys(silverTables).length + Object.keys(goldTables).length
+  const watershedCount = sitesData?.length ?? null
 
   return (
     <div className="status-page">
@@ -245,7 +269,7 @@ export default function StatusPage() {
             <span className="status-stat-label">Materialized Views</span>
           </div>
           <div className="status-stat">
-            <span className="status-stat-value">7</span>
+            <span className="status-stat-value">{watershedCount ?? '—'}</span>
             <span className="status-stat-label">Watersheds</span>
           </div>
         </div>
@@ -310,15 +334,19 @@ export default function StatusPage() {
                   <tr><th>Source</th><th>Description</th><th>Upstream</th><th>Refresh</th><th>Status</th></tr>
                 </thead>
                 <tbody>
-                  {Object.entries(ENRICHMENT_SOURCES).map(([key, meta]) => (
-                    <tr key={key}>
-                      <td className="status-source">{key}</td>
-                      <td className="status-desc">{meta.description}</td>
-                      <td className="status-freq">{meta.upstream}</td>
-                      <td className="status-freq">{meta.refresh}</td>
-                      <td><span className="status-badge healthy">healthy</span></td>
-                    </tr>
-                  ))}
+                  {Object.entries(ENRICHMENT_SOURCES).map(([key, meta]) => {
+                    const sync = syncStatus[key]
+                    const st = sync ? (sync.failed > 0 ? 'warning' : 'healthy') : 'unknown'
+                    return (
+                      <tr key={key}>
+                        <td className="status-source">{key}</td>
+                        <td className="status-desc">{meta.description}</td>
+                        <td className="status-freq">{meta.upstream}</td>
+                        <td className="status-freq">{meta.refresh}</td>
+                        <td><span className={`status-badge ${st}`}>{st}</span></td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
