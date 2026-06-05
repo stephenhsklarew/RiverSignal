@@ -10,6 +10,10 @@ export interface SavedItem {
   latitude?: number
   longitude?: number
   savedAt: string
+  // Set on items received via a shared link: they auto-expire (24h) and show a
+  // "shared with you" affordance until kept (see addShared / keepShared).
+  expiresAt?: string
+  shared?: boolean
 }
 
 interface SavedContextValue {
@@ -18,6 +22,10 @@ interface SavedContextValue {
   isSaved: (type: SavedItem['type'], id: string) => boolean
   listSaved: (type?: SavedItem['type']) => SavedItem[]
   countSaved: (watershed?: string) => number
+  /** Add items received from a shared link — flagged shared + expiring at expiresAt. */
+  addShared: (items: Omit<SavedItem, 'savedAt'>[], expiresAt: string) => number
+  /** Convert all shared/expiring items into permanent saves (called on sign-in). */
+  keepShared: () => number
 }
 
 const STORAGE_KEY = 'riverpath-saved'
@@ -30,7 +38,10 @@ function loadSaved(): SavedItem[] {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    // Drop shared items whose 24h window has passed.
+    const now = Date.now()
+    return parsed.filter((i: SavedItem) => !i.expiresAt || new Date(i.expiresAt).getTime() > now)
   } catch {
     return []
   }
@@ -82,8 +93,33 @@ export function SavedProvider({ children }: { children: ReactNode }) {
     return items.filter(i => (i.watershed || 'other') === watershed).length
   }, [items])
 
+  const addShared = useCallback((incoming: Omit<SavedItem, 'savedAt'>[], expiresAt: string) => {
+    let added = 0
+    setItems(prev => {
+      const next = [...prev]
+      for (const it of incoming) {
+        if (next.length >= MAX_ITEMS) break
+        const existing = next.findIndex(i => i.type === it.type && i.id === it.id)
+        if (existing >= 0) continue // already saved (keep the user's own copy)
+        next.push({ ...it, savedAt: new Date().toISOString(), expiresAt, shared: true })
+        added++
+      }
+      return next
+    })
+    return added
+  }, [])
+
+  const keepShared = useCallback(() => {
+    let kept = 0
+    setItems(prev => prev.map(i => {
+      if (i.shared || i.expiresAt) { kept++; const { expiresAt, shared, ...rest } = i; void expiresAt; void shared; return rest as SavedItem }
+      return i
+    }))
+    return kept
+  }, [])
+
   return (
-    <SavedCtx.Provider value={{ save, unsave, isSaved, listSaved, countSaved }}>
+    <SavedCtx.Provider value={{ save, unsave, isSaved, listSaved, countSaved, addShared, keepShared }}>
       {children}
     </SavedCtx.Provider>
   )
