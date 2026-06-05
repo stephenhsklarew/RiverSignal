@@ -1136,16 +1136,22 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
   const [page, setPage] = useState(0)
   const SENTENCES_PER_PAGE = 5
   const cardRef = useRef<HTMLElement>(null)
+  const textRef = useRef<HTMLDivElement>(null)
 
   // Reset page when narrative changes
   useEffect(() => { setPage(0) }, [narrative])
 
-  // Page through the story and scroll back to the top of the card so the
-  // reader starts the new page from its first line (scroll-margin-top keeps
-  // it clear of the sticky watershed header).
+  // Page through the story. The story body is a height-clipped, internally
+  // scrollable box (max-height + overflow-y:auto), so the reader scrolls
+  // *inside* it — reset that inner scroll to the top so the new page starts at
+  // its first line, and nudge the card into view if it's partly off-screen.
+  // rAF runs after the new page's content has rendered.
   const goToPage = (next: number) => {
     setPage(next)
-    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    requestAnimationFrame(() => {
+      if (textRef.current) textRef.current.scrollTop = 0
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
   }
 
   // Split into sentences for pagination
@@ -1178,7 +1184,7 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
         {loading ? (
           <div className="rnow-story-loading">Loading story...</div>
         ) : (
-          <div className="rnow-story-text">
+          <div className="rnow-story-text" ref={textRef}>
             <Markdown>{pageSentences.join(' ')}</Markdown>
           </div>
         )}

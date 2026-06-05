@@ -15,10 +15,10 @@
 // activate handler below deletes any cache whose name doesn't match
 // these constants, so changing the version forces an eviction on
 // every active client at their next navigation. Last bump 2026-06-05:
-// RiverPath UX batch shipped °F conversions (incl. the compare-rivers
-// table) and the cached API/JS were keeping users on the old °C bundle.
-const CACHE_NAME = 'riversignal-v5'
-const API_CACHE = 'riversignal-api-v5'
+// River Story page-turn now resets the inner text box scroll; force-evict so
+// active clients pick up the fixed bundle without a manual reload.
+const CACHE_NAME = 'riversignal-v6'
+const API_CACHE = 'riversignal-api-v6'
 const API_BASE = '/api/v1/'
 
 // Pre-cache HTML shells so first-load offline works. Network-first runtime
