@@ -3,6 +3,7 @@ import useSWR from 'swr'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSaved, type SavedItem } from '../components/SavedContext'
 import { useAuth } from '../components/AuthContext'
+import LoginModal from '../components/LoginModal'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import { setUserObsCount } from '../components/useUserObsCount'
 import type { PhotoMeta } from '../components/TappablePhoto'
@@ -73,6 +74,7 @@ export default function SavedPage() {
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
   // When a recipient signs in, convert their shared (expiring) items to permanent.
   useEffect(() => {
@@ -179,11 +181,24 @@ export default function SavedPage() {
       {(cameFromShare || sharedItems.length > 0) && sharedItems.length > 0 && (
         <div className="saved-shared-banner" style={{ background: '#eef6ff', border: '1px solid #9cc3ef', borderRadius: 10, padding: '10px 14px', margin: '10px 0', fontSize: 14 }}>
           📬 <strong>{sharedItems.length}</strong> shared item{sharedItems.length === 1 ? '' : 's'} added to your Saved.
-          {isLoggedIn
-            ? ' Kept in your account.'
-            : ' These expire in 24 hours — sign in to keep them permanently.'}
+          {isLoggedIn ? (
+            ' Kept in your account.'
+          ) : (
+            <>
+              {' '}These expire in 24 hours —{' '}
+              <button
+                type="button"
+                onClick={() => setShowLogin(true)}
+                style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent, #2b6cb0)', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
+              >
+                sign in
+              </button>{' '}to keep them permanently.
+            </>
+          )}
         </div>
       )}
+
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} mode="signin" />}
 
       {canShare && (
         <div className="saved-actions" style={{ display: 'flex', justifyContent: 'flex-end', margin: '6px 0' }}>
