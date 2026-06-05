@@ -135,13 +135,6 @@ export default function HomePage() {
       <nav className="home-nav">
         <Link to="/" className="home-nav-brand"><img src={logo} alt="RiverPath" className="home-logo" /></Link>
       </nav>
-      <div className="home-nav-links">
-        {WATERSHED_ORDER.map(ws => (
-          <Link key={ws} to={`/path/now/${ws}`} className="home-nav-link">
-            {{ mckenzie: 'McKenzie', deschutes: 'Deschutes', metolius: 'Metolius', klamath: 'Klamath', johnday: 'John Day', skagit: 'Skagit', green_river: 'Green River' }[ws]}
-          </Link>
-        ))}
-      </div>
 
       {/* Hero */}
       <section className="home-hero">
