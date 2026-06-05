@@ -95,6 +95,43 @@ test('#6c shared observation lands in recipient Saved', async ({ page, request }
   expect(body).toContain('shared with you')         // shared-observation affordance
 })
 
+// #6d — a shared private observation keeps photographer + visibility on the detail screen
+test('#6d shared observation keeps photographer + private visibility', async ({ page, request }) => {
+  const resp = await request.post(`${API}/saved/share`, {
+    data: {
+      watershed: WS,
+      sections: ['observation'],
+      items: [{
+        type: 'observation', id: 'pw-attrib-1',
+        data: {
+          watershed: WS, label: 'PW Heron', sublabel: 'Ardea herodias',
+          thumbnail: 'https://storage.googleapis.com/riversignal-assets-riversignal-prod/favicon.png',
+          observer: 'Original Photographer', source: 'RiverPath', visibility: 'private',
+          observedAt: '2026-05-01T12:00:00Z',
+        },
+      }],
+    },
+  })
+  expect(resp.ok()).toBeTruthy()
+  const { url } = await resp.json()
+  await page.goto(`${BASE}${url}`)
+  await page.waitForTimeout(SETTLE)
+  await expect(page).toHaveURL(/\/path\/saved/)
+  // the row shows the original photographer + a private marker
+  const body = (await page.locator('body').textContent()) || ''
+  expect(body).toContain('Original Photographer')
+  expect(body).toContain('private')
+  // tap the shared observation → detail screen
+  await page.getByText('PW Heron').first().click()
+  await page.waitForTimeout(1500)
+  await expect(page).toHaveURL(/\/photo/)
+  const detail = (await page.locator('body').textContent()) || ''
+  expect(detail).toContain('Photographer')
+  expect(detail).toContain('Original Photographer')
+  expect(detail).toContain('Visibility')
+  expect(detail).toContain('Private')
+})
+
 // #6b — expired/invalid link shows a friendly message
 test('#6b invalid share link shows friendly error', async ({ page }) => {
   await page.goto(`${BASE}/path/shared/totally-bogus-token`)

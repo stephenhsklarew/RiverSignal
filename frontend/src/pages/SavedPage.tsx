@@ -67,7 +67,7 @@ export default function SavedPage() {
   }, [])
   const navigate = useNavigate()
   const { listSaved, unsave, keepShared } = useSaved()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, user } = useAuth()
   const headerWs = getSelectedWatershed() || 'mckenzie'
   const [searchParams] = useSearchParams()
   const cameFromShare = searchParams.get('shared') === '1'
@@ -91,7 +91,27 @@ export default function SavedPage() {
       observedAt: obs.observed_at || undefined,
       caption: obs.notes || undefined,
       observer: 'You',
-      source: obs.visibility === 'private' ? 'Private observation' : 'Your observation',
+      source: 'Your observation',
+      visibility: obs.visibility || 'public',
+    }
+    navigate(`/path/now/${ws}/photo`, {
+      state: { photo, backTo: { path: '/path/saved', label: 'Back to Saved' } },
+    })
+  }
+
+  // Open a shared (received) observation — keep the ORIGINAL photographer,
+  // source, observed date, and visibility carried in the saved item.
+  function openSharedObs(item: SavedItem) {
+    if (!item.thumbnail) return
+    const ws = item.watershed || headerWs
+    const photo: PhotoMeta = {
+      url: item.thumbnail,
+      title: item.label,
+      subtitle: item.sublabel || undefined,
+      observedAt: item.observedAt || undefined,
+      observer: item.observer || undefined,
+      source: item.source || 'Shared with you',
+      visibility: item.visibility || undefined,
     }
     navigate(`/path/now/${ws}/photo`, {
       state: { photo, backTo: { path: '/path/saved', label: 'Back to Saved' } },
@@ -147,6 +167,10 @@ export default function SavedPage() {
     }))
     // …plus the owner's observations (incl. private — the recipient sees them
     // via a public link; the modal warns when private ones are included).
+    // Carry the original photographer + visibility so the recipient's copy
+    // keeps the correct attribution and privacy (these are the sharer's own
+    // observations, so the photographer is the signed-in user).
+    const photographer = user?.name || user?.username || 'A RiverPath user'
     const obsPayload = apiObs.map(o => ({
       type: 'observation', id: String(o.id),
       data: {
@@ -155,6 +179,11 @@ export default function SavedPage() {
         sublabel: o.scientific_name || undefined,
         thumbnail: o.photo_url || undefined,
         latitude: o.latitude, longitude: o.longitude,
+        observer: photographer,
+        source: 'RiverPath',
+        observedAt: o.observed_at || undefined,
+        visibility: o.visibility || 'public',
+        originObservationId: String(o.id),
       },
     }))
     const items = [...savedPayload, ...obsPayload]
@@ -296,8 +325,20 @@ export default function SavedPage() {
                 )
               })}
               {/* Observations received via a shared link (recipient view) */}
-              {sharedObs.map(obs => (
-                <div key={`shared-${obs.id}`} className="saved-item">
+              {sharedObs.map(obs => {
+                const tappable = !!obs.thumbnail
+                return (
+                <div
+                  key={`shared-${obs.id}`}
+                  className={`saved-item${tappable ? ' saved-item-tappable' : ''}`}
+                  role={tappable ? 'button' : undefined}
+                  tabIndex={tappable ? 0 : undefined}
+                  onClick={tappable ? () => openSharedObs(obs) : undefined}
+                  onKeyDown={tappable ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSharedObs(obs) }
+                  } : undefined}
+                  aria-label={tappable ? `View ${obs.label} in detail` : undefined}
+                >
                   {obs.thumbnail ? (
                     <img src={obs.thumbnail} alt="" className="saved-item-thumb" />
                   ) : (
@@ -306,10 +347,15 @@ export default function SavedPage() {
                   <div className="saved-item-info">
                     <div className="saved-item-label">{obs.label}</div>
                     {obs.sublabel && <div className="saved-item-sub">{obs.sublabel}</div>}
-                    <div className="saved-item-meta">📬 shared with you</div>
+                    <div className="saved-item-meta">
+                      📬 shared with you
+                      {obs.observer && ` · 📷 ${obs.observer}`}
+                      {obs.visibility === 'private' && ' · 🔒 private'}
+                    </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </section>
           )}
 

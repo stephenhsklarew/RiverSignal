@@ -17,6 +17,7 @@ export interface PhotoMeta {
   source?: string       // e.g. "iNaturalist", "Unsplash"
   observedAt?: string   // ISO date string, if known
   caption?: string      // optional descriptive text
+  visibility?: string   // 'private' | 'public' — shown for user observations
 }
 
 interface Props {
