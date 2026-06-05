@@ -23,6 +23,10 @@ GET    /admin/curated-insect-photos/{species_key}?watershed=...    one insect ro
 PUT    /admin/curated-insect-photos/{species_key}?watershed=...    upsert insect photo; writes audit row
 DELETE /admin/curated-insect-photos/{species_key}?watershed=...    delete insect photo; writes audit row
 GET    /admin/curated-insect-photos/{species_key}/history?watershed=... full insect audit timeline
+GET    /admin/watershed-splash/{watershed}                         splash card override (image + text) + audit
+PUT    /admin/watershed-splash/{watershed}                         upsert splash override; writes audit row
+DELETE /admin/watershed-splash/{watershed}                         clear override (revert to default); audit row
+POST   /admin/watershed-splash/{watershed}/image                   upload a splash image; returns its URL
 POST   /admin/self/revoke                                          self-service admin revocation (OF-6)
 """
 from __future__ import annotations
@@ -31,7 +35,7 @@ import time
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
@@ -894,6 +898,189 @@ def list_watershed_insects(
                 "curated":         curated,
             })
     return {"watershed": ws, "insects": insects}
+
+
+# ── Watershed splash card (image + description on /path) ──────────
+
+class WatershedSplashPayload(BaseModel):
+    """Upsert payload for the /path splash card editor. All fields optional;
+    null clears the override for that field (frontend falls back to its
+    built-in default)."""
+    image_url:  str | None = Field(None, max_length=2048)
+    tagline:    str | None = Field(None, max_length=300)
+    narrative:  str | None = Field(None, max_length=10000)
+
+
+@router.get("/admin/watershed-splash/{watershed}")
+def get_watershed_splash(
+    watershed: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """The splash-card override for a watershed + last 5 audit entries.
+    `exists` is false when no override has been saved (the public page then
+    uses the frontend's built-in default image/text)."""
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT watershed, image_url, tagline, narrative, updated_by_user_id, updated_at
+            FROM gold.watershed_splash WHERE watershed = :ws
+        """), {"ws": ws}).fetchone()
+        audit_rows = conn.execute(text("""
+            SELECT action, new_image_url, new_tagline, changed_by_user_id, changed_at
+            FROM audit.watershed_splash_log
+            WHERE watershed = :ws
+            ORDER BY changed_at DESC
+            LIMIT 5
+        """), {"ws": ws}).fetchall()
+    return {
+        "splash": {
+            "watershed":   ws,
+            "image_url":   row[1] if row else None,
+            "tagline":     row[2] if row else None,
+            "narrative":   row[3] if row else None,
+            "updated_by_user_id": str(row[4]) if (row and row[4]) else None,
+            "updated_at":  row[5].isoformat() if (row and row[5]) else None,
+            "exists":      row is not None,
+        },
+        "recent_changes": [
+            {
+                "action":       a[0],
+                "new_image_url": a[1],
+                "new_tagline":  a[2],
+                "changed_by_user_id": str(a[3]) if a[3] else None,
+                "changed_at":   a[4].isoformat() if a[4] else None,
+            }
+            for a in audit_rows
+        ],
+    }
+
+
+@router.put("/admin/watershed-splash/{watershed}")
+def upsert_watershed_splash(
+    watershed: str,
+    payload: WatershedSplashPayload,
+    admin: dict = Depends(get_current_admin),
+):
+    """Insert or update the splash-card override. Single transaction with
+    the audit log."""
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+
+    with engine.connect() as conn, conn.begin():
+        prev = conn.execute(text("""
+            SELECT image_url, tagline, narrative
+            FROM gold.watershed_splash WHERE watershed = :ws
+        """), {"ws": ws}).fetchone()
+        is_insert = prev is None
+
+        conn.execute(text("""
+            INSERT INTO gold.watershed_splash
+                (watershed, image_url, tagline, narrative, updated_by_user_id, updated_at)
+            VALUES (:ws, :img, :tag, :nar, :uid, now())
+            ON CONFLICT (watershed) DO UPDATE
+              SET image_url          = EXCLUDED.image_url,
+                  tagline            = EXCLUDED.tagline,
+                  narrative          = EXCLUDED.narrative,
+                  updated_by_user_id = EXCLUDED.updated_by_user_id,
+                  updated_at         = EXCLUDED.updated_at
+        """), {
+            "ws": ws,
+            "img": payload.image_url,
+            "tag": payload.tagline,
+            "nar": payload.narrative,
+            "uid": admin["id"],
+        })
+
+        conn.execute(text("""
+            INSERT INTO audit.watershed_splash_log
+                (watershed, action,
+                 prev_image_url, new_image_url,
+                 prev_tagline, new_tagline,
+                 prev_narrative, new_narrative,
+                 changed_by_user_id)
+            VALUES (:ws, :act, :pi, :ni, :pt, :nt, :pn, :nn, :uid)
+        """), {
+            "ws": ws,
+            "act": "insert" if is_insert else "update",
+            "pi": prev[0] if prev else None,
+            "ni": payload.image_url,
+            "pt": prev[1] if prev else None,
+            "nt": payload.tagline,
+            "pn": prev[2] if prev else None,
+            "nn": payload.narrative,
+            "uid": admin["id"],
+        })
+
+    return {"ok": True, "watershed": ws, "action": "insert" if is_insert else "update"}
+
+
+@router.delete("/admin/watershed-splash/{watershed}")
+def delete_watershed_splash(
+    watershed: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """Remove the override so the public splash card reverts to the built-in
+    default. Audit-logged."""
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+    with engine.connect() as conn, conn.begin():
+        prev = conn.execute(text("""
+            SELECT image_url, tagline, narrative
+            FROM gold.watershed_splash WHERE watershed = :ws
+        """), {"ws": ws}).fetchone()
+        if not prev:
+            raise HTTPException(404, "no override for that watershed")
+        conn.execute(
+            text("DELETE FROM gold.watershed_splash WHERE watershed = :ws"),
+            {"ws": ws},
+        )
+        conn.execute(text("""
+            INSERT INTO audit.watershed_splash_log
+                (watershed, action, prev_image_url, prev_tagline, prev_narrative,
+                 changed_by_user_id)
+            VALUES (:ws, 'delete', :pi, :pt, :pn, :uid)
+        """), {
+            "ws": ws, "pi": prev[0], "pt": prev[1], "pn": prev[2], "uid": admin["id"],
+        })
+    return {"ok": True, "watershed": ws, "action": "delete"}
+
+
+@router.post("/admin/watershed-splash/{watershed}/image")
+async def upload_watershed_splash_image(
+    watershed: str,
+    file: UploadFile = File(...),
+    admin: dict = Depends(get_current_admin),
+):
+    """Store an uploaded splash image and return its servable URL. Does not
+    persist to the DB — the editor sets it as the image_url and Saves."""
+    from app.audio_cache import put_image_bytes
+
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+
+    content_type = (file.content_type or "").lower()
+    if not content_type.startswith("image/"):
+        raise HTTPException(400, "file must be an image")
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "empty file")
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(413, "image too large (max 8 MB)")
+
+    ext = {
+        "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+        "image/webp": "webp", "image/gif": "gif",
+    }.get(content_type, "jpg")
+    filename = f"{ws}_{int(time.time())}.{ext}"
+    url = put_image_bytes("watershed_splash", filename, content, content_type=content_type)
+    if not url:
+        raise HTTPException(500, "failed to store image")
+    return {"image_url": url}
 
 
 # ── River-story narrative editor + audio regeneration ─────────────

@@ -96,3 +96,34 @@ def put_audio_bytes(audio_type: str, filename: str, content: bytes,
     local_file = local_dir / filename
     local_file.write_bytes(content)
     return str(local_file)
+
+
+def put_image_bytes(image_type: str, filename: str, content: bytes,
+                    content_type: str = "image/jpeg") -> str | None:
+    """Store an uploaded image and return a servable URL (or None on failure).
+
+    Used by the admin watershed-splash editor so curators can replace the
+    /path splash card photo with their own upload.
+
+    GCS mode: uploads to images/{image_type}/{filename} and returns the
+    public GCS URL. Local mode: writes into frontend/public/images/uploads
+    so the Vite dev server (and the prod SPA static mount) serves it at
+    /images/uploads/{image_type}/{filename}.
+    """
+    if _STORAGE_BACKEND == "gcs" and _GCS_BUCKET:
+        try:
+            from google.cloud import storage  # lazy import — only needed in prod
+            client = storage.Client()
+            bucket = client.bucket(_GCS_BUCKET)
+            blob_path = f"images/{image_type}/{filename}"
+            blob = bucket.blob(blob_path)
+            blob.cache_control = "public, max-age=3600"
+            blob.upload_from_string(content, content_type=content_type)
+            return f"https://storage.googleapis.com/{_GCS_BUCKET}/{blob_path}"
+        except Exception:
+            return None
+
+    local_dir = _PROJECT_ROOT / "frontend" / "public" / "images" / "uploads" / image_type
+    local_dir.mkdir(parents=True, exist_ok=True)
+    (local_dir / filename).write_bytes(content)
+    return f"/images/uploads/{image_type}/{filename}"

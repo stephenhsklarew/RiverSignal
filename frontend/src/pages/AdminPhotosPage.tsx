@@ -11,10 +11,11 @@
  * their phone). All writes go through PUT /admin/curated-photos/<species_key>
  * which writes an audit row in the same transaction.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
 import { API_BASE } from '../config'
+import { SPLASH_PHOTOS, SPLASH_META } from '../lib/watershedSplash'
 import './AdminPhotosPage.css'
 import './AdminRiverStoriesPage.css'
 
@@ -109,9 +110,9 @@ interface WatershedInsect {
  *  'insect' → gold.curated_insect_photos   (What Fish Are Eating Now) */
 type PhotoKind = 'fish' | 'insect'
 
-/** Tabs on the per-watershed view. 'story' is the River Story narrative
- *  editor (river_stories table), not a photo kind. */
-type WatershedTab = PhotoKind | 'story'
+/** Tabs on the per-watershed view. 'story' edits the River Story narrative;
+ *  'splash' edits the /path splash card image + description. */
+type WatershedTab = PhotoKind | 'story' | 'splash'
 
 const READING_LEVELS = ['kids', 'adult', 'expert'] as const
 
@@ -142,7 +143,11 @@ export default function AdminPhotosPage() {
   const [params] = useSearchParams()
   const watershed = params.get('watershed')
   const typeParam = params.get('type')
-  const tab: WatershedTab = typeParam === 'insect' ? 'insect' : typeParam === 'story' ? 'story' : 'fish'
+  const tab: WatershedTab =
+    typeParam === 'insect' ? 'insect'
+    : typeParam === 'story' ? 'story'
+    : typeParam === 'splash' ? 'splash'
+    : 'fish'
   if (species_key) {
     // The photo editor only handles fish/insect; story has its own route.
     const kind: PhotoKind = tab === 'insect' ? 'insect' : 'fish'
@@ -172,13 +177,16 @@ function WatershedView({ watershed, tab }: { watershed: string; tab: WatershedTa
         <Link to={base} className={`admin-tab ${tab === 'fish' ? 'on' : ''}`}>🐟 Fish Present</Link>
         <Link to={`${base}&type=insect`} className={`admin-tab ${tab === 'insect' ? 'on' : ''}`}>🪰 What Fish Are Eating Now</Link>
         <Link to={`${base}&type=story`} className={`admin-tab ${tab === 'story' ? 'on' : ''}`}>📖 River Story</Link>
+        <Link to={`${base}&type=splash`} className={`admin-tab ${tab === 'splash' ? 'on' : ''}`}>🖼️ Splash Card</Link>
       </nav>
 
-      {tab === 'story'
-        ? <WatershedStoryList watershed={watershed} />
-        : tab === 'insect'
-          ? <WatershedInsectList watershed={watershed} />
-          : <WatershedFishList watershed={watershed} />}
+      {tab === 'splash'
+        ? <WatershedSplashEditor watershed={watershed} />
+        : tab === 'story'
+          ? <WatershedStoryList watershed={watershed} />
+          : tab === 'insect'
+            ? <WatershedInsectList watershed={watershed} />
+            : <WatershedFishList watershed={watershed} />}
     </div>
   )
 }
@@ -198,8 +206,9 @@ function WatershedPicker() {
 
       <p className="admin-hint" style={{ marginBottom: 16 }}>
         Pick a watershed, then manage its <strong>Fish Present</strong> photos,{' '}
-        <strong>What Fish Are Eating Now</strong> photos, or edit and record its{' '}
-        <strong>River Story</strong> narrative.
+        <strong>What Fish Are Eating Now</strong> photos, edit and record its{' '}
+        <strong>River Story</strong> narrative, or set its <strong>Splash Card</strong>{' '}
+        image and description.
       </p>
 
       <ul className="admin-grid">
@@ -467,6 +476,184 @@ function WatershedStoryList({ watershed }: { watershed: string }) {
           )
         })}
       </div>
+    </>
+  )
+}
+
+// ─── Splash card editor (image + description on /path) ─────────────
+
+interface SplashDetail {
+  splash: {
+    watershed: string
+    image_url: string | null
+    tagline: string | null
+    narrative: string | null
+    updated_at: string | null
+    exists: boolean
+  }
+  recent_changes: Array<{
+    action: string
+    new_image_url: string | null
+    new_tagline: string | null
+    changed_at: string | null
+  }>
+}
+
+function WatershedSplashEditor({ watershed }: { watershed: string }) {
+  const url = `${API_BASE}/admin/watershed-splash/${encodeURIComponent(watershed)}`
+  const { data, mutate, error } = useSWR<SplashDetail>(url, fetcher)
+
+  const defImage = SPLASH_PHOTOS[watershed] || ''
+  const defMeta = SPLASH_META[watershed] || { tagline: '', narrative: '' }
+
+  const [imageUrl, setImageUrl] = useState('')
+  const [tagline, setTagline] = useState('')
+  const [narrative, setNarrative] = useState('')
+  const [seeded, setSeeded] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  // Seed from the saved override if present, otherwise from the built-in
+  // defaults so the admin sees and can edit the current splash content.
+  useEffect(() => {
+    if (!data?.splash || seeded) return
+    const sp = data.splash
+    setImageUrl(sp.exists && sp.image_url ? sp.image_url : defImage)
+    setTagline(sp.exists && sp.tagline != null ? sp.tagline : defMeta.tagline)
+    setNarrative(sp.exists && sp.narrative != null ? sp.narrative : defMeta.narrative)
+    setSeeded(true)
+  }, [data, seeded, defImage, defMeta.tagline, defMeta.narrative])
+
+  async function uploadImage(f: File) {
+    setUploading(true); setMsg(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', f)
+      const r = await fetch(`${url}/image`, { method: 'POST', credentials: 'include', body: fd })
+      const body = await r.json()
+      if (!r.ok) throw new Error(body.detail || `Upload failed: ${r.status}`)
+      setImageUrl(body.image_url)
+      setMsg('Image uploaded — click Save to publish it to the splash page.')
+    } catch (e: unknown) {
+      setMsg(`Error: ${(e as Error).message}`)
+    } finally { setUploading(false) }
+  }
+
+  async function save() {
+    setBusy(true); setMsg(null)
+    try {
+      const r = await fetch(url, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: imageUrl.trim() || null,
+          tagline: tagline.trim() || null,
+          narrative: narrative.trim() || null,
+        }),
+      })
+      if (!r.ok) throw new Error(`Save failed: ${r.status}`)
+      await mutate()
+      setMsg('Saved. The /path splash card shows the new image & text on next load.')
+    } catch (e: unknown) {
+      setMsg(`Error: ${(e as Error).message}`)
+    } finally { setBusy(false) }
+  }
+
+  async function revert() {
+    if (!confirm('Revert to the built-in default image and description for this watershed?')) return
+    setBusy(true); setMsg(null)
+    try {
+      const r = await fetch(url, { method: 'DELETE', credentials: 'include' })
+      if (!r.ok && r.status !== 404) throw new Error(`Revert failed: ${r.status}`)
+      setImageUrl(defImage)
+      setTagline(defMeta.tagline)
+      setNarrative(defMeta.narrative)
+      await mutate()
+      setMsg('Reverted to the built-in default.')
+    } catch (e: unknown) {
+      setMsg(`Error: ${(e as Error).message}`)
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <>
+      <div className="admin-scope-banner">
+        <span className="admin-inat-hint">
+          The image and description shown for {wsLabel(watershed)} on the{' '}
+          <code>/path</code> splash page. Replace the photo and edit the text,
+          then Save.
+        </span>
+      </div>
+
+      {error && <div className="admin-error">Failed to load: {String(error)}</div>}
+      {!data && !error && <div className="admin-empty">Loading…</div>}
+
+      <section className="admin-current">
+        <div className="admin-current-thumb">
+          {imageUrl
+            ? <img src={imageUrl} alt={wsLabel(watershed)} />
+            : <div className="admin-current-placeholder">No image</div>}
+        </div>
+        <div className="admin-current-meta">
+          <label>Upload a new image (JPG/PNG/WebP, max 8 MB)
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f) }}
+            />
+          </label>
+          {uploading && <div className="admin-hint">Uploading…</div>}
+          <label>Image URL (or paste any URL)
+            <input type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+          </label>
+          <label>Tagline (short subtitle)
+            <input
+              type="text" value={tagline} maxLength={300}
+              onChange={e => setTagline(e.target.value)}
+              placeholder="Short subtitle shown under the name"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="admin-inat">
+        <label className="admin-inat-hint" htmlFor="splash-narrative">Description (narrative)</label>
+        <textarea
+          id="splash-narrative"
+          className="rs-narrative"
+          value={narrative}
+          onChange={e => setNarrative(e.target.value)}
+          placeholder="The longer description shown on the splash card…"
+          rows={10}
+        />
+      </section>
+
+      <section className="admin-actions">
+        <button className="admin-save" disabled={busy || uploading} onClick={save}>
+          {busy ? 'Saving…' : 'Save'}
+        </button>
+        {data?.splash.exists && (
+          <button className="admin-delete" disabled={busy} onClick={revert}>Revert to default</button>
+        )}
+        {msg && <span className="admin-msg">{msg}</span>}
+      </section>
+
+      {data && data.recent_changes.length > 0 && (
+        <section className="admin-history">
+          <ul className="admin-history-list">
+            {data.recent_changes.map((c, i) => (
+              <li key={i}>
+                <span className={`admin-history-action ${c.action}`}>{c.action}</span>
+                <span className="admin-history-date">
+                  {c.changed_at && new Date(c.changed_at).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   )
 }

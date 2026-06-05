@@ -13,6 +13,8 @@ frontend/dist/
 .deeptrail_cache/
 # Image cache (downloaded at runtime, not committed)
 /frontend/public/images/cache/
+# Admin-uploaded splash images (stored at runtime in dev, GCS in prod)
+/frontend/public/images/uploads/
 /backups/
 /migration-export/
 .river_story_audio/

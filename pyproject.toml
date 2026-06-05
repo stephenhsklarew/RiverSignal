@@ -14,6 +14,7 @@ dependencies = [
     "rich>=13.0",
     "rasterio>=1.5",
     "fastapi>=0.115",
+    "python-multipart>=0.0.9",   # multipart/form-data uploads (admin splash image)
     "uvicorn[standard]>=0.34",
     "anthropic>=0.52",
     "pydantic>=2.10",
