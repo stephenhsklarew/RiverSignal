@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
@@ -1135,9 +1135,18 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
 }) {
   const [page, setPage] = useState(0)
   const SENTENCES_PER_PAGE = 5
+  const cardRef = useRef<HTMLElement>(null)
 
   // Reset page when narrative changes
   useEffect(() => { setPage(0) }, [narrative])
+
+  // Page through the story and scroll back to the top of the card so the
+  // reader starts the new page from its first line (scroll-margin-top keeps
+  // it clear of the sticky watershed header).
+  const goToPage = (next: number) => {
+    setPage(next)
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   // Split into sentences for pagination
   const sentences = narrative
@@ -1149,7 +1158,7 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
   return (
     <>
       <div className="rnow-story-label">River Story <InfoTooltip text="A narrative about this river, written by AI but grounded in real data — species counts, water quality, recent wildfires, restoration projects. Rewritten periodically as new data arrives. The audio version is read by a synthetic voice." sources={['inaturalist', 'usgs', 'restoration', 'mtbs']} /></div>
-      <section className="rnow-story-card">
+      <section className="rnow-story-card" ref={cardRef} style={{ scrollMarginTop: 60 }}>
         {/* Reading level toggle + audio */}
         <div className="rnow-story-controls">
           <div className="rnow-story-toggle">
@@ -1177,9 +1186,9 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
         {/* Pagination */}
         {!loading && totalPages > 1 && (
           <div className="rnow-story-pagination">
-            <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="rnow-story-page-btn">← Prev</button>
+            <button disabled={page === 0} onClick={() => goToPage(page - 1)} className="rnow-story-page-btn">← Prev</button>
             <span className="rnow-story-page-info">{page + 1} / {totalPages}</span>
-            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="rnow-story-page-btn">Next →</button>
+            <button disabled={page >= totalPages - 1} onClick={() => goToPage(page + 1)} className="rnow-story-page-btn">Next →</button>
           </div>
         )}
       </section>
