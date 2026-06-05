@@ -150,8 +150,8 @@ export default function HomePage() {
           Every river has<br />a story <em>worth telling</em>
         </h1>
         <p className="home-hero-subtitle">
-          Real-time ecological intelligence from {loading ? '...' : totalSpecies.toLocaleString()} species,
-          2.2 million observations, and 15 public data sources across four iconic Oregon watersheds.
+          Real-time ecological intelligence from {loading ? '...' : totalSpecies.toLocaleString()} species observed
+          — across plants, animals &amp; fungi — plus millions of public observations spanning {loading ? '' : watersheds.length} watersheds nationwide.
         </p>
       </section>
 

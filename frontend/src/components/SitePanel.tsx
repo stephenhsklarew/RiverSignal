@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Markdown from 'react-markdown'
 import { API_BASE } from '../config'
+import { tempF } from '../utils/temp'
+import InfoTooltip from './InfoTooltip'
 
 interface SitePanelProps {
   site: any
@@ -149,9 +151,9 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
             <div className="section">
               <div className="section-title">Key Metrics</div>
               <div className="kpi-grid">
-                <div className="kpi-card"><div className={`value ${health.water_temp_c != null && health.water_temp_c < 16 ? 'green' : 'amber'}`}>{health.water_temp_c ?? '—'}°C</div><div className="label">Water Temp</div></div>
+                <div className="kpi-card"><div className={`value ${health.water_temp_c != null && health.water_temp_c < 16 ? 'green' : 'amber'}`}>{tempF(health.water_temp_c)}</div><div className="label">Water Temp</div></div>
                 <div className="kpi-card"><div className={`value ${health.dissolved_oxygen_mg_l != null && health.dissolved_oxygen_mg_l > 8 ? 'green' : 'red'}`}>{health.dissolved_oxygen_mg_l ?? '—'}</div><div className="label">DO mg/L</div></div>
-                <div className="kpi-card"><div className="value">{sc.total_species?.toLocaleString() ?? '—'}</div><div className="label">Species</div></div>
+                <div className="kpi-card"><div className="value">{sc.total_species?.toLocaleString() ?? '—'}</div><div className="label">Species observed <InfoTooltip text="Distinct species observed in this watershed across all wildlife — plants, animals, and fungi — from iNaturalist and other public observation records. Not fish-only (Fish has its own count)." /></div></div>
                 <div className="kpi-card"><div className="value">{sc.total_interventions ?? '—'}</div><div className="label">Projects</div></div>
               </div>
             </div>
@@ -162,7 +164,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
                 <div className="section-title">Current Health</div>
                 <div className="kpi-grid">
                   <div className="kpi-card"><div className="value green">{story.health.score}</div><div className="label">Score</div></div>
-                  <div className="kpi-card"><div className="value">{story.health.water_temp_c}°C</div><div className="label">Temp</div></div>
+                  <div className="kpi-card"><div className="value">{tempF(story.health.water_temp_c)}</div><div className="label">Temp</div></div>
                   <div className="kpi-card"><div className="value">{story.health.do_mg_l}</div><div className="label">DO</div></div>
                   <div className="kpi-card"><div className="value">{story.health.species}</div><div className="label">Spp/mo</div></div>
                 </div>
@@ -435,7 +437,7 @@ export default function SitePanel({ site, watershed, onClose, initialQuestion, o
               <div className="section-title">Conditions</div>
               {fishingBrief?.conditions && (
                 <>
-                  <div className="metric-row"><span className="metric-label">Water Temp</span><span className="metric-value">{fishingBrief.conditions.water_temp_c ?? '—'}°C</span></div>
+                  <div className="metric-row"><span className="metric-label">Water Temp</span><span className="metric-value">{tempF(fishingBrief.conditions.water_temp_c)}</span></div>
                   <div className="metric-row"><span className="metric-label">Flow</span><span className="metric-value">{fishingBrief.conditions.discharge_cfs?.toLocaleString() ?? '—'} cfs</span></div>
                   <div className="metric-row"><span className="metric-label">Steelhead Harvest</span><span className="metric-value">{fishingBrief.conditions.steelhead_harvest?.toLocaleString() ?? '—'}</span></div>
                   <div className="metric-row"><span className="metric-label">Trout Stocked</span><span className="metric-value good">{fishingBrief.conditions.trout_stocked?.toLocaleString() ?? '—'}</span></div>

@@ -96,6 +96,10 @@ function NotificationsTab() {
   const navigate = useNavigate()
   const url = `${API_BASE}/alerts`
   const { data, isLoading } = useSWR<{ alerts: Alert[] }>(url, fetcher)
+  // Notifications = delivered-alert history (user_alert_deliveries). SMS setup
+  // only creates *subscriptions* — so a freshly-subscribed user has none yet.
+  // Pull subscriptions to show a clearer "subscribed, nothing fired yet" state.
+  const { data: smsData } = useSWR<SmsSubscriptionsResp>(`${API_BASE}/sms/subscriptions`, fetcher)
 
   async function markSeen(id: string) {
     await fetch(`${API_BASE}/alerts/${id}/seen`, { method: 'POST', credentials: 'include' })
@@ -105,7 +109,20 @@ function NotificationsTab() {
 
   if (isLoading) return <div className="alerts-empty">Loading…</div>
   const alerts = data?.alerts || []
-  if (!alerts.length) return <div className="alerts-empty">No alerts yet. Add reaches to your watchlist and we'll ping you when conditions cross your threshold.</div>
+  if (!alerts.length) {
+    const subs = smsData?.subscriptions || []
+    if (subs.length) {
+      const sheds = Array.from(new Set(subs.map(s => s.watershed.replace(/_/g, ' ')))).join(', ')
+      return (
+        <div className="alerts-empty">
+          ✓ You're subscribed to SMS alerts for <strong>{sheds}</strong>.
+          No alerts have fired yet — when a reach crosses your threshold we'll text you
+          {smsData?.sms_paused ? ' (texts are paused in the SMS tab)' : ''} and log it here.
+        </div>
+      )
+    }
+    return <div className="alerts-empty">No alerts yet. Add reaches to your watchlist and we'll ping you when conditions cross your threshold.</div>
+  }
 
   return (
     <ul className="alerts-list">
