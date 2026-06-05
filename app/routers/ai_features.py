@@ -155,7 +155,9 @@ def river_replay(watershed: str, days_ago: int = Query(30, ge=7, le=365)):
     if len(health) >= 2 and health[0][1] and health[1][1]:
         temp_delta = round(float(health[0][1]) - float(health[1][1]), 1)
         if temp_delta != 0:
-            changes.append({"type": "temperature", "label": f"Water temp {'↑' if temp_delta > 0 else '↓'} {abs(temp_delta)}°C", "delta": temp_delta})
+            # A delta converts with the scale factor only (×9/5), no +32 offset.
+            temp_delta_f = round(temp_delta * 9 / 5, 1)
+            changes.append({"type": "temperature", "label": f"Water temp {'↑' if temp_delta > 0 else '↓'} {abs(temp_delta_f)}°F", "delta": temp_delta})
 
     if recent_obs > 0:
         changes.append({"type": "observations", "label": f"{recent_obs} new observations in last {days_ago} days", "delta": recent_obs})
