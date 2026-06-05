@@ -83,6 +83,12 @@ export default function PhotoDetailPage() {
                 <dd>{formatDate(photo.observedAt)}</dd>
               </>
             )}
+            {photo.visibility && (
+              <>
+                <dt>Visibility</dt>
+                <dd>{photo.visibility === 'private' ? '🔒 Private' : '🌐 Public'}</dd>
+              </>
+            )}
           </dl>
         </div>
       </div>

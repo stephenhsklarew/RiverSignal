@@ -98,6 +98,63 @@ def test_river_story_matches_watershed():
     assert "clinch" in r.json()["narrative"].lower()
 
 
+# ── Saved-items cross-device sync + observation attribution ────────────
+def test_saved_items_requires_auth():
+    assert httpx.get(f"{API}/saved/items", timeout=10).status_code == 401
+    assert httpx.post(f"{API}/saved/items", json={"items": []}, timeout=10).status_code == 401
+    assert httpx.delete(f"{API}/saved/items/species/x", timeout=10).status_code == 401
+
+
+def _forge_token(uid: str) -> str:
+    # Local API runs with the default dev AUTH_SECRET_KEY; mint a matching JWT.
+    from jose import jwt
+    secret = os.environ.get("AUTH_SECRET_KEY", "dev-secret-key-change-in-production-32chars!")
+    return jwt.encode({"sub": uid, "email": "t@t.co", "name": "Test Angler", "username": "tester"},
+                      secret, algorithm="HS256")
+
+
+def test_saved_items_authed_roundtrip_preserves_attribution():
+    import uuid
+    uid = str(uuid.uuid4())
+    c = httpx.Client(cookies={"rs_token": _forge_token(uid)}, base_url=API, timeout=10)
+    try:
+        body = {"items": [
+            {"type": "species", "id": "smb", "watershed": WS, "payload": {"label": "Smallmouth"}},
+            {"type": "observation", "id": "obs-1", "watershed": WS, "payload": {
+                "label": "Otter", "observer": "Original Angler", "source": "RiverPath",
+                "visibility": "private", "originObservationId": "abc"}},
+        ]}
+        assert c.post("/saved/items", json=body).status_code == 200
+        items = {i["id"]: i for i in c.get("/saved/items").json()["items"]}
+        assert set(items) == {"smb", "obs-1"}
+        # attribution + privacy survive the round-trip
+        assert items["obs-1"]["observer"] == "Original Angler"
+        assert items["obs-1"]["visibility"] == "private"
+        assert c.delete("/saved/items/observation/obs-1").status_code == 200
+        assert {i["id"] for i in c.get("/saved/items").json()["items"]} == {"smb"}
+    finally:
+        eng = create_engine(DB)
+        with eng.begin() as conn:
+            conn.execute(text("DELETE FROM saved_items WHERE user_id = :u"), {"u": uid})
+
+
+def test_share_observation_carries_attribution_and_visibility():
+    payload = {
+        "watershed": WS, "sections": ["observation"],
+        "items": [{"type": "observation", "id": "share-obs-9", "data": {
+            "watershed": WS, "label": "River Otter", "observer": "Jane Doe",
+            "source": "RiverPath", "visibility": "private", "originObservationId": "xyz",
+        }}],
+    }
+    r = httpx.post(f"{API}/saved/share", json=payload, timeout=10)
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    resolved = httpx.get(f"{API}/saved/shared/{token}", timeout=10).json()
+    item = resolved["items"][0]
+    assert item["data"]["observer"] == "Jane Doe"
+    assert item["data"]["visibility"] == "private"
+
+
 # ── #1 Notifications vs SMS endpoints both respond ─────────────────────
 def test_alerts_and_sms_endpoints_respond():
     # Anonymous: endpoints should respond (200 empty or 401), not 500.

@@ -15,10 +15,10 @@
 // activate handler below deletes any cache whose name doesn't match
 // these constants, so changing the version forces an eviction on
 // every active client at their next navigation. Last bump 2026-06-05:
-// River Story page-turn now resets the inner text box scroll; force-evict so
-// active clients pick up the fixed bundle without a manual reload.
-const CACHE_NAME = 'riversignal-v6'
-const API_CACHE = 'riversignal-api-v6'
+// Saved-items account sync + shared-observation attribution/visibility +
+// banner sign-in link; force-evict so active clients pick up the new bundle.
+const CACHE_NAME = 'riversignal-v7'
+const API_CACHE = 'riversignal-api-v7'
 const API_BASE = '/api/v1/'
 
 // Pre-cache HTML shells so first-load offline works. Network-first runtime

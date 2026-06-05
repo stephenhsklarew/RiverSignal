@@ -40,6 +40,12 @@ export default function SharedCollectionPage() {
           thumbnail: it.data?.thumbnail,
           latitude: it.data?.latitude,
           longitude: it.data?.longitude,
+          // Observation attribution + privacy carried from the sharer.
+          observer: it.data?.observer,
+          source: it.data?.source,
+          observedAt: it.data?.observedAt,
+          visibility: it.data?.visibility,
+          originObservationId: it.data?.originObservationId,
         }))
         addShared(items, data.expires_at)
         if (data.watershed) setSelectedWatershed(data.watershed)

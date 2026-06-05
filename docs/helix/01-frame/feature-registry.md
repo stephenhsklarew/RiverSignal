@@ -1,7 +1,7 @@
 # Feature Registry
 
 **Status**: Active
-**Last Updated**: 2026-05-10
+**Last Updated**: 2026-06-05
 
 ## Active Features
 
@@ -27,6 +27,8 @@
 | FEAT-018 | Production Infrastructure | Terraform/Cloud Run/Cloud SQL/CI on GCP | Deployed | P0 | sklarew | 2026-05-09 |
 | FEAT-019 | Authentication | Google + Apple OAuth, JWT cookie, anonymous-first | Deployed | P0 | sklarew | 2026-05-08 |
 | FEAT-020 | Photo Observations | Camera/EXIF/GCS/private-vs-public toggle | Deployed | P0 | sklarew | 2026-05-09 |
+| FEAT-021 | Shared Saved Collections | 24h-expiring share link for Saved items/observations; recipient banner + sign-in to keep | Deployed | P1 | sklarew | 2026-06-05 |
+| FEAT-022 | Saved Account Sync | Cross-device saved-items persistence (saved_items table); shared observations keep original photographer + visibility, shown on detail screen | Deployed | P1 | sklarew | 2026-06-05 |
 
 ## Status Definitions
 
