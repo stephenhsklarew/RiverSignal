@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import useSWR from 'swr'
 import { useNavigate, useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import { useAuth } from '../components/AuthContext'
+import { useSaved } from '../components/SavedContext'
 import './MyObsMapPage.css'
 
 
@@ -50,6 +51,7 @@ export default function MyObsMapPage() {
   const { watershed: paramWs } = useParams<{ watershed?: string }>()
   const ws = paramWs || getSelectedWatershed() || 'mckenzie'
   const { isLoggedIn } = useAuth()
+  const { listSaved } = useSaved()
 
   // SWR-backed so map pins render from cache instantly on navigation;
   // shares the cache key with SavedPage's `/observations/user` fetch.
@@ -57,9 +59,30 @@ export default function MyObsMapPage() {
     isLoggedIn ? `/observations/user?mine=true&watershed=${ws}` : null,
     { dedupingInterval: 60_000 },
   )
-  const obs: UserObservation[] = Array.isArray(obsRaw)
-    ? obsRaw.filter(o => o.latitude != null && o.longitude != null)
-    : []
+
+  // Normalize the owner's API observations and any observations received via a
+  // shared link (localStorage, flagged `shared`) into one set of map points —
+  // a recipient (often not signed in) only has the shared ones.
+  const points = useMemo(() => {
+    const api = (Array.isArray(obsRaw) ? obsRaw : [])
+      .filter(o => o.latitude != null && o.longitude != null)
+      .map(o => ({
+        lng: o.longitude!, lat: o.latitude!,
+        name: o.common_name || o.species_name || o.category || 'Observation',
+        sci: o.scientific_name || '',
+        date: o.observed_at ? new Date(o.observed_at).toLocaleDateString() : '',
+        photo: o.thumbnail_url || o.photo_url, notes: o.notes, shared: false,
+      }))
+    const shared = listSaved()
+      .filter(i => i.type === 'observation' && i.shared
+        && (i.watershed || 'other') === ws && i.latitude != null && i.longitude != null)
+      .map(i => ({
+        lng: i.longitude!, lat: i.latitude!,
+        name: i.label, sci: i.sublabel || '', date: '',
+        photo: i.thumbnail || null, notes: null, shared: true,
+      }))
+    return [...api, ...shared]
+  }, [obsRaw, listSaved, ws])
   const loading = isLoggedIn ? isLoading : false
 
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -89,41 +112,38 @@ export default function MyObsMapPage() {
     markersRef.current = []
     popupRef.current?.remove()
 
-    if (obs.length === 0) return
+    if (points.length === 0) return
 
     const bounds = new maplibregl.LngLatBounds()
-    obs.forEach(o => bounds.extend([o.longitude!, o.latitude!]))
+    points.forEach(p => bounds.extend([p.lng, p.lat]))
     map.fitBounds(bounds, { padding: 50, maxZoom: 13 })
 
-    obs.forEach(o => {
+    points.forEach(p => {
       const el = document.createElement('div')
-      el.className = 'myobs-map-pin'
+      el.className = `myobs-map-pin${p.shared ? ' myobs-map-pin-shared' : ''}`
 
       const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([o.longitude!, o.latitude!])
+        .setLngLat([p.lng, p.lat])
         .addTo(map)
 
       el.addEventListener('click', (e) => {
         e.stopPropagation()
         popupRef.current?.remove()
 
-        const name = o.common_name || o.species_name || o.category || 'Observation'
-        const sci = o.scientific_name || ''
-        const date = o.observed_at ? new Date(o.observed_at).toLocaleDateString() : ''
-        const photo = o.thumbnail_url || o.photo_url
-        const photoHtml = photo
-          ? `<img src="${photo}" class="myobs-popup-img" />`
+        const photoHtml = p.photo
+          ? `<img src="${p.photo}" class="myobs-popup-img" />`
           : '<div class="myobs-popup-no-img">No photo</div>'
 
         const popup = new maplibregl.Popup({ offset: 12, maxWidth: '240px' })
-          .setLngLat([o.longitude!, o.latitude!])
+          .setLngLat([p.lng, p.lat])
           .setHTML(`
             <div class="myobs-popup">
               ${photoHtml}
-              <div class="myobs-popup-name">${name}</div>
-              ${sci ? `<div class="myobs-popup-sci">${sci}</div>` : ''}
-              ${date ? `<div class="myobs-popup-date">${date}</div>` : ''}
-              ${o.notes ? `<div class="myobs-popup-notes">${o.notes}</div>` : ''}
+              <div class="myobs-popup-name">${p.name}</div>
+              ${p.sci ? `<div class="myobs-popup-sci">${p.sci}</div>` : ''}
+              ${p.date ? `<div class="myobs-popup-date">${p.date}</div>` : ''}
+              ${p.notes ? `<div class="myobs-popup-notes">${p.notes}</div>` : ''}
+              ${p.shared ? '<div class="myobs-popup-date">📬 shared with you</div>' : ''}
             </div>
           `)
           .addTo(map)
@@ -132,7 +152,7 @@ export default function MyObsMapPage() {
 
       markersRef.current.push(marker)
     })
-  }, [obs])
+  }, [points])
 
   return (
     <div className="myobs-map-page">
@@ -144,11 +164,11 @@ export default function MyObsMapPage() {
 
       <div className="myobs-map-meta">
         <span className="myobs-map-count">
-          {!isLoggedIn
-            ? 'Sign in to see your observations'
-            : loading
+          {loading
             ? 'Loading...'
-            : `${obs.length} observation${obs.length === 1 ? '' : 's'}`}
+            : (!isLoggedIn && points.length === 0)
+            ? 'Sign in to see your observations'
+            : `${points.length} observation${points.length === 1 ? '' : 's'}`}
         </span>
       </div>
 
