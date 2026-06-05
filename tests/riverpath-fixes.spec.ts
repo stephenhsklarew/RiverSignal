@@ -73,6 +73,28 @@ test('#6 shared link lands items in recipient Saved', async ({ page, request }) 
   expect(body.toLowerCase()).toContain('shared item')     // the "sign in to keep" banner
 })
 
+// #6c — a shared link carrying an observation renders it on the recipient's Saved
+test('#6c shared observation lands in recipient Saved', async ({ page, request }) => {
+  const resp = await request.post(`${API}/saved/share`, {
+    data: {
+      watershed: WS,
+      sections: ['observation'],
+      items: [{
+        type: 'observation', id: 'pw-obs-42',
+        data: { watershed: WS, label: 'PW Shared Otter', sublabel: 'Lontra canadensis' },
+      }],
+    },
+  })
+  expect(resp.ok()).toBeTruthy()
+  const { url } = await resp.json()
+  await page.goto(`${BASE}${url}`)
+  await page.waitForTimeout(SETTLE)
+  await expect(page).toHaveURL(/\/path\/saved/)
+  const body = (await page.locator('body').textContent()) || ''
+  expect(body).toContain('PW Shared Otter')        // the observation rendered
+  expect(body).toContain('shared with you')         // shared-observation affordance
+})
+
 // #6b — expired/invalid link shows a friendly message
 test('#6b invalid share link shows friendly error', async ({ page }) => {
   await page.goto(`${BASE}/path/shared/totally-bogus-token`)

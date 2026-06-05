@@ -113,6 +113,13 @@ export default function SavedPage() {
     item => item.type !== 'observation' && (item.watershed || 'other') === headerWs
   )
 
+  // Observations received via a shared link arrive in localStorage as
+  // type 'observation' (flagged shared). The owner's own observations come
+  // from the API (apiObs); a recipient who isn't signed in only has these.
+  const sharedObs = listSaved().filter(
+    item => item.type === 'observation' && item.shared && (item.watershed || 'other') === headerWs
+  )
+
   // Group saved items by type
   const byType: Partial<Record<SavedItem['type'], SavedItem[]>> = {}
   for (const item of savedItems) {
@@ -120,24 +127,40 @@ export default function SavedPage() {
     byType[item.type]!.push(item)
   }
 
-  const hasObs = apiObs.length > 0
+  const hasObs = apiObs.length > 0 || sharedObs.length > 0
   const hasSaved = savedItems.length > 0
   const isEmpty = !hasObs && !hasSaved
-  const sharedItems = savedItems.filter(i => i.shared)
+  const sharedItems = [...savedItems, ...sharedObs].filter(i => i.shared)
+  // The owner can share their saved items and/or their own observations.
+  const canShare = hasSaved || apiObs.length > 0
+  const privateObsCount = apiObs.filter(o => o.visibility === 'private').length
 
   async function handleShare() {
     setSharing(true); setCopied(false); setShareUrl(null)
-    // Observations are excluded (private, backend-synced) — share the saved
-    // species/flies/reaches/recreation/geology items for this watershed.
-    const items = savedItems.map(s => ({
+    // Saved species/flies/reaches/recreation/geology items…
+    const savedPayload = savedItems.map(s => ({
       type: s.type, id: s.id,
       data: { watershed: s.watershed, label: s.label, sublabel: s.sublabel,
               thumbnail: s.thumbnail, latitude: s.latitude, longitude: s.longitude },
     }))
+    // …plus the owner's observations (incl. private — the recipient sees them
+    // via a public link; the modal warns when private ones are included).
+    const obsPayload = apiObs.map(o => ({
+      type: 'observation', id: String(o.id),
+      data: {
+        watershed: o.watershed || headerWs,
+        label: o.common_name || o.species_name || o.category || 'Observation',
+        sublabel: o.scientific_name || undefined,
+        thumbnail: o.photo_url || undefined,
+        latitude: o.latitude, longitude: o.longitude,
+      },
+    }))
+    const items = [...savedPayload, ...obsPayload]
+    const sections = [...Object.keys(byType), ...(obsPayload.length ? ['observation'] : [])]
     try {
       const r = await fetch(`${API_BASE}/saved/share`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-        body: JSON.stringify({ watershed: headerWs, sections: Object.keys(byType), items }),
+        body: JSON.stringify({ watershed: headerWs, sections, items }),
       })
       const d = await r.json()
       if (r.ok && d.url) setShareUrl(`${window.location.origin}${d.url}`)
@@ -162,7 +185,7 @@ export default function SavedPage() {
         </div>
       )}
 
-      {hasSaved && (
+      {canShare && (
         <div className="saved-actions" style={{ display: 'flex', justifyContent: 'flex-end', margin: '6px 0' }}>
           <button className="saved-share-btn" onClick={handleShare} disabled={sharing}
             style={{ fontWeight: 600, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--accent, #2b6cb0)', background: 'var(--accent, #2b6cb0)', color: '#fff' }}>
@@ -183,8 +206,13 @@ export default function SavedPage() {
             </button>
             <button onClick={() => setShareUrl(null)} aria-label="Close" style={{ padding: '6px 10px', borderRadius: 6 }}>✕</button>
           </div>
+          {privateObsCount > 0 && (
+            <div style={{ fontSize: 12.5, color: '#9a3412', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 6, padding: '6px 8px', marginTop: 8 }}>
+              ⚠ This link includes <strong>{privateObsCount}</strong> private observation{privateObsCount === 1 ? '' : 's'} — anyone with the link can see {privateObsCount === 1 ? 'it' : 'them'} for 24 hours.
+            </div>
+          )}
           <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>
-            Anyone with this link sees these {WATERSHED_LABELS[headerWs] || headerWs} items in their Saved for 24 hours (observations excluded).
+            Anyone with this link sees these {WATERSHED_LABELS[headerWs] || headerWs} items in their Saved for 24 hours.
           </div>
         </div>
       )}
@@ -204,7 +232,7 @@ export default function SavedPage() {
             <section className="saved-group">
               <h2 className="saved-group-title">
                 📷 Observations
-                <span className="saved-group-count">{apiObs.length}</span>
+                <span className="saved-group-count">{apiObs.length + sharedObs.length}</span>
                 <Link to={`/path/saved/map/${headerWs}`} className="saved-map-all">
                   View all on map
                 </Link>
@@ -252,6 +280,21 @@ export default function SavedPage() {
                   </div>
                 )
               })}
+              {/* Observations received via a shared link (recipient view) */}
+              {sharedObs.map(obs => (
+                <div key={`shared-${obs.id}`} className="saved-item">
+                  {obs.thumbnail ? (
+                    <img src={obs.thumbnail} alt="" className="saved-item-thumb" />
+                  ) : (
+                    <span className="saved-item-icon">📷</span>
+                  )}
+                  <div className="saved-item-info">
+                    <div className="saved-item-label">{obs.label}</div>
+                    {obs.sublabel && <div className="saved-item-sub">{obs.sublabel}</div>}
+                    <div className="saved-item-meta">📬 shared with you</div>
+                  </div>
+                </div>
+              ))}
             </section>
           )}
 
