@@ -169,7 +169,7 @@ function RiverCard({ site, photo, tagline, onNavigate, onAsk }: {
         <h2 className="river-card-name" onClick={onNavigate}>{site.name}</h2>
         <div className="river-card-tagline">{tagline}</div>
         <div className="river-card-pills">
-          <span className="river-pill">{sc.total_species?.toLocaleString() || '—'} species</span>
+          <span className="river-pill">{sc.total_species?.toLocaleString() || '—'} species <InfoTooltip text="Distinct species observed in this watershed across all wildlife — plants, animals, and fungi — from iNaturalist and other public observation records. Not fish-only." sources={['inaturalist']} /></span>
           {health.water_temp_c != null && <span className="river-pill">{tempF(health.water_temp_c)}</span>}
           {sc.total_interventions > 0 && <span className="river-pill">{sc.total_interventions} projects</span>}
         </div>
@@ -820,7 +820,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           </div>
           <div data-card="time_machine">
           {/* ── Time Machine ── */}
-          {timeMachine && timeMachine.years?.length > 2 && (() => {
+          {timeMachine && timeMachine.years?.length > 2 ? (() => {
             const years = timeMachine.years
             const selected = years.find((y: any) => y.year === tmYear) || years[years.length - 1]
             return (
@@ -869,7 +869,12 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 )}
               </section>
             )
-          })()}
+          })() : timeMachine ? (
+            <section className="rnow-section">
+              <div className="rnow-section-title">🕰️ Time Machine — Species Through the Years <InfoTooltip text="What people and biologists were finding in this watershed year by year, built from verified citizen-science sightings and agency surveys." sources={['inaturalist', 'biodata']} /></div>
+              <p className="rnow-tm-empty">Not enough history yet — the Time Machine needs at least 3 years of observations for this watershed{timeMachine.years?.length ? ` (currently ${timeMachine.years.length} year${timeMachine.years.length === 1 ? '' : 's'})` : ''}. Check back as the observation record grows.</p>
+            </section>
+          ) : null}
 
           </div>
           <div data-card="compare_rivers">
@@ -903,7 +908,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 {[
                   ['Species', compareData.river1.species?.toLocaleString(), compareData.river2.species?.toLocaleString()],
                   ['Health', compareData.river1.health_score || '—', compareData.river2.health_score || '—'],
-                  ['Water Temp', compareData.river1.water_temp_c ? `${compareData.river1.water_temp_c}°C` : '—', compareData.river2.water_temp_c ? `${compareData.river2.water_temp_c}°C` : '—'],
+                  ['Water Temp', tempF(compareData.river1.water_temp_c), tempF(compareData.river2.water_temp_c)],
                   ['DO (mg/L)', compareData.river1.do_mg_l || '—', compareData.river2.do_mg_l || '—'],
                   ['Hatch Activity', compareData.river1.hatch_activity, compareData.river2.hatch_activity],
                   ['Projects', compareData.river1.projects?.toLocaleString(), compareData.river2.projects?.toLocaleString()],

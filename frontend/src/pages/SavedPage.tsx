@@ -1,11 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import useSWR from 'swr'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSaved, type SavedItem } from '../components/SavedContext'
 import { useAuth } from '../components/AuthContext'
 import WatershedHeader, { getSelectedWatershed } from '../components/WatershedHeader'
 import { setUserObsCount } from '../components/useUserObsCount'
 import type { PhotoMeta } from '../components/TappablePhoto'
+import { API_BASE } from '../config'
 import './SavedPage.css'
 
 const TYPE_ICONS: Record<SavedItem['type'], string> = {
@@ -64,9 +65,19 @@ export default function SavedPage() {
     return () => { document.title = 'River Signal' }
   }, [])
   const navigate = useNavigate()
-  const { listSaved, unsave } = useSaved()
+  const { listSaved, unsave, keepShared } = useSaved()
   const { isLoggedIn } = useAuth()
   const headerWs = getSelectedWatershed() || 'mckenzie'
+  const [searchParams] = useSearchParams()
+  const cameFromShare = searchParams.get('shared') === '1'
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // When a recipient signs in, convert their shared (expiring) items to permanent.
+  useEffect(() => {
+    if (isLoggedIn) keepShared()
+  }, [isLoggedIn, keepShared])
 
   function openObservation(obs: UserObservation) {
     if (!obs.photo_url) return
@@ -112,10 +123,71 @@ export default function SavedPage() {
   const hasObs = apiObs.length > 0
   const hasSaved = savedItems.length > 0
   const isEmpty = !hasObs && !hasSaved
+  const sharedItems = savedItems.filter(i => i.shared)
+
+  async function handleShare() {
+    setSharing(true); setCopied(false); setShareUrl(null)
+    // Observations are excluded (private, backend-synced) — share the saved
+    // species/flies/reaches/recreation/geology items for this watershed.
+    const items = savedItems.map(s => ({
+      type: s.type, id: s.id,
+      data: { watershed: s.watershed, label: s.label, sublabel: s.sublabel,
+              thumbnail: s.thumbnail, latitude: s.latitude, longitude: s.longitude },
+    }))
+    try {
+      const r = await fetch(`${API_BASE}/saved/share`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ watershed: headerWs, sections: Object.keys(byType), items }),
+      })
+      const d = await r.json()
+      if (r.ok && d.url) setShareUrl(`${window.location.origin}${d.url}`)
+    } finally { setSharing(false) }
+  }
+
+  async function copyShareLink() {
+    if (!shareUrl) return
+    try { await navigator.clipboard.writeText(shareUrl); setCopied(true) } catch { /* ignore */ }
+  }
 
   return (
     <div className="saved-page">
       <WatershedHeader watershed={headerWs} basePath="/path/now" />
+
+      {(cameFromShare || sharedItems.length > 0) && sharedItems.length > 0 && (
+        <div className="saved-shared-banner" style={{ background: '#eef6ff', border: '1px solid #9cc3ef', borderRadius: 10, padding: '10px 14px', margin: '10px 0', fontSize: 14 }}>
+          📬 <strong>{sharedItems.length}</strong> shared item{sharedItems.length === 1 ? '' : 's'} added to your Saved.
+          {isLoggedIn
+            ? ' Kept in your account.'
+            : ' These expire in 24 hours — sign in to keep them permanently.'}
+        </div>
+      )}
+
+      {hasSaved && (
+        <div className="saved-actions" style={{ display: 'flex', justifyContent: 'flex-end', margin: '6px 0' }}>
+          <button className="saved-share-btn" onClick={handleShare} disabled={sharing}
+            style={{ fontWeight: 600, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--accent, #2b6cb0)', background: 'var(--accent, #2b6cb0)', color: '#fff' }}>
+            {sharing ? 'Creating link…' : '🔗 Share these'}
+          </button>
+        </div>
+      )}
+
+      {shareUrl && (
+        <div className="saved-share-modal" role="dialog" aria-label="Share link"
+          style={{ background: '#fff', border: '1px solid #d0d7de', borderRadius: 10, padding: 14, margin: '8px 0', boxShadow: '0 2px 8px rgba(0,0,0,.08)' }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Share link (expires in 24 hours)</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input readOnly value={shareUrl} onFocus={e => e.currentTarget.select()}
+              style={{ flex: 1, padding: '6px 8px', border: '1px solid #d0d7de', borderRadius: 6, fontSize: 13 }} />
+            <button onClick={copyShareLink} style={{ padding: '6px 12px', borderRadius: 6, fontWeight: 600 }}>
+              {copied ? '✓ Copied' : 'Copy'}
+            </button>
+            <button onClick={() => setShareUrl(null)} aria-label="Close" style={{ padding: '6px 10px', borderRadius: 6 }}>✕</button>
+          </div>
+          <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>
+            Anyone with this link sees these {WATERSHED_LABELS[headerWs] || headerWs} items in their Saved for 24 hours (observations excluded).
+          </div>
+        </div>
+      )}
 
       {isEmpty ? (
         <div className="saved-empty-state">
