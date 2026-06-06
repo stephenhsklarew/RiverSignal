@@ -212,11 +212,15 @@ function WatershedPicker() {
       </p>
 
       <ul className="admin-grid">
-        {targets.map(w => (
+        {targets.map(w => {
+          const splash = SPLASH_PHOTOS[w.value]
+          return (
           <li key={w.value}>
             <Link to={`/admin/photos?watershed=${encodeURIComponent(w.value)}`} className="admin-card">
-              <div className="admin-card-thumb admin-card-placeholder-thumb">
-                <span className="admin-card-placeholder">🏞️</span>
+              <div className="admin-card-thumb">
+                {splash
+                  ? <img src={splash} alt={w.label} loading="lazy" />
+                  : <div className="admin-card-placeholder">🏞️</div>}
               </div>
               <div className="admin-card-body">
                 <div className="admin-card-name">{w.label}</div>
@@ -224,7 +228,8 @@ function WatershedPicker() {
               </div>
             </Link>
           </li>
-        ))}
+          )
+        })}
         <li>
           <Link to="/admin/photos?watershed=*" className="admin-card admin-card-add">
             <div className="admin-card-thumb admin-card-placeholder-thumb">

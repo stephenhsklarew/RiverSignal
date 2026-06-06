@@ -15,10 +15,10 @@
 // activate handler below deletes any cache whose name doesn't match
 // these constants, so changing the version forces an eviction on
 // every active client at their next navigation. Last bump 2026-06-05:
-// Saved-items account sync + shared-observation attribution/visibility +
-// banner sign-in link; force-evict so active clients pick up the new bundle.
-const CACHE_NAME = 'riversignal-v7'
-const API_CACHE = 'riversignal-api-v7'
+// /admin/photos watershed picker now shows splash images; force-evict so the
+// admin sees the fixed bundle without a manual reload.
+const CACHE_NAME = 'riversignal-v8'
+const API_CACHE = 'riversignal-api-v8'
 const API_BASE = '/api/v1/'
 
 // Pre-cache HTML shells so first-load offline works. Network-first runtime
