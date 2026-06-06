@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from 'react-markdown'
@@ -169,7 +169,7 @@ function RiverCard({ site, photo, tagline, onNavigate, onAsk }: {
         <h2 className="river-card-name" onClick={onNavigate}>{site.name}</h2>
         <div className="river-card-tagline">{tagline}</div>
         <div className="river-card-pills">
-          <span className="river-pill">{sc.total_species?.toLocaleString() || '—'} species</span>
+          <span className="river-pill">{sc.total_species?.toLocaleString() || '—'} species <InfoTooltip text="Distinct species observed in this watershed across all wildlife — plants, animals, and fungi — from iNaturalist and other public observation records. Not fish-only." sources={['inaturalist']} /></span>
           {health.water_temp_c != null && <span className="river-pill">{tempF(health.water_temp_c)}</span>}
           {sc.total_interventions > 0 && <span className="river-pill">{sc.total_interventions} projects</span>}
         </div>
@@ -820,7 +820,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
           </div>
           <div data-card="time_machine">
           {/* ── Time Machine ── */}
-          {timeMachine && timeMachine.years?.length > 2 && (() => {
+          {timeMachine && timeMachine.years?.length > 2 ? (() => {
             const years = timeMachine.years
             const selected = years.find((y: any) => y.year === tmYear) || years[years.length - 1]
             return (
@@ -869,7 +869,12 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 )}
               </section>
             )
-          })()}
+          })() : timeMachine ? (
+            <section className="rnow-section">
+              <div className="rnow-section-title">🕰️ Time Machine — Species Through the Years <InfoTooltip text="What people and biologists were finding in this watershed year by year, built from verified citizen-science sightings and agency surveys." sources={['inaturalist', 'biodata']} /></div>
+              <p className="rnow-tm-empty">Not enough history yet — the Time Machine needs at least 3 years of observations for this watershed{timeMachine.years?.length ? ` (currently ${timeMachine.years.length} year${timeMachine.years.length === 1 ? '' : 's'})` : ''}. Check back as the observation record grows.</p>
+            </section>
+          ) : null}
 
           </div>
           <div data-card="compare_rivers">
@@ -903,7 +908,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 {[
                   ['Species', compareData.river1.species?.toLocaleString(), compareData.river2.species?.toLocaleString()],
                   ['Health', compareData.river1.health_score || '—', compareData.river2.health_score || '—'],
-                  ['Water Temp', compareData.river1.water_temp_c ? `${compareData.river1.water_temp_c}°C` : '—', compareData.river2.water_temp_c ? `${compareData.river2.water_temp_c}°C` : '—'],
+                  ['Water Temp', tempF(compareData.river1.water_temp_c), tempF(compareData.river2.water_temp_c)],
                   ['DO (mg/L)', compareData.river1.do_mg_l || '—', compareData.river2.do_mg_l || '—'],
                   ['Hatch Activity', compareData.river1.hatch_activity, compareData.river2.hatch_activity],
                   ['Projects', compareData.river1.projects?.toLocaleString(), compareData.river2.projects?.toLocaleString()],
@@ -1130,9 +1135,24 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
 }) {
   const [page, setPage] = useState(0)
   const SENTENCES_PER_PAGE = 5
+  const cardRef = useRef<HTMLElement>(null)
+  const textRef = useRef<HTMLDivElement>(null)
 
   // Reset page when narrative changes
   useEffect(() => { setPage(0) }, [narrative])
+
+  // Page through the story. The story body is a height-clipped, internally
+  // scrollable box (max-height + overflow-y:auto), so the reader scrolls
+  // *inside* it — reset that inner scroll to the top so the new page starts at
+  // its first line, and nudge the card into view if it's partly off-screen.
+  // rAF runs after the new page's content has rendered.
+  const goToPage = (next: number) => {
+    setPage(next)
+    requestAnimationFrame(() => {
+      if (textRef.current) textRef.current.scrollTop = 0
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+  }
 
   // Split into sentences for pagination
   const sentences = narrative
@@ -1144,7 +1164,7 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
   return (
     <>
       <div className="rnow-story-label">River Story <InfoTooltip text="A narrative about this river, written by AI but grounded in real data — species counts, water quality, recent wildfires, restoration projects. Rewritten periodically as new data arrives. The audio version is read by a synthetic voice." sources={['inaturalist', 'usgs', 'restoration', 'mtbs']} /></div>
-      <section className="rnow-story-card">
+      <section className="rnow-story-card" ref={cardRef} style={{ scrollMarginTop: 60 }}>
         {/* Reading level toggle + audio */}
         <div className="rnow-story-controls">
           <div className="rnow-story-toggle">
@@ -1164,7 +1184,7 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
         {loading ? (
           <div className="rnow-story-loading">Loading story...</div>
         ) : (
-          <div className="rnow-story-text">
+          <div className="rnow-story-text" ref={textRef}>
             <Markdown>{pageSentences.join(' ')}</Markdown>
           </div>
         )}
@@ -1172,9 +1192,9 @@ function RiverStoryCard({ narrative, loading, readingLevel, onChangeLevel, speak
         {/* Pagination */}
         {!loading && totalPages > 1 && (
           <div className="rnow-story-pagination">
-            <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="rnow-story-page-btn">← Prev</button>
+            <button disabled={page === 0} onClick={() => goToPage(page - 1)} className="rnow-story-page-btn">← Prev</button>
             <span className="rnow-story-page-info">{page + 1} / {totalPages}</span>
-            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="rnow-story-page-btn">Next →</button>
+            <button disabled={page >= totalPages - 1} onClick={() => goToPage(page + 1)} className="rnow-story-page-btn">Next →</button>
           </div>
         )}
       </section>

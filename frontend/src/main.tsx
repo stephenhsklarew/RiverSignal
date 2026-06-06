@@ -54,6 +54,7 @@ const HatchPage = lazy(() => import('./pages/HatchPage'))
 const FishRefugePage = lazy(() => import('./pages/FishRefugePage'))
 const StewardPage = lazy(() => import('./pages/StewardPage'))
 const SavedPage = lazy(() => import('./pages/SavedPage'))
+const SharedCollectionPage = lazy(() => import('./pages/SharedCollectionPage'))
 const WherePage = lazy(() => import('./pages/WherePage'))
 const AlertsPage = lazy(() => import('./pages/AlertsPage'))
 const SpeciesMapPage = lazy(() => import('./pages/SpeciesMapPage'))
@@ -181,6 +182,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/path/steward/:watershed" element={<StewardPage />} />
             <Route path="/path/explore-map/:watershed" element={<ExploreMapPage />} />
             <Route path="/path/saved" element={<SavedPage />} />
+            <Route path="/path/shared/:token" element={<SharedCollectionPage />} />
             <Route path="/path/where" element={<WherePage />} />
             <Route path="/path/alerts" element={<AlertsPage />} />
 
