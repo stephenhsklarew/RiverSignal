@@ -34,6 +34,7 @@ const WATERSHEDS = [
   { value: 'clinch_river_va', label: 'Clinch River' },
   { value: 'new_river_va', label: 'New River' },
   { value: 'chattahoochee', label: 'Chattahoochee River' },
+  { value: 'meramec', label: 'Meramec River' },
 ]
 
 function wsLabel(value: string): string {

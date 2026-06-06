@@ -17,6 +17,7 @@ const COUNCIL_LINKS: Record<string, { name: string; url: string }> = {
   clinch_river_va: { name: 'Upper Tennessee River Roundtable', url: 'https://www.uppertnriver.org/' },
   new_river_va: { name: 'New River Conservancy', url: 'https://www.newriverconservancy.org/' },
   chattahoochee: { name: 'Chattahoochee Riverkeeper', url: 'https://chattahoochee.org/' },
+  meramec: { name: 'Open Space Council for the St. Louis Region (Operation Clean Stream)', url: 'https://www.openspacestl.org/' },
 }
 
 const CATEGORY_ICONS: Record<string, string> = {

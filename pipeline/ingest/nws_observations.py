@@ -38,6 +38,7 @@ WS_COORDS: dict[str, tuple[float, float]] = {
     "clinch_river_va": (36.88, -82.30),  # VA Clinch corridor centroid; NWS office RNK (Blacksburg VA) covers
     "new_river_va": (37.05, -80.72),  # VA New River corridor centroid; NWS office RNK (Blacksburg VA) covers
     "chattahoochee": (34.00, -84.30),  # Buford tailwater / metro-Atlanta corridor; NWS office FFC (Peachtree City GA)
+    "meramec": (38.25, -91.00),  # mid-Meramec (Sullivan/Meramec SP area); NWS office LSX (St. Louis MO)
 }
 
 

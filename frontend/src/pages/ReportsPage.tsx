@@ -20,6 +20,7 @@ const WATERSHEDS = [
   { id: 'clinch_river_va', name: 'Clinch River' },
   { id: 'new_river_va', name: 'New River' },
   { id: 'chattahoochee', name: 'Chattahoochee River' },
+  { id: 'meramec', name: 'Meramec River' },
   { id: 'skagit', name: 'Skagit River' },
 ]
 

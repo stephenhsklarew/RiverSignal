@@ -19,7 +19,7 @@ interface WatershedData {
   story?: any
 }
 
-const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'meramec', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
 
 export default function HomePage() {
   const navigate = useNavigate()

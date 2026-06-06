@@ -38,6 +38,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   clinch_river_va: [-82.30, 36.88],
   new_river_va: [-80.72, 37.05],
   chattahoochee: [-84.30, 34.00],
+  meramec: [-91.00, 38.25],
   skagit: [-121.50, 48.45],
 }
 
@@ -67,7 +68,7 @@ export default function RiverNowPage() {
 
 import logo from '../assets/riverpath-logo.svg'
 
-const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'meramec', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
 const PHOTOS: Record<string, string> = {
   deschutes: 'https://images.unsplash.com/photo-1528672903139-6a4496639a68?w=900&h=600&fit=crop',
   green_river: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&h=600&fit=crop',
@@ -81,6 +82,7 @@ const PHOTOS: Record<string, string> = {
   clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop',
   new_river_va: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=900&h=600&fit=crop',
   chattahoochee: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
+  meramec: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {
@@ -96,6 +98,7 @@ const TAGLINES: Record<string, string> = {
   clinch_river_va: "Appalachia's rarest river — smallmouth, muskie, and the continent's richest mussel fauna",
   new_river_va: "One of Earth's oldest rivers, flowing north — trophy smallmouth, muskie, and walleye",
   chattahoochee: "Atlanta's urban tailwater — Buford Dam trout, shoal bass, and Dahlonega gold",
+  meramec: "Ozark smallmouth float stream — Maramec Spring trout, caves, and the Old Lead Belt",
   skagit: 'All five salmon species in the shadow of the North Cascades',
 }
 
@@ -204,6 +207,7 @@ const WS_STATE_SOURCES: Record<string, { fishing: string[]; stocking: string[]; 
   clinch_river_va:{ fishing: ['virginia'],                 stocking: ['virginia'],                     access: ['recreation', 'virginia'],                     attribution: 'VA DWR' },
   new_river_va:{ fishing: ['virginia'],                    stocking: ['virginia'],                     access: ['recreation', 'virginia'],                     attribution: 'VA DWR' },
   chattahoochee:{ fishing: ['ga_trout'],                   stocking: ['ga_trout'],                     access: ['recreation', 'ga_trout'],                    attribution: 'GA DNR-WRD' },
+  meramec:{      fishing: [],                            stocking: [],                               access: ['recreation'],                                attribution: 'Missouri Dept. of Conservation' },
 }
 const DEFAULT_STATE_SOURCES = { fishing: ['fishing'], stocking: ['fishing'], access: ['recreation'], attribution: 'ODFW' }
 

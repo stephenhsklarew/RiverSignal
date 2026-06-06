@@ -4,7 +4,7 @@ import rpLogo from '../assets/riverpath-logo.svg'
 import AppDrawer from './AppDrawer'
 import './WatershedHeader.css'
 
-const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
+const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green_river', 'ipswich_river_ma', 'johnday', 'klamath', 'mad_river_oh', 'mckenzie', 'meramec', 'metolius', 'new_river_va', 'shenandoah', 'skagit']
 const WATERSHED_LABELS: Record<string, string> = {
   mckenzie: 'McKenzie River', deschutes: 'Deschutes River', metolius: 'Metolius River',
   klamath: 'Upper Klamath Basin', johnday: 'John Day River', skagit: 'Skagit River',
@@ -15,6 +15,7 @@ const WATERSHED_LABELS: Record<string, string> = {
   clinch_river_va: 'Clinch River',
   new_river_va: 'New River',
   chattahoochee: 'Chattahoochee River',
+  meramec: 'Meramec River',
 }
 
 const WATERSHED_SORTED = [...WATERSHED_ORDER].sort((a, b) =>

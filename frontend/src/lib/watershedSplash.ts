@@ -23,6 +23,7 @@ export const SPLASH_PHOTOS: Record<string, string> = {
   clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop', // v0 (Appalachian forested river) — needs Clinch-specific photo
   new_river_va: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=900&h=600&fit=crop', // v0 (Appalachian river) — needs New River-specific photo
   chattahoochee: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // v0 placeholder (Blue Ridge) — needs Chattahoochee-specific photo
+  meramec: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // v0 placeholder — needs Meramec-specific photo
 }
 
 export const SPLASH_META: Record<string, { tagline: string; narrative: string }> = {
@@ -77,5 +78,9 @@ export const SPLASH_META: Record<string, { tagline: string; narrative: string }>
   chattahoochee: {
     tagline: 'An urban tailwater trout river through the heart of Atlanta',
     narrative: 'The Chattahoochee runs from Blue Ridge headwaters near Helen through Lake Sidney Lanier and the Buford Dam tailwater — a cold rainbow and brown trout fishery released from the bottom of the lake — then through metro Atlanta and the Chattahoochee River National Recreation Area toward West Point Lake. It is the first urban and first Southeast-US watershed on the platform: striped and spotted bass in Lanier, tailwater trout below Buford Dam, smallmouth and shoal bass downstream, and the historic Dahlonega Gold Belt on the eastern flank. SAFETY: Buford Dam hydropower releases raise the tailwater several feet within minutes — always check the USACE release schedule before wading.',
+  },
+  meramec: {
+    tagline: 'A free-flowing Ozark smallmouth float stream with a spring-fed trout park',
+    narrative: 'The Meramec rises in the Ozark highlands near Salem and runs free for 218 miles — no main-stem dam — through the Steelville float corridor, Meramec and Onondaga Cave state parks, and the St. Louis suburbs to the Mississippi River near Arnold. It is the platform\'s first Missouri and first mid-continent karst watershed: a premier smallmouth-bass float stream with spring-fed rainbow trout at Maramec Spring (one of Missouri\'s four trout parks), cave-riddled dolomite bluffs, and Mississippian crinoid fossils. The Big River tributary carries the Old Lead Belt\'s mining legacy — a Superfund tailings site with a lead/sediment TMDL and a fish-consumption advisory.',
   },
 }

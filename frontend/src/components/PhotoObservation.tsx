@@ -54,6 +54,7 @@ const WS_CENTERS: Record<string, [number, number]> = {
   clinch_river_va: [-82.30, 36.88],
   new_river_va: [-80.72, 37.05],
   chattahoochee: [-84.30, 34.00],
+  meramec: [-91.00, 38.25],
 }
 
 interface PhotoObservationProps {

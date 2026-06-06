@@ -40,6 +40,7 @@ const SOURCE_META: Record<string, { description: string; upstream: string; refre
   odgs: { description: 'Ohio DNR Division of Geological Survey — Bedrock Geology 24K unit polygons (Mad River OH)', upstream: 'Annual', refresh: 'Annual', license: 'Public Records (ORC §149.43)', commercial: true },
   ga_trout: { description: 'Georgia DNR Wildlife Resources Division — weekly trout stocking (Chattahoochee tailwater + headwaters)', upstream: 'Weekly', refresh: 'Weekly', license: 'Open Records (OCGA §50-18-70)', commercial: true },
   ga_geology: { description: 'Georgia geology unit polygons via UGA ITOS (1976 GA Geologic Survey map basis) (Chattahoochee)', upstream: 'Annual', refresh: 'Annual', license: 'Public Domain (state-published)', commercial: true },
+  mo_geology: { description: 'Missouri Geological Survey bedrock unit polygons (gis.dnr.mo.gov; Gasconade/Roubidoux/Eminence dolomites) (Meramec)', upstream: 'Annual', refresh: 'Annual', license: 'Public Domain (state-published)', commercial: true },
   nws: { description: 'National Weather Service observations (daily roll-ups per watershed gridpoint)', upstream: 'Daily', refresh: 'Daily', license: 'Public Domain', commercial: true },
   nws_forecast: { description: 'NWS 7-day weather forecast captured daily per watershed', upstream: 'Hourly', refresh: 'Daily', license: 'Public Domain', commercial: true },
 }

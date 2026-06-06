@@ -34,6 +34,7 @@ const WS_FISHING_SOURCE: Record<string, string[]> = {
   clinch_river_va: ['virginia'],
   new_river_va: ['virginia'],
   chattahoochee: ['ga_trout'],
+  meramec: [],
 }
 const DEFAULT_FISHING_SOURCE = ['fishing']
 const TQS_TOOLTIP =
