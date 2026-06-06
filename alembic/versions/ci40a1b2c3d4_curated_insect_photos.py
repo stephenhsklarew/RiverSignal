@@ -1,7 +1,7 @@
 """curated_insect_photos: per-watershed photo overrides for "What Fish Are Eating Now"
 
 Revision ID: ci40a1b2c3d4
-Revises: ch10a1b2c3d4
+Revises: sv01a1b2c3d4
 Create Date: 2026-06-04 00:00:00.000000
 
 Fish photos have an admin curation path (gold.curated_species_photos);
@@ -30,7 +30,7 @@ from alembic import op
 
 
 revision: str = 'ci40a1b2c3d4'
-down_revision: Union[str, Sequence[str], None] = 'ch10a1b2c3d4'
+down_revision: Union[str, Sequence[str], None] = 'sv01a1b2c3d4'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
