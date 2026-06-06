@@ -195,6 +195,14 @@ function WatershedView({ watershed, tab }: { watershed: string; tab: WatershedTa
 
 function WatershedPicker() {
   const targets = WATERSHEDS.filter(w => w.value !== '*').slice().sort((a, b) => a.label.localeCompare(b.label))
+  // Saved splash overrides win over the built-in defaults, so an uploaded
+  // photo shows here too (not just on /path).
+  const { data: splashData } = useSWR<{ overrides: { watershed: string; image_url: string | null }[] }>(
+    `${API_BASE}/admin/watershed-splash`, fetcher)
+  const overrideImg: Record<string, string> = {}
+  for (const o of splashData?.overrides || []) {
+    if (o.image_url) overrideImg[o.watershed] = o.image_url
+  }
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -213,7 +221,7 @@ function WatershedPicker() {
 
       <ul className="admin-grid">
         {targets.map(w => {
-          const splash = SPLASH_PHOTOS[w.value]
+          const splash = overrideImg[w.value] || SPLASH_PHOTOS[w.value]
           return (
           <li key={w.value}>
             <Link to={`/admin/photos?watershed=${encodeURIComponent(w.value)}`} className="admin-card">

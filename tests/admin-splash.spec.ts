@@ -48,4 +48,12 @@ test('Splash Card: choosing a .png uploads and auto-saves', async ({ page, reque
   expect(body.splash.exists).toBe(true)
   expect(body.splash.image_url).toContain('/images/uploads/watershed_splash/')
   console.log('persisted image_url:', body.splash.image_url)
+
+  // the watershed picker should now show the uploaded override, not the default
+  await page.goto(`${BASE}/admin/photos`)
+  await page.waitForTimeout(3000)
+  const card = page.locator('.admin-card', { has: page.getByText(WS, { exact: true }) })
+  const src = await card.locator('img').first().getAttribute('src')
+  console.log('picker thumb src:', src)
+  expect(src).toContain('/images/uploads/watershed_splash/')
 })

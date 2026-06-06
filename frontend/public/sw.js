@@ -14,11 +14,11 @@
 // content that active users would otherwise see as 'stale.' The
 // activate handler below deletes any cache whose name doesn't match
 // these constants, so changing the version forces an eviction on
-// every active client at their next navigation. Last bump 2026-06-05:
-// /admin/photos watersheds sorted alphabetically + splash image auto-saves on
-// upload; force-evict so the admin sees the fixed bundle without a manual reload.
-const CACHE_NAME = 'riversignal-v9'
-const API_CACHE = 'riversignal-api-v9'
+// every active client at their next navigation. Last bump 2026-06-06:
+// /admin/photos picker now shows the saved splash override (not just the
+// default); force-evict so the admin sees the fixed bundle without a reload.
+const CACHE_NAME = 'riversignal-v10'
+const API_CACHE = 'riversignal-api-v10'
 const API_BASE = '/api/v1/'
 
 // Pre-cache HTML shells so first-load offline works. Network-first runtime
