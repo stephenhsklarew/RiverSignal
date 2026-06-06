@@ -31,6 +31,7 @@ WATERSHEDS = {
     'clinch_river_va': 'Clinch River (Virginia)',  # disambiguate; SW VA, Tennessee River basin
     'new_river_va': 'New River (Virginia)',  # disambiguate; SW VA, Kanawha/Ohio basin (not New R. NC/WV gorge)
     'chattahoochee': 'Chattahoochee River (Georgia)',  # urban; Buford Dam tailwater trout + Atlanta
+    'meramec': 'Meramec River (Missouri)',  # Ozark karst; smallmouth float + Maramec Spring trout
 }
 
 READING_LEVELS = ['adult', 'kids', 'expert']
