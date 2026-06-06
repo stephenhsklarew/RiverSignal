@@ -194,7 +194,7 @@ function WatershedView({ watershed, tab }: { watershed: string; tab: WatershedTa
 // ─── Watershed picker (entry point) ────────────────────────────────
 
 function WatershedPicker() {
-  const targets = WATERSHEDS.filter(w => w.value !== '*')
+  const targets = WATERSHEDS.filter(w => w.value !== '*').slice().sort((a, b) => a.label.localeCompare(b.label))
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -530,6 +530,21 @@ function WatershedSplashEditor({ watershed }: { watershed: string }) {
     setSeeded(true)
   }, [data, seeded, defImage, defMeta.tagline, defMeta.narrative])
 
+  // Persist the override (image + text) to the DB.
+  async function persist(img: string, tag: string, nar: string) {
+    const r = await fetch(url, {
+      method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: img.trim() || null,
+        tagline: tag.trim() || null,
+        narrative: nar.trim() || null,
+      }),
+    })
+    if (!r.ok) throw new Error(`Save failed: ${r.status}`)
+    await mutate()
+  }
+
   async function uploadImage(f: File) {
     setUploading(true); setMsg(null)
     try {
@@ -539,7 +554,10 @@ function WatershedSplashEditor({ watershed }: { watershed: string }) {
       const body = await r.json()
       if (!r.ok) throw new Error(body.detail || `Upload failed: ${r.status}`)
       setImageUrl(body.image_url)
-      setMsg('Image uploaded — click Save to publish it to the splash page.')
+      // Auto-save so choosing a file persists immediately — no separate Save
+      // click needed (which was easy to miss). Text edits still use Save.
+      await persist(body.image_url, tagline, narrative)
+      setMsg('Image uploaded and saved. The /path splash card updates on next load.')
     } catch (e: unknown) {
       setMsg(`Error: ${(e as Error).message}`)
     } finally { setUploading(false) }
@@ -548,17 +566,7 @@ function WatershedSplashEditor({ watershed }: { watershed: string }) {
   async function save() {
     setBusy(true); setMsg(null)
     try {
-      const r = await fetch(url, {
-        method: 'PUT', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image_url: imageUrl.trim() || null,
-          tagline: tagline.trim() || null,
-          narrative: narrative.trim() || null,
-        }),
-      })
-      if (!r.ok) throw new Error(`Save failed: ${r.status}`)
-      await mutate()
+      await persist(imageUrl, tagline, narrative)
       setMsg('Saved. The /path splash card shows the new image & text on next load.')
     } catch (e: unknown) {
       setMsg(`Error: ${(e as Error).message}`)
@@ -1106,7 +1114,7 @@ function AdminPhotoEditor(
 
 function SpecializeForWatershed({ speciesKey }: { speciesKey: string }) {
   const navigate = useNavigate()
-  const targets = WATERSHEDS.filter(w => w.value !== '*')
+  const targets = WATERSHEDS.filter(w => w.value !== '*').slice().sort((a, b) => a.label.localeCompare(b.label))
   function go(ws: string) {
     if (!ws) return
     navigate(`/admin/photos/${encodeURIComponent(speciesKey)}?watershed=${encodeURIComponent(ws)}`)
