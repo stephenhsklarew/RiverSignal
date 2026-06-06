@@ -240,15 +240,16 @@ export default function SavedPage() {
 
       {shareUrl && (
         <div className="saved-share-modal" role="dialog" aria-label="Share link"
-          style={{ background: '#fff', border: '1px solid #d0d7de', borderRadius: 10, padding: 14, margin: '8px 0', boxShadow: '0 2px 8px rgba(0,0,0,.08)' }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>Share link (expires in 24 hours)</div>
+          style={{ position: 'relative', background: '#fff', border: '1px solid #d0d7de', borderRadius: 10, padding: 14, margin: '8px 0', boxShadow: '0 2px 8px rgba(0,0,0,.08)' }}>
+          <button onClick={() => setShareUrl(null)} aria-label="Close"
+            style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, lineHeight: '26px', textAlign: 'center', padding: 0, borderRadius: 6, border: '1px solid #d0d7de', background: '#fff', cursor: 'pointer' }}>✕</button>
+          <div style={{ fontWeight: 600, marginBottom: 6, paddingRight: 32 }}>Share link (expires in 24 hours)</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input readOnly value={shareUrl} onFocus={e => e.currentTarget.select()}
-              style={{ flex: 1, padding: '6px 8px', border: '1px solid #d0d7de', borderRadius: 6, fontSize: 13 }} />
-            <button onClick={copyShareLink} style={{ padding: '6px 12px', borderRadius: 6, fontWeight: 600 }}>
+              style={{ flex: 1, minWidth: 0, padding: '6px 8px', border: '1px solid #d0d7de', borderRadius: 6, fontSize: 13 }} />
+            <button onClick={copyShareLink} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 6, fontWeight: 600 }}>
               {copied ? '✓ Copied' : 'Copy'}
             </button>
-            <button onClick={() => setShareUrl(null)} aria-label="Close" style={{ padding: '6px 10px', borderRadius: 6 }}>✕</button>
           </div>
           {privateObsCount > 0 && (
             <div style={{ fontSize: 12.5, color: '#9a3412', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 6, padding: '6px 8px', marginTop: 8 }}>
