@@ -38,6 +38,7 @@ const SOURCE_LABELS: Record<string, string> = {
   dogami: 'DOGAMI',
   odgs: 'ODGS (Ohio geology)',
   ga_geology: 'GA geology (UGA ITOS)',
+  mo_geology: 'MO geology (MGS)',
   mrds: 'USGS MRDS',
   mtbs: 'MTBS fire',
   fish_barrier: 'Fish passage barriers',

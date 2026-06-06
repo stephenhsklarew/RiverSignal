@@ -37,7 +37,7 @@ def main():
 
 @main.command()
 @click.argument(
-    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "odgs", "ga_geology", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "massachusetts", "west_virginia", "ohio_stocking", "ga_trout", "all"])
+    "source", type=click.Choice(["inaturalist", "usgs", "wqp", "snotel", "biodata", "streamnet", "mtbs", "nhdplus", "restoration", "fish_passage", "prism", "impaired", "wetlands", "wbd", "fishing", "macrostrat", "pbdb", "blm_sma", "dogami", "odgs", "ga_geology", "mo_geology", "mrds", "idigbio", "recreation", "wqp_bugs", "gbif", "washington", "utah", "virginia", "massachusetts", "west_virginia", "ohio_stocking", "ga_trout", "all"])
 )
 @click.option(
     "--watershed", "-w",
@@ -76,7 +76,7 @@ def ingest(source: str, watershed: str, from_date, sample: bool, sample_max):
     from pipeline.ingest.georgia import GATroutStockingAdapter
     from pipeline.ingest.geology import (
         BLMLandOwnershipAdapter, DOGAMIAdapter, GAGeologyAdapter, GeologicUnitsAdapter,
-        IDigBioFossilAdapter, MRDSAdapter, ODGSAdapter, PBDBFossilAdapter,
+        IDigBioFossilAdapter, MoGeologyAdapter, MRDSAdapter, ODGSAdapter, PBDBFossilAdapter,
     )
     from pipeline.ingest.inaturalist import INaturalistAdapter
     from pipeline.ingest.ohio_stocking import OhioStockingAdapter
@@ -120,6 +120,7 @@ def ingest(source: str, watershed: str, from_date, sample: bool, sample_max):
         "dogami": DOGAMIAdapter,
         "odgs": ODGSAdapter,
         "ga_geology": GAGeologyAdapter,
+        "mo_geology": MoGeologyAdapter,
         "mrds": MRDSAdapter,
         "idigbio": IDigBioFossilAdapter,
         "gbif": GBIFFossilAdapter,

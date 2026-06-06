@@ -47,6 +47,7 @@ SOURCE_REFRESH_HOURS: dict[str, float] = {
     "dogami": 8760,
     "odgs": 8760,                # ODNR Bedrock Geology 24K (Mad River OH)
     "ga_geology": 8760,          # GA geology via UGA ITOS (Chattahoochee)
+    "mo_geology": 8760,          # MO Geological Survey bedrock (Meramec)
     "mrds": 8760,
     "mtbs": 4380,  # quarterly
     "nhdplus": 8760,

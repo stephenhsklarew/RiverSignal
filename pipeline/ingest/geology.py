@@ -551,6 +551,12 @@ ODGS_URL = "https://gis.ohiodnr.gov/arcgis/rest/services/DGS_Services/Bedrock_Ge
 # GA Geologic Survey map). 169 units; fields OBJECTID/GEOLCODE/SYMBOL/DESCRIPTION.
 GA_GEOLOGY_URL = "https://maps.itos.uga.edu/arcgis/rest/services/FrameWork/PhysicalGeography/MapServer/1/query"
 
+# Missouri Geological Survey (MO DNR) — statewide Bedrock map service. Layer 0
+# = "Bedrock" polygons; fields OBJECTID/UNIT_LABEL/UNIT_NAME/GEO_AGE/MAP_UNIT.
+# Unlike GA/OH, MO carries a GEO_AGE string → mapped to `period`.
+# License: Public Domain (state-published), commercial:true.
+MO_GEOLOGY_URL = "https://gis.dnr.mo.gov/host/rest/services/geology/bedrock/MapServer/0/query"
+
 # USGS MRDS — mineral deposit locations (WFS)
 MRDS_URL = "https://mrdata.usgs.gov/services/mrds"
 
@@ -824,6 +830,107 @@ class GAGeologyAdapter(IngestionAdapter):
                         "description": str(desc),
                         "payload": json.dumps(attrs),
                     }
+                    if geojson:
+                        params["geojson"] = geojson
+                        conn.execute(SQL, params)
+                    else:
+                        conn.execute(SQL_NO_GEOM, params)
+                    created += 1
+                conn.commit()
+
+        return created, 0
+
+
+def _mo_geology_params(attrs: dict) -> dict:
+    """Map one MGS Bedrock feature's attributes to geologic_units insert params.
+
+    Pure (no network/DB) so it's unit-testable. UNIT_NAME → unit_name + lithology,
+    UNIT_LABEL/MAP_UNIT → formation (map symbol), GEO_AGE → period.
+    """
+    unit_name = attrs.get("UNIT_NAME") or ""
+    label = attrs.get("UNIT_LABEL") or attrs.get("MAP_UNIT") or ""
+    age = attrs.get("GEO_AGE") or ""
+    rock_type = _extract_rock_type(unit_name) or (unit_name[:100] if unit_name else None)
+    desc = unit_name + (f" ({age})" if age else "")
+    return {
+        "source_id": str(attrs.get("OBJECTID", "")),
+        "unit_name": str(unit_name)[:255],
+        "formation": str(label)[:255],
+        "rock_type": rock_type[:100] if rock_type else None,
+        "lithology": str(unit_name)[:255] if unit_name else None,
+        "period": str(age)[:100] if age else None,
+        "description": str(desc),
+        "payload": json.dumps(attrs),
+    }
+
+
+class MoGeologyAdapter(IngestionAdapter):
+    """Missouri geology — Missouri Geological Survey (MO DNR) Bedrock service.
+
+    Source: https://gis.dnr.mo.gov/host/rest/services/geology/bedrock/MapServer/0
+    License: Public Domain (state-published), commercial:true.
+    Attribution: "Geology from the Missouri Geological Survey (MO DNR)".
+
+    Mirrors GA/ODGS/DOGAMI — ArcGIS REST polygons → geologic_units
+    (source='mo_geology'). Fields: OBJECTID, UNIT_NAME, UNIT_LABEL (map symbol),
+    GEO_AGE (geologic age string → period), MAP_UNIT. Sharper than Macrostrat
+    for the Ozark karst column (Gasconade/Roubidoux/Eminence/Potosi dolomites).
+    MO-only service; scope to MO watersheds to avoid needless calls.
+    """
+    source_type = "mo_geology"
+
+    def ingest(self) -> tuple[int, int]:
+        site = self.session.get(Site, self.site_id)
+        if not site or not site.bbox:
+            raise ValueError(f"Site {self.site_id} not found or no bbox")
+
+        # MO-only service. Add new MO watersheds here when onboarding them.
+        if site.watershed not in ("meramec",):
+            console.print(f"    mo_geology: skipping {site.watershed} (not a MO watershed)")
+            return 0, 0
+
+        created = 0
+        with httpx.Client(timeout=120) as client:
+            console.print("    fetching MO (MGS) geologic units...")
+            features = _arcgis_query_paginated(client, MO_GEOLOGY_URL, site.bbox, max_per_page=1000)
+            console.print(f"    received {len(features)} MO geology polygons")
+
+            if not features:
+                return 0, 0
+
+            SQL = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    geometry, data_payload)
+                VALUES (gen_random_uuid(), 'mo_geology', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, NULL, NULL, :period, :description,
+                    ST_GeomFromGeoJSON(:geojson), CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+            SQL_NO_GEOM = text("""
+                INSERT INTO geologic_units (id, source, source_id, unit_name, formation,
+                    rock_type, lithology, age_min_ma, age_max_ma, period, description,
+                    data_payload)
+                VALUES (gen_random_uuid(), 'mo_geology', :source_id, :unit_name, :formation,
+                    :rock_type, :lithology, NULL, NULL, :period, :description,
+                    CAST(:payload AS jsonb))
+                ON CONFLICT DO NOTHING
+            """)
+
+            existing = {
+                r[0] for r in self.session.execute(
+                    text("SELECT source_id FROM geologic_units WHERE source = 'mo_geology'")
+                )
+            }
+
+            with engine.connect() as conn:
+                for f in features:
+                    attrs = f.get("attributes", {}) or {}
+                    source_id = str(attrs.get("OBJECTID", ""))
+                    if not source_id or source_id in existing:
+                        continue
+                    geojson = _esri_rings_to_geojson(f.get("geometry"))
+                    params = _mo_geology_params(attrs)
                     if geojson:
                         params["geojson"] = geojson
                         conn.execute(SQL, params)
