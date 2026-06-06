@@ -203,10 +203,13 @@ function RiverStoryEditor({ watershed, readingLevel }: { watershed: string; read
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <Link to="/admin/river-stories" className="admin-back">← All stories</Link>
+        <Link
+          to={`/admin/photos?watershed=${encodeURIComponent(watershed)}&type=story`}
+          className="admin-back"
+        >← {wsLabel} stories</Link>
         <h1>{wsLabel} — {readingLevel}</h1>
         <div className="admin-header-actions">
-          <Link to="/admin/photos" className="admin-nav-link">→ Photos</Link>
+          <Link to={`/admin/photos?watershed=${encodeURIComponent(watershed)}`} className="admin-nav-link">→ Photos</Link>
         </div>
       </header>
 

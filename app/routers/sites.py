@@ -174,11 +174,25 @@ def get_site(watershed: str):
             ORDER BY indicator_direction, status
         """), {"ws": watershed}).fetchall()
 
+        # Admin-editable splash card overrides (image + tagline + narrative).
+        # Table may not exist before the migration runs — degrade gracefully.
+        try:
+            splash = conn.execute(text("""
+                SELECT image_url, tagline, narrative
+                FROM gold.watershed_splash WHERE watershed = :ws
+            """), {"ws": watershed}).fetchone()
+        except Exception:
+            conn.rollback()
+            splash = None
+
     return {
         "id": str(site[0]),
         "name": site[1],
         "watershed": site[2],
         "bbox": site[3],
+        "splash_image_url": splash[0] if splash else None,
+        "splash_tagline":   splash[1] if splash else None,
+        "splash_narrative": splash[2] if splash else None,
         "health": {
             "score": health[0] if health else None,
             "water_temp_c": float(health[1]) if health and health[1] else None,

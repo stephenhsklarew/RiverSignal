@@ -16,6 +16,17 @@ PUT    /admin/curated-photos/{species_key}?watershed=...           upsert; write
 DELETE /admin/curated-photos/{species_key}?watershed=...           delete; writes audit row
 GET    /admin/curated-photos/{species_key}/history?watershed=...   full audit timeline (omit ws → all scopes)
 GET    /admin/inat/photos?scientific_name=...                      iNat search proxy (1h LRU cache)
+GET    /admin/watersheds/{watershed}/fish                          fish present in a watershed + curation status
+GET    /admin/watersheds/{watershed}/insects                       hatch-chart prey in a watershed + curation status
+GET    /admin/curated-insect-photos                                list every curated insect row (all scopes)
+GET    /admin/curated-insect-photos/{species_key}?watershed=...    one insect row + last 5 audit entries
+PUT    /admin/curated-insect-photos/{species_key}?watershed=...    upsert insect photo; writes audit row
+DELETE /admin/curated-insect-photos/{species_key}?watershed=...    delete insect photo; writes audit row
+GET    /admin/curated-insect-photos/{species_key}/history?watershed=... full insect audit timeline
+GET    /admin/watershed-splash/{watershed}                         splash card override (image + text) + audit
+PUT    /admin/watershed-splash/{watershed}                         upsert splash override; writes audit row
+DELETE /admin/watershed-splash/{watershed}                         clear override (revert to default); audit row
+POST   /admin/watershed-splash/{watershed}/image                   upload a splash image; returns its URL
 POST   /admin/self/revoke                                          self-service admin revocation (OF-6)
 """
 from __future__ import annotations
@@ -24,7 +35,7 @@ import time
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
@@ -408,8 +419,11 @@ def inat_search(
     Cached in-memory for 1 hour per (scientific_name, watershed).
     """
     name = scientific_name.strip()
-    if not name or " " not in name:
-        raise HTTPException(400, "scientific_name must be a binomial (Genus species)")
+    if not name:
+        raise HTTPException(400, "scientific_name is required")
+    # Binomial preferred (fish), but genus-only is allowed — aquatic-insect
+    # hatch entries are frequently keyed at genus level (e.g. 'Baetis',
+    # 'Tipula'); iNat's taxon_name search resolves those fine.
     ws = _validate_watershed(watershed)
 
     key = _inat_cache_key(name, ws)
@@ -470,6 +484,603 @@ def inat_search(
 
     _INAT_CACHE[key] = candidates
     return {"candidates": candidates, "cached": False, "watershed": ws}
+
+
+# ── Watershed-first photo workflow ────────────────────────────────
+
+@router.get("/admin/watersheds/{watershed}/fish")
+def list_watershed_fish(
+    watershed: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """Every fish present in this watershed with its current photo and
+    whether that photo is a per-watershed curated override, a global
+    curated default, or an automatic iNat/gallery fallback.
+
+    Powers the watershed-first admin flow: pick a watershed, see its
+    current fish images, then find/select replacements from iNaturalist.
+    Reuses the public Fish Present builder so the list (dedup, aliasing,
+    photo precedence) matches exactly what the public page renders.
+    """
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+
+    from app.routers.fishing import fishing_species
+    present = fishing_species(ws)
+
+    with engine.connect() as conn:
+        spec_rows = conn.execute(text(
+            "SELECT species_key, scientific_name FROM gold.curated_species_photos "
+            "WHERE watershed = :ws"
+        ), {"ws": ws}).fetchall()
+        glob_rows = conn.execute(text(
+            "SELECT species_key, scientific_name FROM gold.curated_species_photos "
+            "WHERE watershed = '*'"
+        )).fetchall()
+
+    spec_keys = {(r[0] or "").lower() for r in spec_rows}
+    spec_sci = {(r[1] or "").lower() for r in spec_rows if r[1]}
+    glob_keys = {(r[0] or "").lower() for r in glob_rows}
+    glob_sci = {(r[1] or "").lower() for r in glob_rows if r[1]}
+
+    fish: list[dict[str, Any]] = []
+    for f in present:
+        species_key = (f.get("common_name") or "").lower().strip()
+        sci = (f.get("scientific_name") or "").lower().strip()
+        if species_key in spec_keys or (sci and sci in spec_sci):
+            curated = "specific"
+        elif species_key in glob_keys or (sci and sci in glob_sci):
+            curated = "global"
+        else:
+            curated = "none"
+        fish.append({
+            "species_key":     species_key,
+            "common_name":     f.get("common_name"),
+            "scientific_name": f.get("scientific_name"),
+            "photo_url":       f.get("photo_url"),
+            "curated":         curated,
+        })
+    return {"watershed": ws, "fish": fish}
+
+
+# ── Curated insect/prey photos ("What Fish Are Eating Now") ────────
+#
+# Separate table from fish (gold.curated_insect_photos) so the fish
+# lookup path is untouched and a species name can exist as both a fish
+# and an insect. Endpoints mirror the fish ones but never share rows.
+
+@router.get("/admin/curated-insect-photos")
+def list_curated_insect_photos(admin: dict = Depends(get_current_admin)):
+    """Every curated insect row across all scopes."""
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT species_key, watershed, common_name, scientific_name, photo_url,
+                   inat_user_handle, license, source,
+                   updated_by_user_id, updated_at
+            FROM gold.curated_insect_photos
+            ORDER BY species_key,
+                     CASE WHEN watershed = '*' THEN 0 ELSE 1 END,
+                     watershed
+        """)).fetchall()
+    return [
+        {
+            "species_key":      r[0],
+            "watershed":        r[1],
+            "common_name":      r[2],
+            "scientific_name":  r[3],
+            "photo_url":        r[4],
+            "inat_user_handle": r[5],
+            "license":          r[6],
+            "source":           r[7],
+            "updated_by_user_id": str(r[8]) if r[8] else None,
+            "updated_at":       r[9].isoformat() if r[9] else None,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/admin/curated-insect-photos/{species_key}")
+def get_curated_insect_photo(
+    species_key: str,
+    watershed: str = Query(GLOBAL_WATERSHED, description="'*' for global default, or a watershed slug"),
+    admin: dict = Depends(get_current_admin),
+):
+    """One insect row at the requested scope + inline last 5 audit entries,
+    plus a global '*' fallback to pre-seed the editor (mirrors the fish
+    endpoint)."""
+    ws = _validate_watershed(watershed)
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT species_key, watershed, common_name, scientific_name, photo_url,
+                   inat_observation_id, inat_user_handle, license, source,
+                   updated_by_user_id, updated_at
+            FROM gold.curated_insect_photos
+            WHERE species_key = :sk AND watershed = :ws
+        """), {"sk": species_key, "ws": ws}).fetchone()
+        audit_rows = conn.execute(text("""
+            SELECT action, prev_photo_url, new_photo_url, watershed,
+                   changed_by_user_id, changed_at
+            FROM audit.curated_insect_photos_log
+            WHERE species_key = :sk AND watershed = :ws
+            ORDER BY changed_at DESC
+            LIMIT 5
+        """), {"sk": species_key, "ws": ws}).fetchall()
+
+        global_fallback = None
+        if row is None and ws != GLOBAL_WATERSHED:
+            g = conn.execute(text("""
+                SELECT common_name, scientific_name, photo_url
+                FROM gold.curated_insect_photos
+                WHERE species_key = :sk AND watershed = '*'
+            """), {"sk": species_key}).fetchone()
+            if g:
+                global_fallback = {
+                    "common_name":     g[0],
+                    "scientific_name": g[1],
+                    "photo_url":       g[2],
+                }
+
+    return {
+        "species": {
+            "species_key":         row[0] if row else species_key,
+            "watershed":           row[1] if row else ws,
+            "common_name":         row[2] if row else None,
+            "scientific_name":     row[3] if row else None,
+            "photo_url":           row[4] if row else None,
+            "inat_observation_id": row[5] if row else None,
+            "inat_user_handle":    row[6] if row else None,
+            "license":             row[7] if row else None,
+            "source":              row[8] if row else None,
+            "updated_by_user_id":  str(row[9]) if (row and row[9]) else None,
+            "updated_at":          row[10].isoformat() if (row and row[10]) else None,
+            "exists":              row is not None,
+        },
+        "global_fallback": global_fallback,
+        "recent_changes": [
+            {
+                "action":         a[0],
+                "prev_photo_url": a[1],
+                "new_photo_url":  a[2],
+                "watershed":      a[3],
+                "changed_by_user_id": str(a[4]) if a[4] else None,
+                "changed_at":     a[5].isoformat() if a[5] else None,
+            }
+            for a in audit_rows
+        ],
+    }
+
+
+@router.put("/admin/curated-insect-photos/{species_key}")
+def upsert_curated_insect_photo(
+    species_key: str,
+    payload: CuratedPhotoPayload,
+    watershed: str = Query(GLOBAL_WATERSHED, description="'*' for global default, or a watershed slug"),
+    admin: dict = Depends(get_current_admin),
+):
+    """Insert or update a curated insect photo at the requested scope.
+    Single transaction with the audit log."""
+    species_key = species_key.lower().strip()
+    if not species_key:
+        raise HTTPException(400, "species_key cannot be empty")
+    ws = _validate_watershed(watershed)
+
+    with engine.connect() as conn, conn.begin():
+        prev = conn.execute(text("""
+            SELECT photo_url, common_name, scientific_name
+            FROM gold.curated_insect_photos
+            WHERE species_key = :sk AND watershed = :ws
+        """), {"sk": species_key, "ws": ws}).fetchone()
+        is_insert = prev is None
+
+        detected_source = _detect_source(payload.photo_url, payload.source)
+
+        conn.execute(text("""
+            INSERT INTO gold.curated_insect_photos
+                (species_key, watershed, common_name, scientific_name, photo_url,
+                 inat_observation_id, inat_user_handle, license, source,
+                 updated_by_user_id, updated_at)
+            VALUES (:sk, :ws, :cn, :sn, :url, :oid, :uh, :lic, :src, :uid, now())
+            ON CONFLICT (species_key, watershed) DO UPDATE
+              SET common_name         = EXCLUDED.common_name,
+                  scientific_name     = EXCLUDED.scientific_name,
+                  photo_url           = EXCLUDED.photo_url,
+                  inat_observation_id = EXCLUDED.inat_observation_id,
+                  inat_user_handle    = EXCLUDED.inat_user_handle,
+                  license             = EXCLUDED.license,
+                  source              = EXCLUDED.source,
+                  updated_by_user_id  = EXCLUDED.updated_by_user_id,
+                  updated_at          = EXCLUDED.updated_at
+        """), {
+            "sk": species_key,
+            "ws": ws,
+            "cn": payload.common_name,
+            "sn": payload.scientific_name,
+            "url": payload.photo_url,
+            "oid": payload.inat_observation_id,
+            "uh": payload.inat_user_handle,
+            "lic": payload.license,
+            "src": detected_source,
+            "uid": admin["id"],
+        })
+
+        conn.execute(text("""
+            INSERT INTO audit.curated_insect_photos_log
+                (species_key, watershed, action,
+                 prev_photo_url, new_photo_url,
+                 prev_common_name, new_common_name,
+                 prev_scientific, new_scientific,
+                 changed_by_user_id)
+            VALUES (:sk, :ws, :act, :pu, :nu, :pcn, :ncn, :psc, :nsc, :uid)
+        """), {
+            "sk": species_key,
+            "ws": ws,
+            "act": "insert" if is_insert else "update",
+            "pu": prev[0] if prev else None,
+            "nu": payload.photo_url,
+            "pcn": prev[1] if prev else None,
+            "ncn": payload.common_name,
+            "psc": prev[2] if prev else None,
+            "nsc": payload.scientific_name,
+            "uid": admin["id"],
+        })
+
+    return {"ok": True, "species_key": species_key, "watershed": ws,
+            "action": "insert" if is_insert else "update"}
+
+
+@router.delete("/admin/curated-insect-photos/{species_key}")
+def delete_curated_insect_photo(
+    species_key: str,
+    watershed: str = Query(GLOBAL_WATERSHED),
+    admin: dict = Depends(get_current_admin),
+):
+    """Delete a curated insect row at the requested scope. Audit-logged."""
+    species_key = species_key.lower().strip()
+    ws = _validate_watershed(watershed)
+    with engine.connect() as conn, conn.begin():
+        prev = conn.execute(text("""
+            SELECT photo_url, common_name, scientific_name
+            FROM gold.curated_insect_photos
+            WHERE species_key = :sk AND watershed = :ws
+        """), {"sk": species_key, "ws": ws}).fetchone()
+        if not prev:
+            raise HTTPException(404, "no row at that (species_key, watershed) scope")
+
+        conn.execute(
+            text("DELETE FROM gold.curated_insect_photos "
+                 "WHERE species_key = :sk AND watershed = :ws"),
+            {"sk": species_key, "ws": ws},
+        )
+        conn.execute(text("""
+            INSERT INTO audit.curated_insect_photos_log
+                (species_key, watershed, action,
+                 prev_photo_url, new_photo_url,
+                 prev_common_name, prev_scientific,
+                 changed_by_user_id)
+            VALUES (:sk, :ws, 'delete', :pu, NULL, :pcn, :psc, :uid)
+        """), {
+            "sk": species_key,
+            "ws": ws,
+            "pu": prev[0],
+            "pcn": prev[1],
+            "psc": prev[2],
+            "uid": admin["id"],
+        })
+    return {"ok": True, "species_key": species_key, "watershed": ws, "action": "delete"}
+
+
+@router.get("/admin/curated-insect-photos/{species_key}/history")
+def curated_insect_photo_history(
+    species_key: str,
+    watershed: str | None = Query(None, description="Filter to one scope; omit for all scopes"),
+    admin: dict = Depends(get_current_admin),
+):
+    """Full audit timeline for a curated insect, newest first."""
+    where = "WHERE species_key = :sk"
+    params: dict = {"sk": species_key}
+    if watershed is not None:
+        ws = _validate_watershed(watershed)
+        where += " AND watershed = :ws"
+        params["ws"] = ws
+
+    with engine.connect() as conn:
+        rows = conn.execute(text(f"""
+            SELECT action, watershed,
+                   prev_photo_url, new_photo_url,
+                   prev_common_name, new_common_name,
+                   prev_scientific, new_scientific,
+                   changed_by_user_id, changed_at
+            FROM audit.curated_insect_photos_log
+            {where}
+            ORDER BY changed_at DESC
+        """), params).fetchall()
+    return {
+        "species_key": species_key,
+        "watershed":   params.get("ws"),
+        "events": [
+            {
+                "action":               r[0],
+                "watershed":            r[1],
+                "prev_photo_url":       r[2],
+                "new_photo_url":        r[3],
+                "prev_common_name":     r[4],
+                "new_common_name":      r[5],
+                "prev_scientific_name": r[6],
+                "new_scientific_name":  r[7],
+                "changed_by_user_id":   str(r[8]) if r[8] else None,
+                "changed_at":           r[9].isoformat() if r[9] else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get("/admin/watersheds/{watershed}/insects")
+def list_watershed_insects(
+    watershed: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """Every hatch-chart prey item in this watershed with its current photo
+    and whether that photo is a per-watershed curated override, a global
+    curated default, or an automatic iNat/gallery fallback.
+
+    Powers the "What Fish Are Eating Now" side of the watershed-first admin
+    flow. Current-photo precedence matches species_spotter:
+      curated-specific > curated-global > species_gallery genus match.
+    """
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+
+    with engine.connect() as conn:
+        hatch = conn.execute(text("""
+            SELECT common_name, scientific_name, insect_order
+            FROM curated_hatch_chart
+            WHERE watershed = :ws
+            ORDER BY common_name
+        """), {"ws": ws}).fetchall()
+
+        spec_rows = conn.execute(text("""
+            SELECT species_key, scientific_name, photo_url
+            FROM gold.curated_insect_photos WHERE watershed = :ws
+        """), {"ws": ws}).fetchall()
+        glob_rows = conn.execute(text("""
+            SELECT species_key, scientific_name, photo_url
+            FROM gold.curated_insect_photos WHERE watershed = '*'
+        """)).fetchall()
+
+        def _index(rows: list) -> dict[str, str]:
+            idx: dict[str, str] = {}
+            for r in rows:
+                if r[0]:
+                    idx[r[0].lower()] = r[2]
+                if r[1]:
+                    idx[r[1].lower()] = r[2]
+            return idx
+
+        spec_idx = _index(spec_rows)
+        glob_idx = _index(glob_rows)
+
+        def _genus_photo(sci: str) -> str | None:
+            genus = sci.split()[0] if sci else ""
+            if not genus:
+                return None
+            g = conn.execute(text("""
+                SELECT photo_url FROM gold.species_gallery
+                WHERE watershed = :ws AND taxon_name ILIKE :pat AND photo_url IS NOT NULL
+                LIMIT 1
+            """), {"ws": ws, "pat": f"%{genus}%"}).fetchone()
+            return g[0] if g else None
+
+        insects: list[dict[str, Any]] = []
+        for h in hatch:
+            common = h[0]
+            sci = h[1] or ""
+            species_key = (common or "").lower().strip()
+            lk = species_key
+            ls = sci.lower().strip()
+            if lk in spec_idx or (ls and ls in spec_idx):
+                curated = "specific"
+                photo = spec_idx.get(lk) or spec_idx.get(ls)
+            elif lk in glob_idx or (ls and ls in glob_idx):
+                curated = "global"
+                photo = glob_idx.get(lk) or glob_idx.get(ls)
+            else:
+                curated = "none"
+                photo = _genus_photo(sci)
+            insects.append({
+                "species_key":     species_key,
+                "common_name":     common,
+                "scientific_name": h[1],
+                "insect_order":    h[2],
+                "photo_url":       photo,
+                "curated":         curated,
+            })
+    return {"watershed": ws, "insects": insects}
+
+
+# ── Watershed splash card (image + description on /path) ──────────
+
+class WatershedSplashPayload(BaseModel):
+    """Upsert payload for the /path splash card editor. All fields optional;
+    null clears the override for that field (frontend falls back to its
+    built-in default)."""
+    image_url:  str | None = Field(None, max_length=2048)
+    tagline:    str | None = Field(None, max_length=300)
+    narrative:  str | None = Field(None, max_length=10000)
+
+
+@router.get("/admin/watershed-splash/{watershed}")
+def get_watershed_splash(
+    watershed: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """The splash-card override for a watershed + last 5 audit entries.
+    `exists` is false when no override has been saved (the public page then
+    uses the frontend's built-in default image/text)."""
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT watershed, image_url, tagline, narrative, updated_by_user_id, updated_at
+            FROM gold.watershed_splash WHERE watershed = :ws
+        """), {"ws": ws}).fetchone()
+        audit_rows = conn.execute(text("""
+            SELECT action, new_image_url, new_tagline, changed_by_user_id, changed_at
+            FROM audit.watershed_splash_log
+            WHERE watershed = :ws
+            ORDER BY changed_at DESC
+            LIMIT 5
+        """), {"ws": ws}).fetchall()
+    return {
+        "splash": {
+            "watershed":   ws,
+            "image_url":   row[1] if row else None,
+            "tagline":     row[2] if row else None,
+            "narrative":   row[3] if row else None,
+            "updated_by_user_id": str(row[4]) if (row and row[4]) else None,
+            "updated_at":  row[5].isoformat() if (row and row[5]) else None,
+            "exists":      row is not None,
+        },
+        "recent_changes": [
+            {
+                "action":       a[0],
+                "new_image_url": a[1],
+                "new_tagline":  a[2],
+                "changed_by_user_id": str(a[3]) if a[3] else None,
+                "changed_at":   a[4].isoformat() if a[4] else None,
+            }
+            for a in audit_rows
+        ],
+    }
+
+
+@router.put("/admin/watershed-splash/{watershed}")
+def upsert_watershed_splash(
+    watershed: str,
+    payload: WatershedSplashPayload,
+    admin: dict = Depends(get_current_admin),
+):
+    """Insert or update the splash-card override. Single transaction with
+    the audit log."""
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+
+    with engine.connect() as conn, conn.begin():
+        prev = conn.execute(text("""
+            SELECT image_url, tagline, narrative
+            FROM gold.watershed_splash WHERE watershed = :ws
+        """), {"ws": ws}).fetchone()
+        is_insert = prev is None
+
+        conn.execute(text("""
+            INSERT INTO gold.watershed_splash
+                (watershed, image_url, tagline, narrative, updated_by_user_id, updated_at)
+            VALUES (:ws, :img, :tag, :nar, :uid, now())
+            ON CONFLICT (watershed) DO UPDATE
+              SET image_url          = EXCLUDED.image_url,
+                  tagline            = EXCLUDED.tagline,
+                  narrative          = EXCLUDED.narrative,
+                  updated_by_user_id = EXCLUDED.updated_by_user_id,
+                  updated_at         = EXCLUDED.updated_at
+        """), {
+            "ws": ws,
+            "img": payload.image_url,
+            "tag": payload.tagline,
+            "nar": payload.narrative,
+            "uid": admin["id"],
+        })
+
+        conn.execute(text("""
+            INSERT INTO audit.watershed_splash_log
+                (watershed, action,
+                 prev_image_url, new_image_url,
+                 prev_tagline, new_tagline,
+                 prev_narrative, new_narrative,
+                 changed_by_user_id)
+            VALUES (:ws, :act, :pi, :ni, :pt, :nt, :pn, :nn, :uid)
+        """), {
+            "ws": ws,
+            "act": "insert" if is_insert else "update",
+            "pi": prev[0] if prev else None,
+            "ni": payload.image_url,
+            "pt": prev[1] if prev else None,
+            "nt": payload.tagline,
+            "pn": prev[2] if prev else None,
+            "nn": payload.narrative,
+            "uid": admin["id"],
+        })
+
+    return {"ok": True, "watershed": ws, "action": "insert" if is_insert else "update"}
+
+
+@router.delete("/admin/watershed-splash/{watershed}")
+def delete_watershed_splash(
+    watershed: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """Remove the override so the public splash card reverts to the built-in
+    default. Audit-logged."""
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+    with engine.connect() as conn, conn.begin():
+        prev = conn.execute(text("""
+            SELECT image_url, tagline, narrative
+            FROM gold.watershed_splash WHERE watershed = :ws
+        """), {"ws": ws}).fetchone()
+        if not prev:
+            raise HTTPException(404, "no override for that watershed")
+        conn.execute(
+            text("DELETE FROM gold.watershed_splash WHERE watershed = :ws"),
+            {"ws": ws},
+        )
+        conn.execute(text("""
+            INSERT INTO audit.watershed_splash_log
+                (watershed, action, prev_image_url, prev_tagline, prev_narrative,
+                 changed_by_user_id)
+            VALUES (:ws, 'delete', :pi, :pt, :pn, :uid)
+        """), {
+            "ws": ws, "pi": prev[0], "pt": prev[1], "pn": prev[2], "uid": admin["id"],
+        })
+    return {"ok": True, "watershed": ws, "action": "delete"}
+
+
+@router.post("/admin/watershed-splash/{watershed}/image")
+async def upload_watershed_splash_image(
+    watershed: str,
+    file: UploadFile = File(...),
+    admin: dict = Depends(get_current_admin),
+):
+    """Store an uploaded splash image and return its servable URL. Does not
+    persist to the DB — the editor sets it as the image_url and Saves."""
+    from app.audio_cache import put_image_bytes
+
+    ws = _validate_watershed(watershed)
+    if ws == GLOBAL_WATERSHED:
+        raise HTTPException(400, "watershed required (not '*')")
+
+    content_type = (file.content_type or "").lower()
+    if not content_type.startswith("image/"):
+        raise HTTPException(400, "file must be an image")
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "empty file")
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(413, "image too large (max 8 MB)")
+
+    ext = {
+        "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+        "image/webp": "webp", "image/gif": "gif",
+    }.get(content_type, "jpg")
+    filename = f"{ws}_{int(time.time())}.{ext}"
+    url = put_image_bytes("watershed_splash", filename, content, content_type=content_type)
+    if not url:
+        raise HTTPException(500, "failed to store image")
+    return {"image_url": url}
 
 
 # ── River-story narrative editor + audio regeneration ─────────────

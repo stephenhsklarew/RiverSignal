@@ -79,6 +79,37 @@
 .admin-card:hover { border-color: #2c6e49; }
 .admin-card:active { transform: scale(0.99); }
 
+/* Fish cards in the watershed list are <button>s, not links */
+.admin-card-button {
+  font-family: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.admin-card-placeholder-thumb {
+  font-size: 2.4rem;
+}
+
+/* Fish / Eating-Now tabs on the per-watershed view */
+.admin-tabs {
+  display: flex; gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e6e1d4;
+}
+.admin-tab {
+  padding: 8px 14px;
+  font-size: 0.9rem; font-weight: 500;
+  color: #666; text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.admin-tab:hover { color: #2c6e49; }
+.admin-tab.on {
+  color: #2c6e49;
+  border-bottom-color: #2c6e49;
+}
+
 .admin-card-thumb {
   width: 100%; height: 140px; background: #faf8f3;
   display: flex; align-items: center; justify-content: center;
