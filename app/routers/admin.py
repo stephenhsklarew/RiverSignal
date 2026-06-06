@@ -911,6 +911,20 @@ class WatershedSplashPayload(BaseModel):
     narrative:  str | None = Field(None, max_length=10000)
 
 
+@router.get("/admin/watershed-splash")
+def list_watershed_splash(admin: dict = Depends(get_current_admin)):
+    """All saved splash overrides, so the admin watershed picker can show each
+    watershed's current (possibly overridden) image instead of the built-in
+    default."""
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT watershed, image_url, tagline FROM gold.watershed_splash
+        """)).fetchall()
+    return {"overrides": [
+        {"watershed": r[0], "image_url": r[1], "tagline": r[2]} for r in rows
+    ]}
+
+
 @router.get("/admin/watershed-splash/{watershed}")
 def get_watershed_splash(
     watershed: str,
