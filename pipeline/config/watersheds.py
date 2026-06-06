@@ -296,6 +296,37 @@ WATERSHEDS = {
             "west": -84.95,
         },
     },
+    "meramec": {
+        "name": "Meramec River",
+        "description": (
+            "Free-flowing Ozark karst river from headwaters near Salem, MO "
+            "(Dent County) through the Steelville float corridor (Huzzah and "
+            "Courtois creeks), Meramec and Onondaga Cave state parks, and the "
+            "St. Louis suburbs (Castlewood, Route 66 SP) to the Mississippi "
+            "River near Arnold. The platform's first Missouri / mid-continent "
+            "karst watershed. A premier smallmouth-bass float stream with "
+            "spring-fed rainbow trout at Maramec Spring (one of Missouri's four "
+            "trout parks); goggle-eye, spotted/largemouth bass, channel catfish. "
+            "The Big River tributary drains the historic Old Lead Belt — a "
+            "Superfund mine-tailings legacy with a MO DNR lead/zinc/sediment "
+            "303(d) TMDL and an active fish-consumption advisory. Cave-rich "
+            "(Meramec Caverns, Onondaga, Fisher) with Mississippian crinoid "
+            "fossils and dense lead/barite mineralization for DeepTrail."
+        ),
+        # Three HUC8s — 07140102 (Meramec main stem), 07140103 (Bourbeuse),
+        # 07140104 (Big River) — + 0.05° buffer. No main-stem dam (Meramec Park
+        # Dam defeated by 1978 referendum) → no tailwater-release safety hazard;
+        # hazard model is rainfall-driven flash flooding. Real-time water temp
+        # (00010) only at Huzzah Creek 07014000; main-stem reaches fall back to
+        # the climatology proxy in Go Score. See inventory
+        # docs/helix/06-iterate/watershed-add/meramec-source-inventory-2026-06-05.md.
+        "bbox": {
+            "north": 38.65,
+            "south": 37.55,
+            "east": -90.25,
+            "west": -91.65,
+        },
+    },
 }
 
 
