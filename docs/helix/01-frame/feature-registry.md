@@ -29,6 +29,8 @@
 | FEAT-020 | Photo Observations | Camera/EXIF/GCS/private-vs-public toggle | Deployed | P0 | sklarew | 2026-05-09 |
 | FEAT-021 | Shared Saved Collections | 24h-expiring share link for Saved items/observations; recipient banner + sign-in to keep | Deployed | P1 | sklarew | 2026-06-05 |
 | FEAT-022 | Saved Account Sync | Cross-device saved-items persistence (saved_items table); shared observations keep original photographer + visibility, shown on detail screen | Deployed | P1 | sklarew | 2026-06-05 |
+| FEAT-023 | Watershed-First Admin Photos | `/admin/photos` reorganized by watershed; per-watershed insect/prey photo curation (`curated_insect_photos`) for "What Fish Are Eating Now"; River Story tab | In Build | P2 | sklarew | 2026-06-05 |
+| FEAT-024 | Splash Card Editor | Admin-editable `/path` watershed splash image + tagline + narrative (`watershed_splash`), frontend falls back to built-in defaults | In Build | P2 | sklarew | 2026-06-05 |
 
 ## Status Definitions
 
