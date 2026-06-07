@@ -339,8 +339,11 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
       })
       .then(data => setChatAnswer(data.answer || data.detail || 'Unable to answer.'))
       .catch(() => {
-        // Fallback to basic chat endpoint
-        fetch(`${API}/sites/${watershed}/chat`, {
+        // Fallback to basic chat endpoint. RETURN the promise so the outer
+        // .finally (which clears chatLoading) waits for the fallback to finish
+        // — otherwise "Thinking…" disappears the instant the oracle fails while
+        // the ~10s fallback request is still running.
+        return fetch(`${API}/sites/${watershed}/chat`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question }),
         })
