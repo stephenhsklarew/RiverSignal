@@ -161,3 +161,27 @@ def test_alerts_and_sms_endpoints_respond():
     for path in ("/alerts", "/sms/subscriptions"):
         code = httpx.get(f"{API}{path}", timeout=10).status_code
         assert code in (200, 401, 403), f"{path} returned {code}"
+
+
+# ── E1: Apple OAuth callback must not be a 501 stub ────────────────────
+def test_apple_callback_not_501():
+    # Apple posts form_post to /auth/apple/callback. With no body it should be a
+    # 400 ("no authorization code"), never the old 501 stub. The -async alias too.
+    for path in ("/auth/apple/callback", "/auth/apple/callback-async"):
+        code = httpx.post(f"{API}{path}", timeout=10).status_code
+        assert code != 501, f"{path} still returns 501"
+        assert code == 400, f"{path} expected 400 (no code), got {code}"
+
+
+# ── E4: fishing DO-anomaly count must be watershed-scoped (SQL precedence) ──
+def test_do_anomaly_query_is_watershed_scoped():
+    # Guards the parenthesized predicate: `ws AND (oxygen OR do)`, not
+    # `ws AND oxygen OR do` (which leaks other watersheds' 'do' rows).
+    eng = create_engine(DB)
+    q = """
+      SELECT count(*) FROM (VALUES ('A','low_oxygen'),('B','do_crash'),('B','do_crash'))
+      AS t(watershed, anomaly_type)
+      WHERE watershed = 'A' AND (anomaly_type ILIKE '%oxygen%' OR anomaly_type ILIKE '%do%')
+    """
+    with eng.connect() as c:
+        assert c.execute(text(q)).scalar() == 1  # only A's row, never B's

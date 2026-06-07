@@ -234,18 +234,13 @@ def apple_login():
 
 
 @router.post("/auth/apple/callback")
-def apple_callback(request: Request, response: Response):
-    """Handle Apple Sign In callback (form_post)."""
-    import asyncio
-    # Apple sends POST with form data
-    # We need to read the form — use sync approach
-    # Note: In production, use async endpoint
-    raise HTTPException(501, "Apple callback requires async form parsing — see /auth/apple/callback-async")
+@router.post("/auth/apple/callback-async")  # alias kept for any pre-existing redirect-URI config
+async def apple_callback(request: Request):
+    """Handle Apple Sign In callback (form_post).
 
-
-@router.post("/auth/apple/callback-async")
-async def apple_callback_async(request: Request):
-    """Handle Apple Sign In callback (async for form parsing)."""
+    Async so we can parse the form body Apple POSTs (code, id_token, and the
+    first-login `user` JSON). Apple's redirect URI posts to /auth/apple/callback
+    (APPLE_REDIRECT_URI); the -async path is an alias."""
     form = await request.form()
     code = form.get("code")
     if not code:

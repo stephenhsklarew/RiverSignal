@@ -409,7 +409,7 @@ def fishing_alerts(watershed: str):
         # DO anomalies
         do_anomalies = conn.execute(text("""
             SELECT count(*) FROM gold.anomaly_flags
-            WHERE watershed = :ws AND anomaly_type ILIKE '%oxygen%' OR anomaly_type ILIKE '%do%'
+            WHERE watershed = :ws AND (anomaly_type ILIKE '%oxygen%' OR anomaly_type ILIKE '%do%')
         """), {"ws": watershed}).scalar() or 0
         if do_anomalies > 0:
             alerts.append({
