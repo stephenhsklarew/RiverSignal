@@ -287,6 +287,22 @@
 
 .ws-ask-row button:hover { opacity: 0.9; }
 
+.ws-go-btn {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 12px 22px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.ws-go-btn:hover { opacity: 0.92; transform: translateX(2px); }
+
 /* Inline chat response */
 .ws-chat-response {
   margin-top: 14px;
