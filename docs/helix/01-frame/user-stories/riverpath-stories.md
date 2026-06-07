@@ -400,3 +400,21 @@ Source: FEAT-023 / FEAT-024, alignment review AR-2026-06-06
 - The new image shows on both the admin watershed picker and the `/path` splash card
 - Editing the tagline/narrative and tapping Save updates the splash card
 - "Revert to default" restores the built-in image and text
+
+---
+
+## Riverkeeper Role Stories (2026-06-07)
+
+Source: FEAT-025
+
+### US-069 — Riverkeeper tends only their watershed
+**As** a Riverkeeper assigned to the Clinch River,
+**I want** to edit the Clinch's splash card, river story, and photos but nothing for other watersheds,
+**So that** I can keep my river's content accurate without being a platform-wide admin.
+
+**Acceptance Criteria:**
+- After I'm granted the Clinch, `/admin/photos` shows me only the Clinch (a global admin still sees all watersheds)
+- I can edit the Clinch's splash card, river story, fish photos, and insect photos
+- Attempting to edit another watershed — or the global defaults — is refused (403)
+- An admin can revoke my access and it takes effect immediately
+- Every change I make is recorded with me as the author
