@@ -167,3 +167,25 @@ CREATE INDEX IF NOT EXISTS idx_user_observations_visibility_observed_at
 | New endpoint forgets the filter | M | C | Regression test per surface; PR review checklist; consider migrating to a `silver.public_user_observations` view that's the only thing endpoints can join |
 | EXIF GPS leak on public obs (out of scope here) | H | H | Tracked separately as TM-I-002; server-side strip in next release |
 | GCS upload failure leaves orphaned DB row | L | M | Wrap upload + insert in a transaction; rollback DB on GCS failure |
+
+## Post-MVP evolution (2026-06-05)
+
+This TD covers the original upload + visibility-filtering slice. FEAT-020 has since
+evolved alongside the Saved features; the design of record for the additions lives in
+`02-design/plan-2026-06-05-saved-items-account-sync.md`. Summary of what changed:
+
+- **Visibility on the detail screen** — the observation detail (`PhotoDetailPage.tsx`)
+  now renders a Visibility row (🔒 Private / 🌐 Public) alongside Photographer /
+  Source / Observed. `PhotoMeta.visibility` carries it.
+- **Shared-observation attribution** — when an observation is shared (FEAT-021) and the
+  recipient keeps it (FEAT-022), the snapshot preserves the **original photographer**
+  (`observer`), `source`, `observedAt`, and `visibility`. A kept observation is a
+  *bookmark* in `saved_items` — it is **never** written to `user_observations` for the
+  recipient, so the original attribution and privacy are never overwritten, and it is
+  not re-shareable.
+- **Visibility still enforced server-side on every public surface** — the read-filter
+  list in this TD remains authoritative; the verified surfaces are catalogued in
+  `06-iterate/alignment-reviews/AR-2026-06-06-repo.md` §6 (FEAT-020 = SATISFIED).
+
+The original visibility-filter design and acceptance criteria above remain in force;
+this section only records the additive evolution so the TD matches shipped behavior.
