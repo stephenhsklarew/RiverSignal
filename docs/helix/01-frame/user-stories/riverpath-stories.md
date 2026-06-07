@@ -340,3 +340,63 @@ Source: FEAT-010/013, alignment review AR-2026-05-08
 - Audio plays via OpenAI gpt-4o-audio-preview TTS
 - Play/pause controls available
 - Audio stops when navigating away from the page
+
+---
+
+## Saved Sharing & Sync Stories (2026-06-05)
+
+Source: FEAT-021 / FEAT-022, alignment review AR-2026-06-06
+
+### US-065 — Guide shares a trip's Saved set with a client
+**As** Alex (fishing guide),
+**I want** to share my Saved species, flies, and reaches for the Deschutes via a link,
+**So that** my client can open it on their phone before our trip.
+
+**Acceptance Criteria:**
+- "Share these" creates a link (modal with copy button) that expires in 24 hours
+- The recipient opening the link sees the items in their own Saved with a "shared with you" banner
+- An invalid or expired link shows a friendly "unavailable" message
+- If the share includes a private observation, the modal warns before copying
+
+---
+
+### US-066 — Family's Saved items follow them to a new phone
+**As** Sarah (river-visiting family),
+**I want** the species and reaches I saved on my old phone to appear after I sign in on a new one,
+**So that** I don't lose my trip planning.
+
+**Acceptance Criteria:**
+- Signing in merges this device's Saved with the account's Saved (both directions)
+- A removal on one device propagates to the other
+- A kept shared observation keeps the **original** photographer, source, observed date, and visibility
+- A shared private observation shows "Private" + the original photographer on its detail screen
+
+---
+
+## Admin Curation Stories (2026-06-05)
+
+Source: FEAT-023 / FEAT-024, alignment review AR-2026-06-06
+
+### US-067 — Admin curates a watershed's photos in one place
+**As** a site administrator,
+**I want** to pick a watershed and manage its fish photos, insect photos, and river story together,
+**So that** I can curate content per place instead of hunting across a flat species list.
+
+**Acceptance Criteria:**
+- `/admin/photos` lists watersheds alphabetically; picking one opens its tabs
+- A per-watershed insect photo override appears in "What Fish Are Eating Now"
+- With no overrides set, the displayed photos are unchanged
+- All admin curation actions are restricted to `is_admin` users
+
+---
+
+### US-068 — Admin sets a watershed's splash image + description
+**As** a site administrator,
+**I want** to upload a splash photo and edit the tagline/description for a watershed,
+**So that** the `/path` landing card reflects the right image and story.
+
+**Acceptance Criteria:**
+- Choosing an image file saves it immediately (no separate Save click)
+- The new image shows on both the admin watershed picker and the `/path` splash card
+- Editing the tagline/narrative and tapping Save updates the splash card
+- "Revert to default" restores the built-in image and text

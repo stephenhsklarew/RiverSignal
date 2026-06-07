@@ -103,12 +103,29 @@ Coverage: happy path, edge/error cases, and business rules.
 | Visibility-filter regression coverage (per surface) | 100% |
 | Error handling coverage | 90% |
 
+## Recent feature suites (2026-06)
+
+Suites added with FEAT-021/022/023/024 (see AR-2026-06-06-repo.md):
+
+| Suite | Kind | Covers | Status |
+|-------|------|--------|--------|
+| `tests/test_riverpath_fixes.py` | pytest | FEAT-021 share create/resolve/expire; FEAT-022 saved-items 401 + authed upsert→list→delete + observation attribution/visibility round-trip; river-story audio_url | Green |
+| `tests/riverpath-fixes.spec.ts` | Playwright | °F display, species label, Time Machine, FEAT-021 recipient flow (#6/#6b/#6c), FEAT-022 shared-observation photographer + private visibility on detail (#6d) | Green |
+| `tests/riverpath-story-scroll.spec.ts` | Playwright | river-story page-turn resets the inner text box scroll | Green |
+| `tests/admin-splash.spec.ts` | Playwright | FEAT-023 alphabetical watershed picker (admin-gated via forged session); FEAT-024 splash upload auto-saves + picker reflects override | Green (skips without RP_ADMIN_TOKEN/RP_PNG_PATH) |
+
+Known gaps still open (tracked from AR-2026-06-06): OAuth callback tests, `/admin/*`
+backend tests, AI-feature endpoint tests, ~26 ingestion adapters (RiverSignal-f92bb447).
+CI does not yet run any suite before deploy (RiverSignal-cda3eed6).
+
 ## Readiness
 
 - [x] Suite boundaries are defined
 - [x] Shared test data assets exist (`conftest.py`)
 - [x] Visibility regression suite is comprehensive
+- [x] Saved sharing/sync + admin splash suites exist (FEAT-021/022/023/024)
 - [ ] Auth flow test suite (highest-priority gap)
 - [ ] AI grounding test suite
 - [ ] Predictions test suite
+- [ ] CI test/lint gate (RiverSignal-cda3eed6)
 - [ ] Frontend unit tests (Vitest)

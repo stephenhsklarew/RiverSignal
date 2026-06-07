@@ -12,9 +12,9 @@ This project builds a shared data platform ("Liquid Marble") serving three produ
 - **RiverPath** (B2C mobile) — AI river field companion for families, anglers, educators
 - **DeepTrail** (B2C mobile) — AI geology field companion for families, rockhounds, educators
 
-The data platform is operational with 22+ ingestion pipelines feeding 2.3M+ records across **7 watersheds in 3 states** (5 Oregon, 1 Washington, 1 Utah) from **30+ public data sources**, a 37-view medallion architecture, and a FastAPI + React application with LLM reasoning and 5 predictive intelligence models. The geology/paleontology expansion adds 7+ new data sources (USGS NGMDB, Paleobiology Database, Macrostrat, BLM lands, DOGAMI, mineral deposits, volcanic features), 8 new bronze tables, 3 silver views, and 10 gold views. The key integration insight: geology IS the foundation of watershed ecology — every river, species habitat, and water quality reading is shaped by the rocks beneath.
+The data platform is operational with 22+ ingestion pipelines feeding 2.3M+ records across **14 watersheds in 8 states** (5 Oregon, 1 Washington, 1 Utah, 3 Virginia, 1 Ohio, 1 Massachusetts, 1 Georgia, 1 Missouri) from **30+ public data sources**, a 37-view medallion architecture, and a FastAPI + React application with LLM reasoning and 5 predictive intelligence models. The geology/paleontology expansion adds 7+ new data sources (USGS NGMDB, Paleobiology Database, Macrostrat, BLM lands, DOGAMI, mineral deposits, volcanic features), 8 new bronze tables, 3 silver views, and 10 gold views. The key integration insight: geology IS the foundation of watershed ecology — every river, species habitat, and water quality reading is shaped by the rocks beneath.
 
-**Geographic scope** (updated 2026-05-08): Pacific Northwest + Utah. Multi-state data adapter architecture with state-specific adapters for Oregon (ODFW, DOGAMI, OWRI), Washington (WDFW, WA DNR, SRFB, WA Parks), and Utah (UDWR, DWQ, BOR HydroData).
+**Geographic scope** (updated 2026-06-07): Originated in the Pacific Northwest + Utah and has since expanded nationally to 14 watersheds across 8 states — Oregon (5), Washington, Utah, Virginia (3: Shenandoah, Clinch, New River), Ohio (Mad River), Massachusetts (Ipswich), Georgia (Chattahoochee), and Missouri (Meramec). Multi-state data adapter architecture with state-specific adapters (e.g. Oregon ODFW/DOGAMI/OWRI, Washington WDFW/WA DNR, Utah UDWR/DWQ, Virginia DWR, Ohio DNR, Georgia DNR); new watersheds onboard via the add-watershed runbook (`docs/helix/runbooks/`). New regions are added without code changes to the core pipeline — only per-source adapters + a watershed config entry.
 
 ## Product-Specific Context
 
@@ -22,7 +22,7 @@ The data platform is operational with 22+ ingestion pipelines feeding 2.3M+ reco
 
 **Mission**: Help families, anglers, and educators understand the living ecological story of every river they visit across the Pacific Northwest and Utah.
 
-**Target users**: Families visiting rivers 3-10 times/year across 7 watersheds in 3 states, fly fishing guides running 150+ trips/year, teachers running field trips, citizen scientists.
+**Target users**: Families visiting rivers 3-10 times/year across 14 watersheds in 8 states, fly fishing guides running 150+ trips/year, teachers running field trips, citizen scientists.
 
 **Core experience**: A parent opens RiverPath at the McKenzie River. They see that salmon are spawning upstream right now, the forest burned in 2020 and is recovering (species richness up 180%), the cold water comes from Cascade snowmelt, and a watershed council is planting native trees this Saturday. The kids identify caddisfly larvae. The family returns in September for the salmon migration.
 
@@ -308,7 +308,7 @@ Deferred items tracked in `docs/helix/parking-lot.md`.
 - **Data/Storage**: PostgreSQL 17 with PostGIS 3.6.2 on port 5433
 - **Data Sources (30+ ingested + 2 live APIs)**: iNaturalist, USGS NWIS, WQP (chemistry + macroinvertebrates), SNOTEL, BioData, StreamNet, MTBS, NHDPlus HR, OWRI/NOAA/PCSRF, Fish Passage, PRISM, EPA ATTAINS, NWI, USGS WBD, ODFW (sport catch/stocking), Macrostrat, PBDB, iDigBio, GBIF (with fossil images), BLM SMA, DOGAMI, MRDS, USFS Recreation, OSMB Boating Access, curated hatch chart. **Washington**: WDFW SalmonScape, WDFW Stocking, WA DNR Surface Geology, SRFB Salmon Recovery, WA State Parks, WDFW Water Access. **Utah**: AGRC Boat Ramps, DWQ Assessment Units, AGRC Trailheads, BOR Flaming Gorge HydroData, UDWR Fish Stocking. Live: NWS Weather API, USGS Instantaneous Values.
 - **Database Tables (15)**: observations (550K), time_series (1.7M), interventions (2.6K), fire_perimeters (277), stream_flowlines (142K), impaired_waters (778), wetlands (13K), watershed_boundaries (975), geologic_units (17.3K), fossil_occurrences (3.7K), mineral_deposits (2K), land_ownership (40), deep_time_stories (7), recreation_sites (566), curated_hatch_chart (50)
-- **Data Volume**: 2.3M+ records loaded across 7 watersheds in 3 states (Klamath, McKenzie, Deschutes, Metolius, John Day in OR; Skagit in WA; Green River in UT)
+- **Data Volume**: 2.3M+ records loaded across 14 watersheds in 8 states (Klamath, McKenzie, Deschutes, Metolius, John Day in OR; Skagit in WA; Green River in UT; Shenandoah, Clinch, New River in VA; Mad River in OH; Ipswich in MA; Chattahoochee in GA; Meramec in MO)
 - **Medallion Architecture**: 7 silver views + 34 gold views = 41 materialized views
 - **Platform Targets**: Web application; Chrome, Firefox, Safari latest; RiverPath and DeepTrail are mobile-first responsive PWAs; RiverSignal is desktop-primary (with the geology layer accessible through the same surface)
 - **Geology Data Sources (6)**: Macrostrat, USGS NGMDB via DOGAMI OGDC v6, Paleobiology Database (PBDB), iDigBio museum specimens, USGS MRDS mineral deposits, BLM Surface Management Agency
