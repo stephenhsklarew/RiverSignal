@@ -434,7 +434,8 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
         })
         setSuccess(true)
         onSaved?.()
-        setTimeout(() => { setIsOpen(false); reset() }, 1500)
+        // Keep the confirmation up long enough to read where it went.
+        setTimeout(() => { setIsOpen(false); reset() }, 4000)
       } else {
         // Surface backend rejections (e.g. point outside every covered
         // watershed bbox, or missing pin). The API returns
@@ -615,7 +616,10 @@ const PhotoObservation = forwardRef<PhotoObservationHandle, PhotoObservationProp
             {success ? (
               <div className="photo-success">
                 <div className="photo-success-icon">✅</div>
-                <div className="photo-success-text">Observation saved!</div>
+                <div className="photo-success-text">Observation stored in your Saved box</div>
+                <div className="photo-success-sub" style={{ marginTop: 6, fontSize: '0.85rem', opacity: 0.75 }}>
+                  You can find it anytime under <strong>Saved</strong>.
+                </div>
               </div>
             ) : (
               <>
