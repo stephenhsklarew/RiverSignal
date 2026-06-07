@@ -584,6 +584,18 @@ report (§3.6) if the new watershed touches the WQP adapter. Don't replicate thi
    (by ecoregion / dominant fishery type — e.g., for a Rocky Mountain trout river, copy
    `metolius`; for a desert Southwest river, copy nothing and leave empty) with the new
    watershed slug and `source='v0 — needs entomologist review'`.
+   - **MUST populate `curated_hatch_chart.fly_patterns` for every insect** — a `text[]` of
+     canonical fly names (e.g. `ARRAY['BWO Parachute','Pheasant Tail Nymph','Sparkle Dun']`).
+     The `/path/hatch/<ws>` per-insect "Recommended flies" list reads this column directly
+     (via `/fishing/hatch-confidence`); leaving it `'{}'` ships the page with **"no specific
+     fly match"** for the whole watershed (the recurring Shenandoah → Chattahoochee → Meramec
+     miss). Mirror the canonical names already used by `tt20o1p2q3r4_east_coast_insect_fly_patterns`
+     / `na11a1b2c3d4_meramec_fly_patterns` so any fly-tying-video enrichment matches. Ship in the
+     SAME migration as the hatch chart (or an immediately-following one); do not defer.
+   - Set `curated_hatch_chart.photo_url` per insect too (iNat taxon default-photo URLs, per
+     `yy25t6u7v8w9_curated_hatch_photo_url`) — a NULL `photo_url` forces the hatch-confidence
+     endpoint into a per-row `ILIKE` seq scan of `gold.species_gallery` (the ~40-56s prod slowness
+     fixed by the `pg_trgm` index in `mz10a1b2c3d4`); the curated `photo_url` short-circuits it.
 4. **River story draft** — `pipeline/generate_river_stories.py <WATERSHED_SLUG>` produces an
    LLM-grounded narrative; mark `is_draft=true` in metadata so the UI can show a "draft" badge
    if it wants to.
@@ -1083,6 +1095,7 @@ By the end of a successful run:
 - [ ] All applicable existing adapters run; rows landed in bronze
 - [ ] New state adapters (if any) merged with tests
 - [ ] Alembic seed migrations: river_reaches, flow_quality_bands, hatch_chart, stocking placeholder
+- [ ] `curated_hatch_chart.fly_patterns` populated for EVERY insect (not `'{}'`) — else `/path/hatch/<ws>` shows "no specific fly match". Verify: `SELECT count(*) FROM curated_hatch_chart WHERE watershed='<ws>' AND COALESCE(array_length(fly_patterns,1),0)=0` returns 0
 - [ ] `gold.trip_quality_daily` populated for the new watershed
 - [ ] Frontend dicts updated (`WATERSHED_LABELS`, `WATERSHED_ORDER`, `WS_COORDS`, `WS_GAUGES`, `PHOTOS`, `WATERSHED_META`, `TAGLINES` — see §2.6 table)
 - [ ] Pre-launch data seeds applied (§2.6.5): river_stories, sites.boundary, stocking_locations, recreation_sites, species_by_reach MV verified, species_gallery refreshed AND has >0 rows for the new watershed
