@@ -305,6 +305,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const [chatQuestion, setChatQuestion] = useState<string | null>(null)
   const [chatAnswer, setChatAnswer] = useState<string | null>(null)
   const [chatLoading, setChatLoading] = useState(false)
+  const chatRef = useRef<HTMLDivElement>(null)
 
   // All page data is loaded declaratively via useSWR above — no imperative fetch effect.
 
@@ -314,6 +315,14 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
     submitQuestion(pendingQuestion)
     setSearchParams({}, { replace: true })
   }, [pendingQuestion])
+
+  // Keep the chat exchange in view when a question is asked or answered, so
+  // the user always sees their question + the "thinking" state appear.
+  useEffect(() => {
+    if (chatQuestion || chatLoading) {
+      chatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [chatQuestion, chatLoading])
 
   const submitQuestion = (question: string) => {
     setChatQuestion(question)
@@ -537,13 +546,24 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                 placeholder={`Ask about the ${site.name.replace('Upper ', '').replace(' River', '')}...`}
                 className="rnow-ask-input"
               />
-              <button onClick={handleAsk} className="rnow-ask-btn">Ask</button>
+              <button
+                onClick={handleAsk}
+                className="rnow-ask-btn"
+                disabled={chatLoading || !askInput.trim()}
+              >{chatLoading ? 'Asking…' : 'Ask'}</button>
             </div>
             {(chatQuestion || chatLoading) && (
-              <div className="rnow-chat-response">
-                <div className="rnow-chat-question">{chatQuestion}</div>
+              <div className="rnow-chat-response" ref={chatRef}>
+                {chatQuestion && (
+                  <div className="rnow-chat-question">
+                    <span className="rnow-chat-you">You</span>{chatQuestion}
+                  </div>
+                )}
                 {chatLoading ? (
-                  <div className="rnow-chat-loading">Thinking...</div>
+                  <div className="rnow-chat-loading">
+                    <span className="rnow-chat-dots"><span></span><span></span><span></span></span>
+                    Thinking about the {site.name.replace('Upper ', '').replace(' River', '')}…
+                  </div>
                 ) : chatAnswer ? (
                   <div className="rnow-chat-answer"><Markdown>{chatAnswer}</Markdown></div>
                 ) : null}
