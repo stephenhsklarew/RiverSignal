@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import Markdown from 'react-markdown'
+import { Link, useNavigate } from 'react-router-dom'
 import { tempF } from '../utils/temp'
 import logo from '../assets/riverpath-logo.svg'
 import { API_BASE } from '../config'
@@ -23,11 +22,8 @@ const WATERSHED_ORDER = ['chattahoochee', 'clinch_river_va', 'deschutes', 'green
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { watershed: activeWatershed } = useParams<{ watershed?: string }>()
-  const [searchParams, setSearchParams] = useSearchParams()
   const [watersheds, setWatersheds] = useState<WatershedData[]>([])
   const [loading, setLoading] = useState(true)
-  const pendingQuestion = searchParams.get('q')
 
   useEffect(() => {
     Promise.all(
@@ -49,16 +45,6 @@ export default function HomePage() {
       .then(data => { setWatersheds(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
-
-  const handleAsk = (watershed: string, question: string) => {
-    if (question.trim()) {
-      navigate(`/path/now/${watershed}?q=${encodeURIComponent(question.trim())}`)
-    }
-  }
-
-  const handleQuestionConsumed = () => {
-    setSearchParams({}, { replace: true })
-  }
 
   const totalSpecies = watersheds.reduce((a, w) => a + (w.scorecard?.total_species || 0), 0)
 
@@ -92,10 +78,7 @@ export default function HomePage() {
             data={ws}
             photo={ws.splash_image_url || SPLASH_PHOTOS[ws.watershed]}
             reversed={idx % 2 === 1}
-            onAsk={(q) => handleAsk(ws.watershed, q)}
             onNavigate={() => navigate(`/path/now/${ws.watershed}`)}
-            initialQuestion={ws.watershed === activeWatershed ? pendingQuestion : null}
-            onQuestionConsumed={handleQuestionConsumed}
           />
         ))}
       </section>
@@ -114,17 +97,12 @@ export default function HomePage() {
 }
 
 /* ── Watershed Block ── */
-function WatershedBlock({ data, photo, reversed, onAsk, onNavigate, initialQuestion, onQuestionConsumed }: {
+function WatershedBlock({ data, photo, reversed, onNavigate }: {
   data: WatershedData; photo: string; reversed: boolean;
-  onAsk: (q: string) => void; onNavigate: () => void;
-  initialQuestion?: string | null; onQuestionConsumed?: () => void
+  onNavigate: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
-  const [askInput, setAskInput] = useState('')
-  const [chatQuestion, setChatQuestion] = useState<string | null>(null)
-  const [chatAnswer, setChatAnswer] = useState<string | null>(null)
-  const [chatLoading, setChatLoading] = useState(false)
 
   useEffect(() => {
     const el = ref.current
@@ -133,22 +111,6 @@ function WatershedBlock({ data, photo, reversed, onAsk, onNavigate, initialQuest
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
-
-  // Handle incoming question from URL
-  useEffect(() => {
-    if (!initialQuestion || chatLoading || chatQuestion) return
-    setChatQuestion(initialQuestion)
-    setChatLoading(true)
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    fetch(`${API_BASE}/sites/${data.watershed}/chat`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: initialQuestion }),
-    })
-      .then(r => r.json())
-      .then(res => setChatAnswer(res.answer || res.detail || 'Unable to answer.'))
-      .catch(() => setChatAnswer('Set ANTHROPIC_API_KEY to enable AI answers.'))
-      .finally(() => { setChatLoading(false); onQuestionConsumed?.() })
-  }, [initialQuestion])
 
   const health = data.health || {}
   const sc = data.scorecard || {}
@@ -177,32 +139,10 @@ function WatershedBlock({ data, photo, reversed, onAsk, onNavigate, initialQuest
           {sc.total_interventions > 0 && <span className="pill earth">{sc.total_interventions} restoration projects</span>}
         </div>
 
-        {/* Inline chat */}
-        <div className="ws-ask">
-          <div className="ws-ask-label">Ask about {data.name.replace(' River', '').replace('Upper ', '')}</div>
-          <div className="ws-ask-row">
-            <input
-              type="text"
-              value={askInput}
-              onChange={e => setAskInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && askInput.trim()) onAsk(askInput) }}
-              placeholder="How's the fly fishing today?"
-            />
-            <button onClick={() => { if (askInput.trim()) onAsk(askInput) }}>Ask</button>
-          </div>
-        </div>
-
-        {/* Inline chat response */}
-        {(chatQuestion || chatLoading) && (
-          <div className="ws-chat-response">
-            <div className="ws-chat-question">{chatQuestion}</div>
-            {chatLoading ? (
-              <div className="ws-chat-loading">Thinking about the {data.name.replace('Upper ', '')}...</div>
-            ) : chatAnswer ? (
-              <div className="ws-chat-answer"><Markdown>{chatAnswer}</Markdown></div>
-            ) : null}
-          </div>
-        )}
+        {/* Go to this watershed in /path/now */}
+        <button className="ws-go-btn" onClick={onNavigate}>
+          Explore {data.name.replace(' River', '').replace('Upper ', '')} →
+        </button>
       </div>
     </div>
   )
