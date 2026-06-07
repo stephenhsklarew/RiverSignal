@@ -1,7 +1,7 @@
 # Feature Registry
 
 **Status**: Active
-**Last Updated**: 2026-06-05
+**Last Updated**: 2026-06-07
 
 ## Active Features
 
@@ -31,6 +31,7 @@
 | FEAT-022 | Saved Account Sync | Cross-device saved-items persistence (saved_items table); shared observations keep original photographer + visibility, shown on detail screen | Deployed | P1 | sklarew | 2026-06-05 |
 | FEAT-023 | Watershed-First Admin Photos | `/admin/photos` reorganized by watershed; per-watershed insect/prey photo curation (`curated_insect_photos`) for "What Fish Are Eating Now"; River Story tab | In Build | P2 | sklarew | 2026-06-05 |
 | FEAT-024 | Splash Card Editor | Admin-editable `/path` watershed splash image + tagline + narrative (`watershed_splash`), frontend falls back to built-in defaults | In Build | P2 | sklarew | 2026-06-05 |
+| FEAT-025 | Riverkeeper Role | Scoped content-admin role — per-watershed edit rights (splash/story/photos) for assigned stewards; global `is_admin` unchanged. `riverkeeper_assignments` table; live per-request authorization | Specified | P2 | sklarew | 2026-06-07 |
 
 ## Status Definitions
 
