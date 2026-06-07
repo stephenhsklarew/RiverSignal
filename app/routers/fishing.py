@@ -1,5 +1,7 @@
 """Fishing intelligence endpoints (FEAT-007 + RiverPath)."""
 
+from urllib.parse import quote_plus
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 
@@ -7,6 +9,13 @@ from pipeline.db import engine
 from pipeline.tools import get_fishing_brief, get_species_with_photos
 
 router = APIRouter(tags=["fishing"])
+
+
+def _youtube_search_url(fly_name: str) -> str:
+    """A YouTube search for tying a fly pattern — the fallback "Tie it" target
+    when no specific curated fly_tying_videos row matches, so every fly on every
+    watershed gets a working link (specific curated videos still take priority)."""
+    return "https://www.youtube.com/results?search_query=" + quote_plus(f"{fly_name} fly tying tutorial")
 
 
 @router.get("/sites/{watershed}/fishing/brief")
@@ -492,22 +501,31 @@ def fly_recommendations(watershed: str, month: int = None):
             "notes": r[10],
             "observations": r[11],
             "insect_photo_url": r[12],
-            "tying_video_title": video["video_title"] if video else None,
-            "tying_video_url": video["youtube_url"] if video else None,
+            "tying_video_title": video["video_title"] if video else (f"How to tie the {fly_name} — YouTube" if fly_name else None),
+            "tying_video_url": video["youtube_url"] if video else (_youtube_search_url(fly_name) if fly_name else None),
         })
     return results
 
 
 def _enrich_patterns(patterns: list, video_map: dict) -> list:
-    """Enrich fly pattern strings with tying video links."""
+    """Enrich fly pattern strings with tying video links.
+
+    Prefers a curated fly_tying_videos match; otherwise falls back to a YouTube
+    search for tying the pattern, so every fly gets a working "Tie it" link
+    (consistent across all watersheds) even before a specific video is curated.
+    """
     enriched = []
     for p in patterns:
         base = p.split('#')[0].strip().lower()
         video = video_map.get(p.lower()) or video_map.get(base)
+        if video:
+            title, url = video["title"], video["url"]
+        else:
+            title, url = f"How to tie the {p} — YouTube", _youtube_search_url(p)
         enriched.append({
             "name": p,
-            "tying_video_title": video["title"] if video else None,
-            "tying_video_url": video["url"] if video else None,
+            "tying_video_title": title,
+            "tying_video_url": url,
         })
     return enriched
 

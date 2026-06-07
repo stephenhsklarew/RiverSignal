@@ -592,6 +592,16 @@ report (§3.6) if the new watershed touches the WQP adapter. Don't replicate thi
      miss). Mirror the canonical names already used by `tt20o1p2q3r4_east_coast_insect_fly_patterns`
      / `na11a1b2c3d4_meramec_fly_patterns` so any fly-tying-video enrichment matches. Ship in the
      SAME migration as the hatch chart (or an immediately-following one); do not defer.
+   - **Fly-tying "Tie it" videos.** Each fly in the "Recommended flies:" list renders a **▶ Tie
+     it** link (next to a heart/save icon) — the UI to match across watersheds (reference:
+     Deschutes). The link target comes from `_enrich_patterns` in `app/routers/fishing.py`:
+     it uses a curated `fly_tying_videos` row (matched by `fly_pattern` name, case-insensitive)
+     when one exists, and **otherwise falls back to a YouTube search** for "`<fly> fly tying
+     tutorial`" — so every fly gets a working "Tie it" link with no per-watershed seeding. To
+     upgrade a fly to a specific hand-picked video, add a `fly_tying_videos` row
+     `(fly_pattern, video_title, youtube_url)` whose `fly_pattern` matches the curated name; it
+     then takes priority over the search fallback. Do NOT hand-seed search URLs into
+     `fly_tying_videos` — the fallback covers that.
    - Set `curated_hatch_chart.photo_url` per insect too (iNat taxon default-photo URLs, per
      `yy25t6u7v8w9_curated_hatch_photo_url`) — a NULL `photo_url` forces the hatch-confidence
      endpoint into a per-row `ILIKE` seq scan of `gold.species_gallery` (the ~40-56s prod slowness
