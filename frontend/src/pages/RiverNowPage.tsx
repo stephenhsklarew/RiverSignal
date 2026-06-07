@@ -82,7 +82,7 @@ const PHOTOS: Record<string, string> = {
   clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop',
   new_river_va: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=900&h=600&fit=crop',
   chattahoochee: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
-  meramec: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop',
+  meramec: 'https://images.unsplash.com/photo-1652871572027-d127ca7eab8d?w=900&h=600&fit=crop',
   skagit: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',
 }
 const TAGLINES: Record<string, string> = {

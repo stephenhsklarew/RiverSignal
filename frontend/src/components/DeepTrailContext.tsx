@@ -56,7 +56,7 @@ export const WATERSHEDS = [
     photo: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=400&fit=crop',
     caption: 'Dahlonega Gold Belt gold + Blue Ridge metamorphic basement' },
   { id: 'meramec', name: 'Meramec River', lat: 38.25, lon: -91.00,
-    photo: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=400&fit=crop',
+    photo: 'https://images.unsplash.com/photo-1652871572027-d127ca7eab8d?w=900&h=400&fit=crop',
     caption: 'Old Lead Belt minerals + Ozark karst caves + Mississippian crinoids' },
   { id: 'skagit', name: 'Skagit River', lat: 48.45, lon: -121.50,
     photo: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop',

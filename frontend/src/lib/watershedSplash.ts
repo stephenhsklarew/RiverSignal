@@ -23,7 +23,7 @@ export const SPLASH_PHOTOS: Record<string, string> = {
   clinch_river_va: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=900&h=600&fit=crop', // v0 (Appalachian forested river) — needs Clinch-specific photo
   new_river_va: 'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=900&h=600&fit=crop', // v0 (Appalachian river) — needs New River-specific photo
   chattahoochee: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // v0 placeholder (Blue Ridge) — needs Chattahoochee-specific photo
-  meramec: 'https://images.unsplash.com/photo-1697028262529-74efa0627a02?w=900&h=600&fit=crop', // v0 placeholder — needs Meramec-specific photo
+  meramec: 'https://images.unsplash.com/photo-1652871572027-d127ca7eab8d?w=900&h=600&fit=crop', // v0 — Ozark forested float-stream stock photo (themed); true Meramec photo welcome
 }
 
 export const SPLASH_META: Record<string, { tagline: string; narrative: string }> = {
