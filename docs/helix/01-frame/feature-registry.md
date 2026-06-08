@@ -31,6 +31,7 @@
 | FEAT-022 | Saved Account Sync | Cross-device saved-items persistence (saved_items table); shared observations keep original photographer + visibility, shown on detail screen | Deployed | P1 | sklarew | 2026-06-05 |
 | FEAT-023 | Watershed-First Admin Photos | `/admin/photos` reorganized by watershed; per-watershed insect/prey photo curation (`curated_insect_photos`) for "What Fish Are Eating Now"; River Story tab | In Build | P2 | sklarew | 2026-06-05 |
 | FEAT-024 | Splash Card Editor | Admin-editable `/path` watershed splash image + tagline + narrative (`watershed_splash`), frontend falls back to built-in defaults | In Build | P2 | sklarew | 2026-06-05 |
+| FEAT-025 | Curation Admin Console | Single `/admin` console for every hand-curated dataset: hub + Needs-Review queue + per-watershed dashboard; editors (CRUD+audit) for reach definition (`river_reaches`), `typical_species`, hatch chart, flow bands, business directories, fly-tying videos, etc. See `02-design/plan-2026-06-08-curation-admin-console.md` | Proposed | P2 | sklarew | 2026-06-08 |
 | FEAT-026 | Fish-Species Canonicalization | Collapse near-duplicate fish names (Fall/Spring/Chinook; Summer Steelhead/Steelhead; Rainbow variants) to one canonical entry in Fish Present + admin; run-timing as a badge; Steelhead≠Rainbow kept separate; one photo per species | In Build | P1 | sklarew | 2026-06-08 |
 
 ## Status Definitions
