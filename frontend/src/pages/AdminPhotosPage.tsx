@@ -95,6 +95,9 @@ interface WatershedFish {
   /** 'specific' = per-watershed override, 'global' = global default,
    *  'none' = automatic iNat/gallery fallback (not yet curated). */
   curated: 'specific' | 'global' | 'none'
+  /** Canonical run-timing forms + the raw names this one entry/photo covers (FEAT-026). */
+  runs?: string[]
+  aliases?: string[]
 }
 
 interface WatershedInsect {
@@ -323,6 +326,21 @@ function WatershedFishList({ watershed }: { watershed: string }) {
               <div className="admin-card-body">
                 <div className="admin-card-name">{f.common_name}</div>
                 {f.scientific_name && <div className="admin-card-sci">{f.scientific_name}</div>}
+                {(() => {
+                  // Distinct aliases (ignore pure case variants); only worth showing
+                  // when one entry genuinely collapses different names.
+                  const seen = new Set<string>()
+                  const distinct = (f.aliases || []).filter(a => {
+                    const k = a.toLowerCase()
+                    if (seen.has(k)) return false
+                    seen.add(k); return true
+                  })
+                  return distinct.length > 1 ? (
+                    <div className="admin-card-covers" style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+                      one photo covers: {distinct.join(', ')}
+                    </div>
+                  ) : null
+                })()}
                 <div className="admin-card-chips">
                   {f.curated === 'specific' && (
                     <span className="admin-scope-chip specific">📍 Custom photo</span>

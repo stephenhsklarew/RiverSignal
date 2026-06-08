@@ -452,6 +452,14 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const upcomingStocking = stocking.filter((s: any) => new Date(s.date) > new Date()).slice(0, 3)
   const recentStocking = stocking.filter((s: any) => new Date(s.date) <= new Date()).slice(0, 3)
 
+  // Format canonical run-timing forms (FEAT-026): ["spring","fall"] → "Spring & Fall runs".
+  const formatRuns = (runs: string[] | undefined): string => {
+    const r = (runs || []).filter(Boolean)
+    if (!r.length) return ''
+    const cap = r.map(x => x[0].toUpperCase() + x.slice(1))
+    return cap.join(' & ') + (r.length > 1 ? ' runs' : ' run')
+  }
+
   // Weather
   const todayWeather = weather?.periods?.[0]
 
@@ -805,6 +813,9 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
                     )}
                     <div className="rnow-fish-info">
                       <div className="rnow-fish-name">{s.common_name || s.species}</div>
+                      {formatRuns(s.runs) && (
+                        <div className="rnow-fish-runs" style={{ fontSize: 11, color: '#2b6cb0', fontWeight: 600 }}>{formatRuns(s.runs)}</div>
+                      )}
                       <div className="rnow-fish-stream">{s.stream}</div>
                       {s.use_type && <div className="rnow-fish-use">{s.use_type}</div>}
                       {s.observer && <div className="rnow-photo-credit">📷 {s.observer}</div>}

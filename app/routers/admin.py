@@ -540,6 +540,8 @@ def list_watershed_fish(
             "scientific_name": f.get("scientific_name"),
             "photo_url":       f.get("photo_url"),
             "curated":         curated,
+            "runs":            f.get("runs", []),       # canonical run-timing forms (FEAT-026)
+            "aliases":         f.get("aliases", []),    # raw names this one photo covers
         })
     return {"watershed": ws, "fish": fish}
 
