@@ -17,7 +17,7 @@
 // every active client at their next navigation. Last bump 2026-06-08:
 // FEAT-026 run/form badges in Fish Present + admin 'covers' note.
 const CACHE_NAME = 'riversignal-v13'
-const API_CACHE = 'riversignal-api-v12'
+const API_CACHE = 'riversignal-api-v13'
 const API_BASE = '/api/v1/'
 
 // Pre-cache HTML shells so first-load offline works. Network-first runtime
