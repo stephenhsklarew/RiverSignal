@@ -204,3 +204,14 @@ def test_oracle_fish_grounding_is_watershed_scoped():
     assert names, "no fish-present grounding data for chattahoochee"
     assert "bass" in names  # real Chattahoochee fish are present to ground on
     assert "bull trout" not in names and "steelhead" not in names  # PNW-only
+
+
+def test_oracle_endpoint_not_500():
+    # Regression: a recreation_sites query referencing non-existent columns
+    # (type/distance_km/watershed) 500'd the whole /river-oracle endpoint before
+    # the grounding code ran. Accept 200 (worked) or 503 (no ANTHROPIC key in
+    # this env) — but never 500.
+    r = httpx.post(f"{API}/river-oracle",
+                   json={"watershed": "chattahoochee", "question": "what fish can I catch today?"},
+                   timeout=60)
+    assert r.status_code in (200, 503), f"oracle returned {r.status_code}: {r.text[:200]}"
