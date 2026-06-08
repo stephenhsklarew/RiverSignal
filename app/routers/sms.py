@@ -304,6 +304,30 @@ async def inbound_webhook(request: Request):
 
     payload = (await request.json()) if raw else {}
     event = (payload.get("data") or {}).get("event_type")
+
+    # Outbound delivery receipts (DLRs). Telnyx posts message.sent when the
+    # carrier accepts and message.finalized with the terminal state. Persist
+    # the per-recipient status onto sms_alert_history so a 200-but-undelivered
+    # (e.g. unregistered A2P 10DLC traffic dropped by US carriers) is visible
+    # instead of frozen at "queued".
+    if event in {"message.sent", "message.finalized"}:
+        msg = (payload.get("data") or {}).get("payload") or {}
+        message_id = msg.get("id")
+        to = msg.get("to") or []
+        status = (to[0].get("status") if to else None) or "unknown"
+        if message_id:
+            with engine.connect() as conn:
+                with conn.begin():
+                    conn.execute(
+                        text("""
+                            UPDATE sms_alert_history
+                               SET delivery_status = :st
+                             WHERE telnyx_message_id = :mid
+                        """),
+                        {"st": status, "mid": message_id},
+                    )
+        return {"ok": True}
+
     if event != "message.received":
         return {"ok": True}
 
