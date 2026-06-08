@@ -272,13 +272,13 @@ def run() -> dict[str, Any]:
             try:
                 resp = send_sms(phone, body)
                 message_id = resp.get("id")
-                _record_send(UserSend(user_id, phone, user_matches), message_id, "queued")
+                _record_send(conn, UserSend(user_id, phone, user_matches), message_id, "queued")
                 conn.commit()
                 sent += 1
             except httpx.HTTPStatusError as e:
                 log.error("Telnyx %s for user %s: %s", e.response.status_code, user_id, e)
                 conn.rollback()
-                _record_send(UserSend(user_id, phone, user_matches),
+                _record_send(conn, UserSend(user_id, phone, user_matches),
                              None, f"failed_{e.response.status_code}")
                 conn.commit()
                 failed += 1
