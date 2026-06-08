@@ -55,9 +55,13 @@ def river_oracle(req: OracleRequest):
             WHERE watershed = :ws ORDER BY stocking_date DESC LIMIT 5
         """), {"ws": ws}).fetchall()
 
+        # recreation_sites has no `watershed`/`type`/`distance_km` columns — it
+        # links to sites via site_id and uses `rec_type`. (The old query 500'd
+        # the whole oracle.)
         recreation = conn.execute(text("""
-            SELECT name, type, distance_km FROM recreation_sites
-            WHERE watershed = :ws ORDER BY distance_km LIMIT 10
+            SELECT r.name, r.rec_type
+            FROM recreation_sites r JOIN sites s ON r.site_id = s.id
+            WHERE s.watershed = :ws ORDER BY r.name LIMIT 10
         """), {"ws": ws}).fetchall() if _table_exists(conn, 'recreation_sites') else []
 
         swim = conn.execute(text("""
@@ -84,7 +88,7 @@ def river_oracle(req: OracleRequest):
         "flow_cfs": float(conditions[1]) if conditions and conditions[1] else None,
         "current_flies": [{"pattern": r[0], "insect": r[1], "size": r[2], "type": r[3], "time": r[4], "water": r[5]} for r in hatch],
         "recent_stocking": [{"waterbody": r[0], "date": str(r[1]), "fish": r[2]} for r in stocking],
-        "recreation": [{"name": r[0], "type": r[1], "dist_km": r[2]} for r in recreation],
+        "recreation": [{"name": r[0], "type": r[1]} for r in recreation],
         "swim_safety": [{"station": r[0], "temp": float(r[1]) if r[1] else None, "rating": r[2]} for r in swim],
         "month": datetime.now().month,
     }
