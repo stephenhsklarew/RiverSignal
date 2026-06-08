@@ -164,25 +164,6 @@ export default function StatusPage() {
     return () => { document.title = 'River Signal' }
   }, [])
 
-  // Keep --status-header-h in sync with the sticky header's actual height
-  // so scroll-margin-top matches whatever it renders to (legend wrap, etc.).
-  useEffect(() => {
-    const root = document.documentElement
-    const measure = () => {
-      const header = document.querySelector('.status-header') as HTMLElement | null
-      if (header) root.style.setProperty('--status-header-h', `${header.offsetHeight}px`)
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    const observer = new ResizeObserver(measure)
-    const header = document.querySelector('.status-header')
-    if (header) observer.observe(header)
-    return () => {
-      window.removeEventListener('resize', measure)
-      observer.disconnect()
-    }
-  }, [loading])
-
   // /data-status drives the whole page. SWR keeps the prior payload
   // visible while it revalidates in the background (cache survives
   // navigation, refreshes when user returns to the tab).
@@ -255,12 +236,11 @@ export default function StatusPage() {
 
   return (
     <div className="status-page">
-      <div className="status-header">
+      {/* ── Left sidebar: logo + section navigation ── */}
+      <aside className="status-sidebar">
         <Link to="/" className="status-home-link" aria-label="Back to home">
           <img src={lmLogo} alt="Liquid Marble" className="status-logo" />
         </Link>
-        <h1 className="status-title">Data Platform Status</h1>
-        <Link to="/" className="status-back-link">← Back to home</Link>
         <nav className="status-toc" aria-label="Jump to section">
           <a href="#ingested">Ingested Sources</a>
           <a href="#enrichment">Enrichment Pipelines</a>
@@ -271,31 +251,38 @@ export default function StatusPage() {
           <a href="#gold">Gold Layer</a>
           <a href="#curated">Curated Data</a>
         </nav>
-        <div className="status-stats">
-          <div className="status-stat">
-            <span className="status-stat-value">{sourceCount}</span>
-            <span className="status-stat-label">Data Sources</span>
-          </div>
-          <div className="status-stat">
-            <span className="status-stat-value">{totalRecords.toLocaleString()}</span>
-            <span className="status-stat-label">Total Records</span>
-          </div>
-          <div className="status-stat">
-            <span className="status-stat-value">{viewCount}</span>
-            <span className="status-stat-label">Materialized Views</span>
-          </div>
-          <div className="status-stat">
-            <span className="status-stat-value">{watershedCount ?? '—'}</span>
-            <span className="status-stat-label">Watersheds</span>
-          </div>
-        </div>
+        <Link to="/" className="status-back-link">← Back to home</Link>
         <div className="status-legend">
           <span className="status-legend-item"><span className="status-badge healthy">healthy</span> Last sync completed successfully</span>
           <span className="status-legend-item"><span className="status-badge warning">warning</span> Last sync had some failures</span>
           <span className="status-legend-item"><span className="status-badge unknown">unknown</span> No sync record found</span>
           <span className="status-legend-item"><span className="status-badge live">live</span> Real-time API, not stored in database</span>
         </div>
-      </div>
+      </aside>
+
+      {/* ── Right column: title + metrics + all table data ── */}
+      <main className="status-main">
+        <div className="status-titlebar">
+          <h1 className="status-title">Data Platform Status</h1>
+          <div className="status-stats">
+            <div className="status-stat">
+              <span className="status-stat-value">{sourceCount}</span>
+              <span className="status-stat-label">Data Sources</span>
+            </div>
+            <div className="status-stat">
+              <span className="status-stat-value">{totalRecords.toLocaleString()}</span>
+              <span className="status-stat-label">Total Records</span>
+            </div>
+            <div className="status-stat">
+              <span className="status-stat-value">{viewCount}</span>
+              <span className="status-stat-label">Materialized Views</span>
+            </div>
+            <div className="status-stat">
+              <span className="status-stat-value">{watershedCount ?? '—'}</span>
+              <span className="status-stat-label">Watersheds</span>
+            </div>
+          </div>
+        </div>
 
       {loading ? (
         <div className="status-loading">Loading pipeline status...</div>
@@ -546,6 +533,7 @@ export default function StatusPage() {
           )}
         </>
       )}
+      </main>
     </div>
   )
 }
