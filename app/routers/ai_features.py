@@ -72,14 +72,31 @@ def river_oracle(req: OracleRequest):
         # Fish actually present in THIS watershed — without this, a "what fish
         # can I catch" question has nothing to ground on and the model invents
         # species from training data (ADR-007).
-        fish_present = conn.execute(text("""
+        all_fish = conn.execute(text("""
             SELECT common_name, scientific_name,
                    COALESCE(SUM(inat_observation_count), 0) AS obs
-            FROM gold.species_by_reach WHERE watershed = :ws
+            FROM gold.species_by_reach
+            WHERE watershed = :ws AND common_name IS NOT NULL
             GROUP BY common_name, scientific_name
             ORDER BY obs DESC NULLS LAST, common_name
-            LIMIT 30
         """), {"ws": ws}).fetchall()
+
+    # Game species (what the "Fish Present" UI surfaces via catch-probability)
+    # must always be in context regardless of iNat obs count. Curated /
+    # fish_habitat game fish — steelhead, salmon, cutthroat — carry 0 obs and
+    # were dropped by the old obs-ranked LIMIT 30, so the oracle wrongly told
+    # users they weren't present. Lead with game species (deduped by display
+    # name), then fill remaining slots with the most-observed other species.
+    from pipeline.predictions.catch_forecast import is_game_species
+    seen: set[str] = set()
+    game, other = [], []
+    for r in all_fish:
+        key = (r[0] or "").lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        (game if is_game_species(r[0]) else other).append(r)
+    fish_present = game + other[: max(0, 35 - len(game))]
 
     context = {
         "watershed": ws, "river_name": site[0],
@@ -108,7 +125,9 @@ GROUNDING RULES (critical):
 
 If they ask about fishing: recommend from `fish_present` + `current_flies`, with reaches and times of day.
 If they ask about family activities: suggest swimming spots (with safety ratings), trails, and campgrounds from the data.
-If they ask for a trip plan: build a day-by-day itinerary from the data provided.""",
+If they ask for a trip plan: build a day-by-day itinerary from the data provided.
+
+This is a single-turn Q&A: the user cannot reply to a follow-up. Give a complete, self-contained answer and do NOT end with a question or invite further conversation.""",
         messages=[{"role": "user", "content": f"Question: {req.question}\n\nThe ONLY data available for {site[0]} (do not go beyond it):\n{json.dumps(context, default=str)}"}],
     )
 
