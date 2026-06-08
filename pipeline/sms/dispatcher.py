@@ -264,20 +264,27 @@ def run() -> dict[str, Any]:
             user_matches = sorted(user_matches, key=lambda m: (m.target_date, m.watershed))
 
             body = compose_body(user_matches)
+            # The connection autobegins a transaction on the first read
+            # (_budget_remaining / _weekly_send_count / _load_phone), so an
+            # explicit conn.begin() here raises InvalidRequestError. Record on
+            # the open transaction and commit; rollback on any failure so the
+            # next user starts clean.
             try:
                 resp = send_sms(phone, body)
                 message_id = resp.get("id")
-                with conn.begin():
-                    _record_send(UserSend(user_id, phone, user_matches), message_id, "queued")
+                _record_send(UserSend(user_id, phone, user_matches), message_id, "queued")
+                conn.commit()
                 sent += 1
             except httpx.HTTPStatusError as e:
                 log.error("Telnyx %s for user %s: %s", e.response.status_code, user_id, e)
-                with conn.begin():
-                    _record_send(UserSend(user_id, phone, user_matches),
-                                 None, f"failed_{e.response.status_code}")
+                conn.rollback()
+                _record_send(UserSend(user_id, phone, user_matches),
+                             None, f"failed_{e.response.status_code}")
+                conn.commit()
                 failed += 1
             except Exception as exc:
                 log.exception("SMS send failed for user %s: %s", user_id, exc)
+                conn.rollback()
                 failed += 1
 
     log.info(
