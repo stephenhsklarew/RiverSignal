@@ -56,13 +56,26 @@ Verified on John Day: 8 salmonid rows → Chinook Salmon (spring+fall), Steelhea
 (summer+winter), Rainbow Trout (redband+rainbow) as three entries; Steelhead ≠
 Rainbow Trout. Unit tests in `tests/test_species_canonical.py`.
 
-## Phase 2 (specified)
+## Phase 2
+
+✅ **Cross-surface parity** (PR #71): `canonicalize` applied to catch-probability so
+it agrees with Fish Present. (species-spotter is the insect/prey surface — not fish —
+so it's out of scope.)
+
+✅ **Re-key migration** (`sk20a1b2c3d4`): existing `curated_species_photos` rows
+re-keyed raw → canonical so no curated photo is orphaned and the admin "curated"
+badge matches the deduped list. Collisions (several raw rows → one canonical key in a
+watershed) keep the row already at the canonical key, else the most-recently-updated,
+and delete the rest (one photo per canonical species). The migration inlines a frozen
+copy of the canonicalization so its result is stable. Downgrade is a no-op.
+
+Still specified:
 
 1. **Curated override table** (`species_aliases`: raw_name/scientific →
    canonical_key) for the long tail the normalizer can't infer (e.g. "Columbia
    River Redband Trout"), seeded once, global. Plus an admin "these look like the
    same fish — merge?" suggestion that writes an override in one tap.
-2. **Re-key migration** for existing `curated_species_photos` rows from raw → canonical
+2. *(superseded — see "Re-key migration" above)* existing `curated_species_photos` rows from raw → canonical
    keys, so no curated photo is orphaned by the canonical-key switch. (Phase 1 is
    non-destructive: existing photos still resolve via the gallery/alias fallback in
    `find_photo`, but the "curated" badge can read stale until this runs.)

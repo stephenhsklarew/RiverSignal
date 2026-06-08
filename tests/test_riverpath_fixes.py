@@ -206,6 +206,18 @@ def test_oracle_fish_grounding_is_watershed_scoped():
     assert "bull trout" not in names and "steelhead" not in names  # PNW-only
 
 
+def test_curated_photo_keys_are_canonical():
+    # FEAT-026 P2 re-key migration: every gold.curated_species_photos species_key
+    # equals its canonical form, so the admin "curated" badge matches the deduped
+    # Fish Present list and one photo owns all variants of a species.
+    from app.lib.species_canonical import canonicalize
+    eng = create_engine(DB)
+    with eng.connect() as c:
+        rows = c.execute(text("SELECT species_key FROM gold.curated_species_photos")).fetchall()
+    bad = [r[0] for r in rows if r[0] and canonicalize(r[0]).key != r[0].lower()]
+    assert not bad, f"non-canonical curated keys remain (re-key migration regressed?): {bad}"
+
+
 def test_catch_probability_matches_fish_present_canonicalization():
     # FEAT-026 Phase 2: catch-probability uses the same canonicalize() as Fish
     # Present, so names agree — run-timing variants collapse (one "Chinook
