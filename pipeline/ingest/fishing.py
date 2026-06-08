@@ -55,6 +55,16 @@ SPORT_FISH_LAYERS = {
     27: "Brown Trout",
 }
 
+# Coho (7) and coastal cutthroat (19) are coastal / west-of-Cascades
+# species. ODFW's statewide FHD layers intersect interior Columbia-basin
+# reaches (Deschutes incl. Metolius, John Day) and falsely surfaced them
+# as "Fish Present" — those basins are redband + (headwater) westslope
+# country. Gate these two layers to coastal-draining watersheds where the
+# species are real; interior basins skip them. (See prod fish-present
+# audit, 2026-06-07.)
+COASTAL_ONLY_LAYERS = {7, 19}
+COASTAL_DRAINAGE_WATERSHEDS = ("mckenzie", "klamath")
+
 STOCKING_URL = "https://myodfw.com/fishing/species/trout/stocking-schedule-print"
 
 # Stream name patterns for each watershed
@@ -176,6 +186,9 @@ class FishingDataAdapter(IngestionAdapter):
             console.print("    fetching ODFW fish habitat distribution...")
 
             for layer_id, species_name in SPORT_FISH_LAYERS.items():
+                if (layer_id in COASTAL_ONLY_LAYERS
+                        and site.watershed not in COASTAL_DRAINAGE_WATERSHEDS):
+                    continue
                 url = f"{FHD_BASE}/{layer_id}/query"
 
                 for attempt in range(3):
