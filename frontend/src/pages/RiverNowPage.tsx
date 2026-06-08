@@ -232,7 +232,7 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
   const HOUR = 60 * MIN
   const DAY = 24 * HOUR
 
-  const { data: site, isLoading: siteLoading } = useSWR<any>(`/sites/${watershed}`, { dedupingInterval: HOUR })
+  const { data: site, isLoading: siteLoading, mutate: refetchSite } = useSWR<any>(`/sites/${watershed}`, { dedupingInterval: HOUR })
   const { data: conditions = [] } = useSWR<any[]>(`/sites/${watershed}/fishing/conditions`, { dedupingInterval: 30 * MIN })
   const { data: hatch } = useSWR<any>(`/sites/${watershed}/fishing/hatch-confidence`, { dedupingInterval: HOUR })
   const { data: refuges = [] } = useSWR<any[]>(`/sites/${watershed}/cold-water-refuges`, { dedupingInterval: 6 * HOUR })
@@ -465,6 +465,21 @@ function RiverNowDetail({ watershed }: { watershed: string }) {
 
       {siteLoading && !site && (
         <div className="rnow-loading">Loading {watershed} river data...</div>
+      )}
+
+      {/* Errored/empty backbone fetch — without this the page renders blank
+          (header only) with no way to recover except a remount. Common after
+          the PWA resumes from background and the first request fails. */}
+      {!siteLoading && !site && (
+        <div className="rnow-loading" data-testid="rnow-retry"
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '40px 16px' }}>
+          <div>Couldn't load river data for {watershed}.</div>
+          <button
+            onClick={() => refetchSite()}
+            style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid var(--accent, #2b6cb0)', background: 'var(--accent, #2b6cb0)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+            Retry
+          </button>
+        </div>
       )}
 
       {site && (
