@@ -572,6 +572,14 @@ report (§3.6) if the new watershed touches the WQP adapter. Don't replicate thi
      `typical_species` (varchar[]; copy from nearest analogous reach in an existing watershed),
      `is_warm_water` (true for bass/panfish-dominated lower reaches), `notes='needs_guide_review=true; auto-seeded <date>'`,
      `source='v0 auto-seed — needs guide review'`.
+   - **`typical_species` must list species CURRENTLY present, not historical/aspirational ones.**
+     `gold.species_by_reach`'s `reach_curated` branch surfaces every entry verbatim (no
+     observation gating — and the curated slugs don't join to obs counts, so you can't filter on
+     them after the fact), and it drives the **Fish Present** carousel + Catch Probability. A
+     historically-native-but-extirpated species (e.g. brook trout in the Chattahoochee or Mad
+     River OH — gone for decades) will show as "present" until a curator removes it. Don't copy
+     a cold-water native into a watershed where it no longer occurs just because the analogous
+     reach had it; verify against recent observations / state fishery data first.
    - Idempotent: `ON CONFLICT (id) DO NOTHING`.
 2. **`silver.flow_quality_bands` seed migration** — for each reach, compute cfs band from USGS
    daily-value medians for the reach's primary gauge:
