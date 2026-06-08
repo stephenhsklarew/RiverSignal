@@ -1,36 +1,36 @@
 .status-page {
   min-height: 100vh;
-  background: #040403;
-  color: #fff;
-  font-family: 'Cormorant Garamond', serif;
+  background: #ffffff;
+  color: #1c1c1a;
+  font-family: 'Roboto', Arial, sans-serif;
   padding: 24px max(16px, calc((100% - 1100px) / 2)) 60px;
-  /* Dark-theme overrides scoped to this page */
-  --text: #fff;
-  --text-secondary: #d8d8d8;
-  --text-muted: #9a9a9a;
-  --bg: #1a1a1a;
-  --surface: #161616;
-  --border: #2a2a2a;
-  --accent: #4cc28b;
-  --accent-light: #1a3328;
-  --warm-light: #3d2f10;
-  --alert-light: #3d1c14;
-  --blue-light: #1a2540;
+  /* Light-theme tokens scoped to this page */
+  --text: #1c1c1a;
+  --text-secondary: #44423e;
+  --text-muted: #6b6966;
+  --bg: #f5f5f4;
+  --surface: #fafafa;
+  --border: #e2e0db;
+  --accent: #1a6b4a;
+  --accent-light: #e8f5ef;
+  --warm-light: #fdf6e3;
+  --alert-light: #fef0ed;
+  --blue-light: #eff6ff;
 }
 
 .status-header {
   position: sticky; top: 0; z-index: 10;
   margin-bottom: 24px; text-align: center;
-  background: #040403;
+  background: #ffffff;
   padding-bottom: 16px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid var(--border);
 }
 .status-home-link { display: inline-block; }
 .status-logo { display: block; max-width: 160px; width: 100%; height: auto; margin: 0 auto 12px; }
-.status-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; margin: 0 0 6px; }
+.status-title { font-family: 'Roboto', Arial, sans-serif; font-size: 28px; font-weight: 700; margin: 0 0 6px; color: var(--text); }
 .status-back-link {
   display: inline-block; margin-bottom: 16px; font-size: 13px;
-  color: #fff; text-decoration: none; opacity: 0.8;
+  color: var(--accent); text-decoration: none; opacity: 0.9;
 }
 .status-back-link:hover { opacity: 1; text-decoration: underline; }
 

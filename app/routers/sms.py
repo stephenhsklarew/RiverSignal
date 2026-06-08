@@ -223,6 +223,62 @@ def list_subscriptions(user: dict = Depends(get_current_user)):
     }
 
 
+@router.get("/sms/health")
+def sms_health():
+    """Aggregate SMS alert delivery health for the public status page.
+
+    Returns only counts (no phone numbers / user data). Surfaces the
+    "accepted by Telnyx (200) but not delivered" failure mode by breaking
+    down sms_alert_history.delivery_status — if sends exist but none reach
+    'delivered', the carrier is dropping them (e.g. unregistered A2P 10DLC).
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT COALESCE(delivery_status, 'unknown') AS status, count(*)
+            FROM sms_alert_history
+            WHERE sent_at >= now() - INTERVAL '30 days'
+            GROUP BY 1
+            ORDER BY 2 DESC
+        """)).fetchall()
+        last_send = conn.execute(
+            text("SELECT max(sent_at) FROM sms_alert_history")
+        ).scalar()
+        sent_7d = conn.execute(text("""
+            SELECT count(*) FROM sms_send_log
+            WHERE sent_at >= now() - INTERVAL '7 days' AND success
+        """)).scalar() or 0
+        verified = conn.execute(text("""
+            SELECT count(*) FROM users
+            WHERE phone_verified_at IS NOT NULL AND sms_paused IS NOT TRUE
+        """)).scalar() or 0
+
+    by_status = {r[0]: r[1] for r in rows}
+    total_30d = sum(by_status.values())
+    delivered = by_status.get("delivered", 0)
+
+    # Health bucket. Delivery receipts (message.finalized) set 'delivered' on
+    # success; everything stuck at 'queued' / *_failed with zero delivered is
+    # the carrier-drop signature.
+    if total_30d == 0:
+        status = "unknown"
+    elif delivered == 0:
+        status = "error"
+    elif delivered < total_30d:
+        status = "warning"
+    else:
+        status = "healthy"
+
+    return {
+        "status": status,
+        "verified_active_recipients": verified,
+        "sent_last_7d": sent_7d,
+        "last_send": last_send.isoformat() if last_send else None,
+        "by_delivery_status_30d": by_status,
+        "total_30d": total_30d,
+        "delivered_30d": delivered,
+    }
+
+
 @router.post("/sms/subscriptions")
 def upsert_subscriptions(
     body: SubscriptionPayload,

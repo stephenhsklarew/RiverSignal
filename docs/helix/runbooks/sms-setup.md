@@ -184,6 +184,7 @@ The scheduler fires daily at 09:00 `America/Los_Angeles`. Watch:
 - **Cost**: `SELECT count(*), sum(cost_cents) FROM sms_send_log WHERE sent_at::date = current_date AND success;`
 - **Bounces / failures**: `SELECT delivery_status, count(*) FROM sms_alert_history WHERE sent_at::date = current_date GROUP BY 1;`
 - **Cloud Logging**: `resource.labels.job_name=riversignal-sms-dispatcher AND severity>=ERROR`
+- **At a glance**: the `/status` page has an **SMS Alert Delivery** section (backed by `GET /api/v1/sms/health`) showing the 30-day `delivery_status` breakdown + a health badge. Status `error` = sends exist but **zero** reached `delivered` — the carrier-drop signature (usually A2P 10DLC not approved). Delivery receipts (`message.finalized`) update `delivery_status` via the inbound webhook; without them every row stays `queued`.
 
 ### 6.3 Budget caps
 
