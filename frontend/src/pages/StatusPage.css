@@ -52,7 +52,14 @@
 
 /* ── Right column: title + metrics + all table data ── */
 .status-main { flex: 1 1 auto; min-width: 0; }
-.status-titlebar { margin-bottom: 24px; }
+/* Title + metrics stay pinned to the top of the right column; tables scroll under. */
+.status-titlebar {
+  position: sticky; top: 0; z-index: 5;
+  background: #ffffff;
+  margin-bottom: 16px;
+  padding: 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
 .status-title { font-family: 'Roboto', Arial, sans-serif; font-size: 28px; font-weight: 700; margin: 0 0 16px; color: var(--text); }
 
 .status-stats { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -68,7 +75,7 @@
 
 .status-loading { text-align: center; color: var(--text-muted); padding: 40px; font-style: italic; }
 
-.status-section { margin-bottom: 32px; scroll-margin-top: 16px; }
+.status-section { margin-bottom: 32px; scroll-margin-top: 130px; }
 .status-section h2 { font-size: 16px; font-weight: 600; margin: 0 0 12px; color: var(--text-secondary); }
 
 .status-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
