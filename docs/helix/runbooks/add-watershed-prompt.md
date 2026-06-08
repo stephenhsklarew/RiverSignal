@@ -581,6 +581,39 @@ report (§3.6) if the new watershed touches the WQP adapter. Don't replicate thi
      a cold-water native into a watershed where it no longer occurs just because the analogous
      reach had it; verify against recent observations / state fishery data first.
    - Idempotent: `ON CONFLICT (id) DO NOTHING`.
+   - **Reach granularity — when to break out an upstream tributary as its own reach.**
+     A reach is the app's pivot unit: each one gets its own Go Score (TQS), Fish Present list,
+     hatch chart, and flow bands. Splitting a creek out is both an editorial promise and a data
+     liability — don't split for completeness. **Break out a tributary** (Smith Creek, Mossy
+     Creek, a named brook/fork) **when MOST of these hold:**
+     1. the state publishes **distinct regulations** for it (special-reg / C&R / artificial-only /
+        delayed-harvest / seasonal closure) — the strongest signal; a generic mainstem score
+        actively misleads on a regulated creek;
+     2. it has a **distinct fishery** (different target species than the mainstem — e.g. a wild
+        brook-trout creek vs. a smallmouth valley river);
+     3. its **conditions differ materially** (cold headwater vs. warm valley);
+     4. **anglers name and target it** specifically.
+     **Fold it into the parent reach** when it's just "more of the same water upstream" — same
+     regs, same species, no gauge, no distinct identity.
+   - **Tier by data backing — never show a confident Go Score you can't ground.**
+     - *Full reach*: has its own `primary_usgs_site_id` + flow bands → full-confidence TQS.
+     - *Reference/regulation reach*: surfaced for its regs + species + hatch but **borrows
+       conditions from the nearest gauged parent**, labeled as such and at lower confidence
+       (reuse the existing `confidence` bucket — do not fabricate a flow score). Today this means
+       pointing `primary_usgs_site_id` at the parent's gauge; flag the borrow in `notes`.
+   - **UX reality (important):** RiverPath is **watershed-scoped today** — `/path/now` switches
+     *watersheds*, and Fish Present / Catch Probability / Go Score are watershed-aggregated. There
+     is **no reach picker and no reach-specific Fish Present view**; `river_reaches` is also flat
+     (no `parent_reach_id`). So promoting a tributary to a reach is currently a **data/curation**
+     change that does NOT surface as a browsable reach view — realizing the value needs the
+     reach-navigation UX (two-level switcher grouping tributaries under their parent water,
+     per-reach Fish Present/Go Score, a regulations surface, borrowed-condition labels) plus an
+     additive grouping field. Until that ships, prefer **coarse mainstem reaches** and promote a
+     tributary **demand-driven** — when a reg is published or a distinct-fishery finding surfaces —
+     routed through the curation Needs-Review queue, not enumerated up front.
+   - **Rule of thumb:** *split a tributary when the state regulates it differently OR it fishes
+     differently — back it with its own gauge if you can, or an explicitly-borrowed lower-confidence
+     one if you can't; never show a confident Go Score you can't ground.*
 2. **`silver.flow_quality_bands` seed migration** — for each reach, compute cfs band from USGS
    daily-value medians for the reach's primary gauge:
    - `cfs_ideal_low = 30th percentile`
