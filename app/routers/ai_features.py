@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import text
 
+from app.lib.species_canonical import canonicalize
 from pipeline.db import engine
 
 router = APIRouter(tags=["ai-features"])
@@ -281,17 +282,10 @@ def catch_probability(watershed: str):
         "temp_trend": 0.0,
     }
 
-    # Canonicalise common names with multiple spellings for the SAME
-    # species. Without this, "Musky" (from curated reach) and "Muskellunge"
-    # (from iNat) appear as two rows. Keep small — only alias names that
-    # refer to the same scientific species, not life-history variants
-    # (steelhead vs rainbow trout are biologically the same but anglers
-    # treat them as different targets, so they stay separate).
-    CANONICAL_NAMES = {
-        "musky": "Muskellunge",
-        "muskellunge": "Muskellunge",
-    }
-
+    # Canonicalization is shared with Fish Present via
+    # app.lib.species_canonical.canonicalize (FEAT-026) so the two surfaces
+    # agree: run-timing/case/suffix/subspecies variants collapse to one entry,
+    # while Steelhead and Rainbow Trout stay separate.
     scores = []
     # De-duplicate by Title-cased display name (after canonical aliasing) —
     # that's what the user sees, so identical display strings must collapse
@@ -322,13 +316,12 @@ def catch_probability(watershed: str):
         # Drop vague genus-level entries that look like dupes of species.
         if n_clean.lower() in VAGUE_GENUS_NAMES:
             continue
-        # Title-case for display; "northern bluegill" → "Northern Bluegill".
-        # str.title() handles the unicode "×" / hyphens correctly. Apply
-        # canonical-name aliasing AFTER title-casing so the dedup key
-        # collapses Musky/Muskellunge etc.
-        display = n_clean.title()
-        display = CANONICAL_NAMES.get(display.lower(), display)
-        dedup_key = display.lower()
+        # Shared canonicalization → display label + dedup key (matches Fish
+        # Present). Collapses run-timing/case/suffix variants; keeps Steelhead
+        # and Rainbow Trout separate.
+        canon = canonicalize(n_clean, sci_clean)
+        display = canon.label
+        dedup_key = canon.key
         if dedup_key in seen:
             continue
         seen.add(dedup_key)

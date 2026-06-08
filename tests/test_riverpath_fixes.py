@@ -206,6 +206,18 @@ def test_oracle_fish_grounding_is_watershed_scoped():
     assert "bull trout" not in names and "steelhead" not in names  # PNW-only
 
 
+def test_catch_probability_matches_fish_present_canonicalization():
+    # FEAT-026 Phase 2: catch-probability uses the same canonicalize() as Fish
+    # Present, so names agree — run-timing variants collapse (one "Chinook
+    # Salmon", no "Fall/Spring Chinook") and there are no duplicate names.
+    r = httpx.get(f"{API}/sites/johnday/catch-probability", timeout=20)
+    assert r.status_code == 200, r.text
+    names = [s["species"] for s in r.json().get("species", [])]
+    assert len(names) == len(set(names)), f"duplicate species names: {names}"
+    assert sum("chinook" in n.lower() for n in names) <= 1, names
+    assert not any(n.lower().startswith(("fall ", "spring ", "summer ", "winter ")) for n in names), names
+
+
 def test_oracle_endpoint_not_500():
     # Regression: a recreation_sites query referencing non-existent columns
     # (type/distance_km/watershed) 500'd the whole /river-oracle endpoint before
