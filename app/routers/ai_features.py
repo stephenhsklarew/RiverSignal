@@ -65,8 +65,21 @@ def river_oracle(req: OracleRequest):
             WHERE watershed = :ws ORDER BY obs_year DESC, obs_month DESC LIMIT 5
         """), {"ws": ws}).fetchall()
 
+        # Fish actually present in THIS watershed — without this, a "what fish
+        # can I catch" question has nothing to ground on and the model invents
+        # species from training data (ADR-007).
+        fish_present = conn.execute(text("""
+            SELECT common_name, scientific_name,
+                   COALESCE(SUM(inat_observation_count), 0) AS obs
+            FROM gold.species_by_reach WHERE watershed = :ws
+            GROUP BY common_name, scientific_name
+            ORDER BY obs DESC NULLS LAST, common_name
+            LIMIT 30
+        """), {"ws": ws}).fetchall()
+
     context = {
         "watershed": ws, "river_name": site[0],
+        "fish_present": [{"common_name": r[0], "scientific_name": r[1]} for r in fish_present],
         "water_temp_c": float(conditions[0]) if conditions and conditions[0] else None,
         "flow_cfs": float(conditions[1]) if conditions and conditions[1] else None,
         "current_flies": [{"pattern": r[0], "insect": r[1], "size": r[2], "type": r[3], "time": r[4], "water": r[5]} for r in hatch],
@@ -81,14 +94,18 @@ def river_oracle(req: OracleRequest):
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=2000,
-        system="""You are the River Oracle — a knowledgeable, friendly river guide AI for Oregon's rivers. Given real-time data about a watershed, answer the user's question with specific, actionable advice.
+        system="""You are the River Oracle — a knowledgeable, friendly guide AI for the specific river named in the data below. Rivers span the whole country (not just Oregon), so rely on the data, never on assumptions about where the river is.
 
-If they ask about fishing: recommend specific flies (from the data), reaches, times of day.
-If they ask about family activities: suggest swimming spots (with safety ratings), trails, campgrounds.
-If they ask for a trip plan: create a day-by-day itinerary with morning/afternoon/evening activities.
+GROUNDING RULES (critical):
+- Use ONLY the watershed data provided in the user message. Do NOT use outside knowledge about this or any other river.
+- For fish / "what can I catch" questions, name ONLY species listed in `fish_present`. NEVER mention a species that is not in `fish_present` (e.g., do not bring up steelhead, bull trout, salmon, or any fish unless it appears there).
+- If the data lacks what's needed to answer (e.g., `fish_present` is empty), say you don't have that information for this river — do not guess.
+- Cite specific values from the data (the actual fish names, water temperature, fly patterns, stocking). Use the river's real name. Be warm and concise.
 
-Always cite specific data: water temperature, fly patterns, stocking events. Be warm and enthusiastic. Use the river's name.""",
-        messages=[{"role": "user", "content": f"Question: {req.question}\n\nCurrent data for {site[0]}:\n{json.dumps(context, default=str)}"}],
+If they ask about fishing: recommend from `fish_present` + `current_flies`, with reaches and times of day.
+If they ask about family activities: suggest swimming spots (with safety ratings), trails, and campgrounds from the data.
+If they ask for a trip plan: build a day-by-day itinerary from the data provided.""",
+        messages=[{"role": "user", "content": f"Question: {req.question}\n\nThe ONLY data available for {site[0]} (do not go beyond it):\n{json.dumps(context, default=str)}"}],
     )
 
     return {"answer": message.content[0].text, "watershed": ws, "context_used": list(context.keys())}
