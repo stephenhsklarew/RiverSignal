@@ -193,6 +193,10 @@ export default function StatusPage() {
   // hardcoded literal that goes stale when watersheds are added.
   const { data: sitesData } = useSWR<any[]>('/sites', { dedupingInterval: 60_000 })
 
+  // SMS alert delivery health — aggregate counts only (no PII). Surfaces the
+  // "Telnyx accepted (200) but carrier dropped it" case via delivery_status.
+  const { data: smsHealth } = useSWR<any>('/sms/health', { dedupingInterval: 60_000 })
+
   useEffect(() => {
     if (dsError) { setLoading(false); return }
     if (!dsData) return
@@ -261,6 +265,7 @@ export default function StatusPage() {
           <a href="#ingested">Ingested Sources</a>
           <a href="#enrichment">Enrichment Pipelines</a>
           <a href="#live">Live API Sources</a>
+          <a href="#sms">SMS Delivery</a>
           <a href="#bronze">Bronze Layer</a>
           <a href="#silver">Silver Layer</a>
           <a href="#gold">Gold Layer</a>
@@ -384,6 +389,62 @@ export default function StatusPage() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          {/* ── SMS Alert Delivery ── */}
+          <section id="sms" className="status-section">
+            <h2>SMS Alert Delivery</h2>
+            <p className="status-layer-desc">
+              Health of the daily trip-quality SMS alerts (Telnyx). "Accepted" is not
+              "delivered" — a 200 from Telnyx with nothing reaching handsets means carriers
+              are dropping the traffic (e.g. unregistered A2P 10DLC).
+            </p>
+            {smsHealth ? (
+              <>
+                <div className="status-stats">
+                  <div className="status-stat">
+                    <span className="status-stat-value">{smsHealth.verified_active_recipients}</span>
+                    <span className="status-stat-label">Recipients</span>
+                  </div>
+                  <div className="status-stat">
+                    <span className="status-stat-value">{smsHealth.sent_last_7d}</span>
+                    <span className="status-stat-label">Sent (7d)</span>
+                  </div>
+                  <div className="status-stat">
+                    <span className="status-stat-value">{smsHealth.delivered_30d}/{smsHealth.total_30d}</span>
+                    <span className="status-stat-label">Delivered (30d)</span>
+                  </div>
+                  <div className="status-stat">
+                    <span className="status-stat-value"><span className={`status-badge ${smsHealth.status}`}>{smsHealth.status}</span></span>
+                    <span className="status-stat-label">Status</span>
+                  </div>
+                </div>
+                <div className="status-table-wrap">
+                  <table className="status-table">
+                    <thead>
+                      <tr><th>Delivery Status (last 30d)</th><th className="status-num-col">Count</th></tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(smsHealth.by_delivery_status_30d || {}).length === 0 ? (
+                        <tr><td className="status-desc">No alerts sent in the last 30 days</td><td className="status-num">0</td></tr>
+                      ) : Object.entries(smsHealth.by_delivery_status_30d)
+                            .sort((a, b) => (b[1] as number) - (a[1] as number))
+                            .map(([st, ct]) => (
+                              <tr key={st}>
+                                <td className="status-source">{st}</td>
+                                <td className="status-num">{(ct as number).toLocaleString()}</td>
+                              </tr>
+                            ))}
+                    </tbody>
+                  </table>
+                </div>
+                {smsHealth.last_send && (
+                  <p className="status-layer-desc">Last send: {new Date(smsHealth.last_send).toLocaleString()}</p>
+                )}
+              </>
+            ) : (
+              <p className="status-layer-desc">Loading…</p>
+            )}
           </section>
 
           {/* ── Bronze Tables ── */}
