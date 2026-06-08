@@ -265,6 +265,16 @@ def catch_probability(watershed: str):
             WHERE watershed = :ws AND thermal_classification = 'cold_water_refuge'
         """), {"ws": watershed}).scalar() or 0
 
+        # Long-tail name overrides (FEAT-026 P2) — shared with Fish Present.
+        try:
+            canon_overrides = {
+                (r[0] or "").lower(): r[1] for r in conn.execute(text(
+                    "SELECT raw_name, canonical_label FROM gold.species_aliases"
+                )).fetchall()
+            }
+        except Exception:
+            canon_overrides = {}
+
     water_temp = float(cond[0]) if cond and cond[0] else None
     flow = float(cond[1]) if cond and cond[1] else None
 
@@ -319,7 +329,7 @@ def catch_probability(watershed: str):
         # Shared canonicalization → display label + dedup key (matches Fish
         # Present). Collapses run-timing/case/suffix variants; keeps Steelhead
         # and Rainbow Trout separate.
-        canon = canonicalize(n_clean, sci_clean)
+        canon = canonicalize(n_clean, sci_clean, canon_overrides)
         display = canon.label
         dedup_key = canon.key
         if dedup_key in seen:

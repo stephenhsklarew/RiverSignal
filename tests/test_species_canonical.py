@@ -36,3 +36,12 @@ def test_unknown_name_title_cased():
     c = canonicalize("redbreast sunfish")
     assert c.label == "Redbreast Sunfish"
     assert c.run is None
+
+
+def test_override_wins_for_long_tail():
+    ov = {"columbia river redband trout": "Rainbow Trout"}
+    assert canonicalize("Columbia River Redband Trout", overrides=ov).key == "rainbow trout"
+    # case-insensitive on the raw name
+    assert canonicalize("columbia river redband trout", overrides=ov).label == "Rainbow Trout"
+    # without the override it stays a distinct entry (rules can't infer it)
+    assert canonicalize("Columbia River Redband Trout").key != "rainbow trout"

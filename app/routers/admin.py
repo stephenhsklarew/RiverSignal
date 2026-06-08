@@ -1352,3 +1352,50 @@ def revoke_self_admin(admin: dict = Depends(get_current_admin)):
             {"uid": admin["id"]},
         )
     return {"ok": True, "is_admin": False}
+
+
+# ── Species name overrides (FEAT-026 P2): long-tail name → canonical ──
+#
+# The deterministic canonicalizer handles common variants; this table lets an
+# admin merge a long-tail name (e.g. "Columbia River Redband Trout" → "Rainbow
+# Trout") without a code change. canonicalize() consults it first (global,
+# applies to every watershed + future onboarding).
+
+class SpeciesAliasPayload(BaseModel):
+    raw_name:        str = Field(..., min_length=1, max_length=160)
+    canonical_label: str = Field(..., min_length=1, max_length=120)
+
+
+@router.get("/admin/species-aliases")
+def list_species_aliases(admin: dict = Depends(get_current_admin)):
+    with engine.connect() as conn:
+        rows = conn.execute(text(
+            "SELECT raw_name, canonical_label, created_at FROM gold.species_aliases ORDER BY raw_name"
+        )).fetchall()
+    return [{"raw_name": r[0], "canonical_label": r[1],
+             "created_at": r[2].isoformat() if r[2] else None} for r in rows]
+
+
+@router.post("/admin/species-aliases")
+def upsert_species_alias(payload: SpeciesAliasPayload, admin: dict = Depends(get_current_admin)):
+    """Map a raw fish name to a canonical display label (stored lowercased)."""
+    raw = " ".join(payload.raw_name.split()).lower()
+    label = " ".join(payload.canonical_label.split())
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text("""
+            INSERT INTO gold.species_aliases (raw_name, canonical_label, created_by_user_id)
+            VALUES (:raw, :label, :uid)
+            ON CONFLICT (raw_name) DO UPDATE
+              SET canonical_label = EXCLUDED.canonical_label,
+                  created_by_user_id = EXCLUDED.created_by_user_id,
+                  created_at = now()
+        """), {"raw": raw, "label": label, "uid": admin["id"]})
+    return {"ok": True, "raw_name": raw, "canonical_label": label}
+
+
+@router.delete("/admin/species-aliases/{raw_name:path}")
+def delete_species_alias(raw_name: str, admin: dict = Depends(get_current_admin)):
+    raw = " ".join(raw_name.split()).lower()
+    with engine.connect() as conn, conn.begin():
+        conn.execute(text("DELETE FROM gold.species_aliases WHERE raw_name = :raw"), {"raw": raw})
+    return {"ok": True, "deleted": raw}
