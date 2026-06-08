@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { Link } from 'react-router-dom'
-import lmLogo from '../assets/liquid-marble-logo.png'
+import lmLogo from '../assets/liquid-marble-mark.png'
 import './StatusPage.css'
 
 
