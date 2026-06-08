@@ -69,13 +69,21 @@ watershed) keep the row already at the canonical key, else the most-recently-upd
 and delete the rest (one photo per canonical species). The migration inlines a frozen
 copy of the canonicalization so its result is stable. Downgrade is a no-op.
 
-Still specified:
+✅ **UI run/form badges** (PR #76): Fish Present shows "Spring & Fall runs" etc.;
+`/admin/photos` shows "one photo covers: …".
 
-1. **Curated override table** (`species_aliases`: raw_name/scientific →
-   canonical_key) for the long tail the normalizer can't infer (e.g. "Columbia
-   River Redband Trout"), seeded once, global. Plus an admin "these look like the
-   same fish — merge?" suggestion that writes an override in one tap.
-2. *(superseded — see "Re-key migration" above)* existing `curated_species_photos` rows from raw → canonical
+✅ **Long-tail override mechanism** (`sa30a1b2c3d4` + admin endpoints): table
+`gold.species_aliases` (raw_name → canonical_label); `canonicalize()` consults it
+first; Fish Present + catch-probability load + pass overrides (global, applies to
+every watershed). Admin CRUD: `GET/POST/DELETE /admin/species-aliases`. Verified:
+mapping "Columbia River Redband Trout" → Rainbow Trout merges it across surfaces.
+
+Still specified (convenience, optional):
+
+1. **In-app override management UI** — a small `/admin` surface (or affordance on
+   the fish list) to add/list/remove `species_aliases` without hitting the API
+   directly, plus an optional "these look like the same fish — merge?" suggestion.
+   The mechanism is fully functional + admin-operable via the endpoints today.
    keys, so no curated photo is orphaned by the canonical-key switch. (Phase 1 is
    non-destructive: existing photos still resolve via the gallery/alias fallback in
    `find_photo`, but the "curated" badge can read stale until this runs.)

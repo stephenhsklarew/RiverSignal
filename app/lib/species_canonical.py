@@ -66,8 +66,21 @@ class Canon:
     run: str | None    # run-timing form if the raw name carried one
 
 
-def canonicalize(common_name: str | None, scientific_name: str | None = None) -> Canon:
+def canonicalize(
+    common_name: str | None,
+    scientific_name: str | None = None,
+    overrides: dict[str, str] | None = None,
+) -> Canon:
     raw = " ".join((common_name or "").split())
+
+    # Admin override (gold.species_aliases) wins — handles the long tail the
+    # deterministic rules below can't infer (e.g. "Columbia River Redband
+    # Trout"). `overrides` maps a lowercased raw name → canonical display label.
+    if overrides:
+        ov = overrides.get(raw.lower())
+        if ov:
+            return Canon(key=ov.lower(), label=ov, run=None)
+
     base = raw.lower()
     run: str | None = None
 

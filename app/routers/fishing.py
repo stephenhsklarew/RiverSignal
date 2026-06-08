@@ -93,6 +93,16 @@ def fishing_species(watershed: str):
             if sn:
                 photo_map[sn] = c[2]
 
+        # Admin long-tail override map (FEAT-026 P2) — raw name → canonical label.
+        try:
+            canon_overrides = {
+                (r[0] or "").lower(): r[1] for r in conn.execute(text(
+                    "SELECT raw_name, canonical_label FROM gold.species_aliases"
+                )).fetchall()
+            }
+        except Exception:
+            canon_overrides = {}
+
         # Aliases mapping state-agency shorthands and ODFW run-codes onto
         # iNaturalist common names that the photo gallery actually keys on.
         aliases = {
@@ -186,7 +196,7 @@ def fishing_species(watershed: str):
         # Filter vague generics
         if common.lower() in VAGUE_GENUS_NAMES:
             continue
-        canon = canonicalize(common, sci)
+        canon = canonicalize(common, sci, canon_overrides)
         if canon.key in seen:
             # Merge a duplicate: keep run-timing forms + the raw names covered.
             entry = seen[canon.key]
