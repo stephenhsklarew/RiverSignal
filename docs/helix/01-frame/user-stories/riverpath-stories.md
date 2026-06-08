@@ -343,6 +343,23 @@ Source: FEAT-010/013, alignment review AR-2026-05-08
 
 ---
 
+## Species Canonicalization Stories (2026-06-08)
+
+Source: FEAT-026
+
+### US-070 — Angler sees one clean entry per fish
+**As** Alex (fishing guide),
+**I want** "Fish Present" to show one entry per species instead of "Fall Chinook", "Spring Chinook", and "Chinook" as three rows,
+**So that** the list is readable and I can see run timing at a glance.
+
+**Acceptance Criteria:**
+- Run-timing and case/suffix/subspecies variants collapse to one canonical entry
+- Run timing (spring/fall, summer/winter) is shown as a badge on that entry, not as separate rows
+- Steelhead and Rainbow Trout remain separate entries (anglers treat them as different fish)
+- The admin `/admin/photos` list shows the same deduped species, and setting one photo covers every variant it collapses
+
+---
+
 ## Saved Sharing & Sync Stories (2026-06-05)
 
 Source: FEAT-021 / FEAT-022, alignment review AR-2026-06-06

@@ -5,6 +5,7 @@ from urllib.parse import quote_plus
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 
+from app.lib.species_canonical import canonicalize
 from pipeline.db import engine
 from pipeline.tools import get_fishing_brief, get_species_with_photos
 
@@ -151,16 +152,10 @@ def fishing_species(watershed: str):
         "sucker", "suckers",   # multiple sucker species; bare 'sucker' is non-actionable
         "minnow", "minnows", "dace",  # likewise vague at the bare-genus level
     }
-    # Canonical aliases — collapse common nicknames to one display name so
-    # the dedup key catches "Musky" + "Muskellunge", "Walleye" + "Walleyed
-    # Pike", etc. Matches the CANONICAL_NAMES dict on the
-    # catch-probability endpoint; the two should stay in sync.
-    CANONICAL_NAMES = {
-        "musky": "Muskellunge",
-        "muskellunge": "Muskellunge",
-        "small mouth bass": "Smallmouth Bass",
-        "large mouth bass": "Largemouth Bass",
-    }
+    # Species naming is canonicalized via app.lib.species_canonical.canonicalize
+    # (FEAT-026): it collapses case/suffix/subspecies/run-timing variants
+    # ("Fall Chinook" + "Spring Chinook" + "Chinook" → one "Chinook Salmon"),
+    # while keeping angler-distinct forms separate (Steelhead vs Rainbow Trout).
     # use_type pill normalisation. Values arriving here come straight from
     # state-agency data (ODFW fish_habitat camelCase, hardcoded 'rearing'
     # from stocking interventions, etc.). Translate to user-facing text;
@@ -177,8 +172,8 @@ def fishing_species(watershed: str):
         if raw is None:
             return None
         return USE_TYPE_PILL.get(raw, raw)
-    seen: set[str] = set()
-    out: list[dict] = []
+    seen: dict[str, dict] = {}
+    order: list[str] = []
     for r in rows:
         common = (r[2] or "").strip()
         sci = (r[1] or "").strip()
@@ -191,26 +186,29 @@ def fishing_species(watershed: str):
         # Filter vague generics
         if common.lower() in VAGUE_GENUS_NAMES:
             continue
-        display = " ".join(common.split()).title()
-        # Apply canonical-name alias so "Musky" and "Muskellunge" both
-        # collapse to a single "Muskellunge" entry. Photo lookup uses the
-        # collapsed name so the result is consistent.
-        display = CANONICAL_NAMES.get(display.lower(), display)
-        key = display.lower()
-        if key in seen:
+        canon = canonicalize(common, sci)
+        if canon.key in seen:
+            # Merge a duplicate: keep run-timing forms + the raw names covered.
+            entry = seen[canon.key]
+            if canon.run and canon.run not in entry["runs"]:
+                entry["runs"].append(canon.run)
+            if common not in entry["aliases"]:
+                entry["aliases"].append(common)
             continue
-        seen.add(key)
-        out.append({
+        order.append(canon.key)
+        seen[canon.key] = {
             "stream": r[0],
             "scientific_name": r[1],
-            "common_name": display,
+            "common_name": canon.label,
             "use_type": _normalise_use_type(r[3]),
             "origin": r[4],
             "observation_count": r[5],
             "last_observed": str(r[6]) if r[6] else None,
-            "photo_url": find_photo(display, r[1]),
-        })
-    return out
+            "photo_url": find_photo(canon.label, r[1]),
+            "runs": [canon.run] if canon.run else [],   # e.g. ["spring","fall"] → badge
+            "aliases": [common],                          # raw names this entry covers
+        }
+    return [seen[k] for k in order]
 
 
 @router.get("/sites/{watershed}/fishing/harvest")
