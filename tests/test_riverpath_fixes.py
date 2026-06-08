@@ -185,3 +185,22 @@ def test_do_anomaly_query_is_watershed_scoped():
     """
     with eng.connect() as c:
         assert c.execute(text(q)).scalar() == 1  # only A's row, never B's
+
+
+# ── River Oracle grounds "what fish" on the watershed's species (ADR-007) ──
+def test_oracle_fish_grounding_is_watershed_scoped():
+    # The /river-oracle answer is grounded on gold.species_by_reach for the
+    # watershed (the `fish_present` context). Regression: it hallucinated PNW
+    # species (bull trout, steelhead) for Chattahoochee because no species were
+    # in the context. Guard that the grounding species are watershed-correct.
+    eng = create_engine(DB)
+    with eng.connect() as c:
+        names = " ".join(
+            (r[0] or "").lower() for r in c.execute(text("""
+                SELECT common_name FROM gold.species_by_reach
+                WHERE watershed = :ws GROUP BY common_name
+            """), {"ws": "chattahoochee"}).fetchall()
+        )
+    assert names, "no fish-present grounding data for chattahoochee"
+    assert "bass" in names  # real Chattahoochee fish are present to ground on
+    assert "bull trout" not in names and "steelhead" not in names  # PNW-only
