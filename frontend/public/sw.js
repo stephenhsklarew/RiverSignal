@@ -14,11 +14,11 @@
 // content that active users would otherwise see as 'stale.' The
 // activate handler below deletes any cache whose name doesn't match
 // these constants, so changing the version forces an eviction on
-// every active client at their next navigation. Last bump 2026-06-06:
-// share-link modal close button no longer overflows the box on mobile;
-// force-evict so users get the fixed bundle without a reload.
-const CACHE_NAME = 'riversignal-v11'
-const API_CACHE = 'riversignal-api-v11'
+// every active client at their next navigation. Last bump 2026-06-08:
+// API handler no longer resolves cache-cold failed requests to `undefined`
+// (caused blank /path/now after resume); force-evict so clients run the fix.
+const CACHE_NAME = 'riversignal-v12'
+const API_CACHE = 'riversignal-api-v12'
 const API_BASE = '/api/v1/'
 
 // Pre-cache HTML shells so first-load offline works. Network-first runtime
@@ -60,11 +60,21 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.open(API_CACHE).then(async cache => {
         const cached = await cache.match(request)
-        const fetchPromise = fetch(request).then(response => {
+        const network = fetch(request).then(response => {
           if (response.ok) cache.put(request, response.clone())
           return response
-        }).catch(() => cached)
-        return cached || fetchPromise
+        }).catch(err => {
+          // Fall back to cache if we have one; otherwise let the network error
+          // surface as a REAL failure. Never resolve to `undefined` (the old
+          // `.catch(() => cached)` did when there was no cache) — that yields a
+          // broken response and a blank page the user can't reload out of. A
+          // clean failure lets the page show a retry state and lets SWR retry
+          // on reconnect. Cache-cold requests (e.g. switching to a new
+          // watershed after resume) are exactly when this mattered.
+          if (cached) return cached
+          throw err
+        })
+        return cached || network
       })
     )
     return

@@ -6,6 +6,7 @@ import { swrDefault } from './lib/swr'
 import { SavedProvider } from './components/SavedContext'
 import { DeepTrailProvider } from './components/DeepTrailContext'
 import { AuthProvider, useAuth, RETURN_PATH_KEY } from './components/AuthContext'
+import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 
 function DynamicFavicon() {
@@ -156,6 +157,7 @@ createRoot(document.getElementById('root')!).render(
       <SavedProvider>
         <DeepTrailProvider>
         <DynamicFavicon />
+        <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
             {/* Landing — product selector */}
@@ -222,6 +224,7 @@ createRoot(document.getElementById('root')!).render(
           <ConditionalBottomNav />
           <PersonaPromptGate />
         </Suspense>
+        </ErrorBoundary>
         </DeepTrailProvider>
       </SavedProvider>
       </AuthProvider>
