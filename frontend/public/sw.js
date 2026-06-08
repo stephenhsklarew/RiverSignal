@@ -15,9 +15,8 @@
 // activate handler below deletes any cache whose name doesn't match
 // these constants, so changing the version forces an eviction on
 // every active client at their next navigation. Last bump 2026-06-08:
-// API handler no longer resolves cache-cold failed requests to `undefined`
-// (caused blank /path/now after resume); force-evict so clients run the fix.
-const CACHE_NAME = 'riversignal-v12'
+// FEAT-026 run/form badges in Fish Present + admin 'covers' note.
+const CACHE_NAME = 'riversignal-v13'
 const API_CACHE = 'riversignal-api-v12'
 const API_BASE = '/api/v1/'
 
